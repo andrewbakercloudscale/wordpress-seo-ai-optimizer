@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/cloudscale-seo-ai-optimizer/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.10.20
+ * Version:     4.10.21
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -33,7 +33,7 @@ final class CloudScale_SEO_AI_Optimizer {
     const META_TITLE = '_cs_seo_title';
     const META_DESC  = '_cs_seo_desc';
     const META_OGIMG = '_cs_seo_ogimg';
-    const VERSION    = '4.10.20';
+    const VERSION    = '4.10.21';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -3129,6 +3129,8 @@ Write a single meta description for the article provided. Rules:
             .ab-badge-short  { background:#fcf9e8; color:#7a5c00; border:1px solid #f0d676; }
             .ab-badge-long   { background:#fcf0ef; color:#8a2424; border:1px solid #f5bcbb; }
             .ab-badge-gen    { background:#e8f3fb; color:#1a4a7a; border:1px solid #b2cfe0; }
+            .ab-badge-gen-short { background:#f0e8fb; color:#4a1a7a; border:1px solid #c4b2e0; }
+            .ab-badge-gen-long  { background:#fcf0ef; color:#8a2424; border:1px solid #f5bcbb; }
             .ab-desc-text { font-size:12px; color:#50575e; margin-top:3px; line-height:1.4; word-wrap:break-word; white-space:normal; }
             .ab-desc-gen  { font-size:12px; color:#1a4a7a; margin-top:4px; background:#e8f3fb;
                             border-left:3px solid #2271b1; padding:4px 8px; border-radius:0 3px 3px 0; }
@@ -5602,7 +5604,11 @@ Write a single meta description for the article provided. Rules:
             if (!post.has_desc && !post._gen) return '<span class="ab-badge ab-badge-none">No AI description</span>';
             const desc  = post._gen || post.desc;
             const chars = desc ? desc.length : 0;
-            if (post._gen) return '<span class="ab-badge ab-badge-gen">✦ Generated · ' + chars + 'c</span>';
+            if (post._gen) {
+                if (chars > 0 && chars < abMinChar) return '<span class="ab-badge ab-badge-gen-short">✦ Generated · ' + chars + 'c</span>';
+                if (chars > abMaxChar)              return '<span class="ab-badge ab-badge-gen-long">✦ Generated · ' + chars + 'c</span>';
+                return '<span class="ab-badge ab-badge-gen">✦ Generated · ' + chars + 'c</span>';
+            }
             if (chars >= abMinChar && chars <= abMaxChar) return '<span class="ab-badge ab-badge-ok">✓ ' + chars + 'c</span>';
             if (chars > 0 && chars < abMinChar)           return '<span class="ab-badge ab-badge-short">Short · ' + chars + 'c</span>';
             if (chars > abMaxChar)                         return '<span class="ab-badge ab-badge-long">Long · ' + chars + 'c</span>';
