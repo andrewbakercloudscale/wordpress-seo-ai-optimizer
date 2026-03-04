@@ -3,7 +3,7 @@ Contributors: andrewbaker007
 Tags: seo, meta description, ai, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.10.20
+Stable tag: 4.10.30
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -174,6 +174,45 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 8. Scheduled Batch configuration with day selector and last run status
 
 == Changelog ==
+
+= 4.10.30 =
+* Changed dashboard widget button icon from gear to browser emoji
+
+= 4.10.29 =
+* Renamed dashboard widget button from SEO Settings to View SEO AI Optimizer
+
+= 4.10.28 =
+* Removed duplicate version from widget body text, version now only in widget header
+
+= 4.10.27 =
+* Added version number to dashboard widget header title
+
+= 4.10.26 =
+* Added version number to browser title bar via add_management_page page_title argument
+
+= 4.10.25 =
+* Added version number to settings page h1 heading and dashboard widget
+
+= 4.10.24 =
+* Escalating correction prompts across the 3 retry passes — attempt 1 is polite, attempt 2 is firm, attempt 3 is a final hard instruction with exact over/under character count and a strip-words directive
+* Fixed final attempt message to correctly state over/under direction for both too long and too short cases
+
+= 4.10.23 =
+* Added multi-turn length correction loop (up to 3 passes) in generate flow — when AI returns a description that is too long or too short, follow-up messages tell it exactly how many characters to add or remove
+* Correction messages include the exact character count and delta so Claude can self-correct rather than guess
+
+= 4.10.22 =
+* Fixed Plugin URI pointing to 404 — updated to correct blog post URL
+* Converted inline style echo in admin_head_css to wp_add_inline_style via admin_enqueue_scripts
+* Moved reset-prompt, defer-toggle, and schedule-days inline script blocks to wp_add_inline_script
+* Registered no-op cs-seo-admin and cs-seo-admin-js handles for proper WP enqueue compliance
+* Added wp_localize_script to pass PHP values (defaultPrompt) to enqueued scripts
+
+= 4.10.21 =
+* Fixed PHPCS NonceVerification, MissingUnslash, and InputNotSanitized warnings on ALT text force regenerate parameter
+* Replaced direct unlink() calls with wp_delete_file() in deactivation hook and version change detector
+* Replaced direct rmdir() calls with WP_Filesystem rmdir() for WordPress coding standards compliance
+* Added WP_Filesystem initialisation guard with null check before directory removal
 
 = 4.10.20 =
 * Fixed PHPCS NonceVerification, MissingUnslash, and InputNotSanitized warnings on ALT text force regenerate parameter

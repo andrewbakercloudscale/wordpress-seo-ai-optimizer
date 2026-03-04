@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: CloudScale SEO AI Optimizer
- * Plugin URI:  https://andrewbaker.ninja/cloudscale-seo-ai-optimizer/
+ * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.10.21
+ * Version:     4.10.33
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -33,7 +33,7 @@ final class CloudScale_SEO_AI_Optimizer {
     const META_TITLE = '_cs_seo_title';
     const META_DESC  = '_cs_seo_desc';
     const META_OGIMG = '_cs_seo_ogimg';
-    const VERSION    = '4.10.21';
+    const VERSION    = '4.10.33';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -60,7 +60,7 @@ final class CloudScale_SEO_AI_Optimizer {
 
         add_action('admin_menu',     [$this, 'admin_menu']);
         add_action('admin_notices',  [$this, 'admin_notices']);
-        add_action('admin_head',     [$this, 'admin_head_css']);
+        add_action('admin_enqueue_scripts', [$this, 'admin_enqueue_assets']);
         add_action('wp_ajax_nopriv_cs_seo_download_fonts', [$this, 'ajax_download_fonts']);
         add_action('wp_ajax_cs_seo_download_fonts', [$this, 'ajax_download_fonts']);
         
@@ -88,6 +88,10 @@ final class CloudScale_SEO_AI_Optimizer {
 
         // Suppress Jetpack's Open Graph output — this plugin manages all OG tags.
         add_filter('jetpack_enable_open_graph', '__return_false', 99);
+
+        // Register a dedicated 1200×630 crop for OG images — matches the WhatsApp/Facebook
+        // required aspect ratio so thumbnails appear correctly in social previews.
+        add_action('after_setup_theme', [$this, 'register_og_image_size']);
 
         add_action('init', [$this, 'maybe_register_sitemap']);
         add_action('init', [$this, 'maybe_register_llms_txt']);
@@ -564,6 +568,19 @@ Write a single meta description for the article provided. Rules:
     }
 
     // =========================================================================
+    // OG image size registration
+    // =========================================================================
+
+    /**
+     * Register a 1200×630 hard-cropped image size for OG tags.
+     * This matches the aspect ratio required by WhatsApp, Facebook, and LinkedIn
+     * for reliable thumbnail display in link previews.
+     */
+    public function register_og_image_size(): void {
+        add_image_size('cs_seo_og_image', 1200, 630, true);
+    }
+
+    // =========================================================================
     // OG image
     // =========================================================================
 
@@ -585,7 +602,12 @@ Write a single meta description for the article provided. Rules:
                 }
             } elseif (has_post_thumbnail($pid)) {
                 $thumb_id = (int) get_post_thumbnail_id($pid);
-                $src = wp_get_attachment_image_src($thumb_id, 'full');
+                // Prefer the 1200×630 OG crop — WhatsApp requires ~1.91:1 aspect ratio.
+                // Fall back to full size if the crop has not been generated yet.
+                $src = wp_get_attachment_image_src($thumb_id, 'cs_seo_og_image');
+                if (empty($src[0])) {
+                    $src = wp_get_attachment_image_src($thumb_id, 'full');
+                }
                 if (!empty($src[0])) {
                     $url    = (string) $src[0];
                     $width  = isset($src[1]) ? (int) $src[1] : 0;
@@ -655,6 +677,10 @@ Write a single meta description for the article provided. Rules:
 
         if ($img['url']) {
             $out .= '<meta property="og:image" content="'        . esc_attr($img['url'])            . '">' . "\n";
+            // og:image:secure_url is required by WhatsApp's scraper for HTTPS pages to reliably show link preview thumbnails.
+            if (str_starts_with($img['url'], 'https://')) {
+                $out .= '<meta property="og:image:secure_url" content="' . esc_attr($img['url']) . '">' . "\n";
+            }
             if ($img['width'])  $out .= '<meta property="og:image:width" content="'  . esc_attr((string)$img['width'])  . '">' . "\n";
             if ($img['height']) $out .= '<meta property="og:image:height" content="' . esc_attr((string)$img['height']) . '">' . "\n";
             if ($img['type'])   $out .= '<meta property="og:image:type" content="'   . esc_attr($img['type'])           . '">' . "\n";
@@ -1317,6 +1343,42 @@ Write a single meta description for the article provided. Rules:
         $desc = trim($json['description'] ?? '', '"\'');
         if (!$desc) throw new \RuntimeException('Empty description in AI response'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 
+        // ── Length correction loop (up to 3 passes, escalating) ──────────────
+        $extra_messages = [];
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $len = mb_strlen($desc);
+            if ($len >= $min && $len <= $max) break;
+            $direction = $len > $max ? 'too long' : 'too short';
+            $delta     = $len > $max ? $len - $max : $min - $len;
+            $trim_or_add = $len > $max
+                ? "trim {$delta} characters off the end — cut a word or shorten a phrase."
+                : "add {$delta} characters — expand a phrase or add a concrete detail.";
+
+            if ($attempt === 0) {
+                $correction = "That description is {$direction} at {$len} characters. "
+                    . "It must be between {$min} and {$max} characters. "
+                    . "Please {$trim_or_add} "
+                    . "Output ONLY the revised description, nothing else.";
+            } elseif ($attempt === 1) {
+                $correction = "Still {$direction} at {$len} characters. The hard limit is {$min}\u2013{$max} characters. "
+                    . "You MUST {$trim_or_add} "
+                    . "Do not explain. Do not add quotes. Output the description text only.";
+            } else {
+                $over_or_under = $len > $max ? "over the maximum by {$delta}" : "under the minimum by {$delta}";
+                $correction = "FINAL ATTEMPT. Your output is {$len} characters — {$over_or_under} characters. "
+                    . "It MUST be between {$min} and {$max}. {$trim_or_add} "
+                    . "Output ONLY the raw description text. No quotes. No labels. No explanation. Just the text.";
+            }
+
+            $extra_messages = array_merge($extra_messages, [
+                ['role' => 'assistant', 'content' => $desc],
+                ['role' => 'user',      'content' => $correction],
+            ]);
+            $retry = $this->dispatch_ai($provider, $key, $model, $system, $user_msg, $extra_messages, 300);
+            $retry = trim(trim($retry, '"\''));
+            if ($retry) $desc = $retry;
+        }
+
         // ── Title ─────────────────────────────────────────────────────────────
         $new_title    = trim($json['title'] ?? '', '"\'') ?: $current_title;
         $new_title_len = mb_strlen($new_title);
@@ -1849,6 +1911,33 @@ Write a single meta description for the article provided. Rules:
                 }
             }
 
+            // Also check the featured image — it lives outside post content so
+            // the img-tag scan above will never find it.
+            $thumb_id = (int) get_post_thumbnail_id($post_id);
+            if ($thumb_id) {
+                $thumb_src = wp_get_attachment_image_src($thumb_id, 'full');
+                $thumb_alt = trim((string) get_post_meta($thumb_id, '_wp_attachment_image_alt', true));
+                $missing_thumb = ($thumb_alt === '');
+                if ($thumb_src && !empty($thumb_src[0])) {
+                    // Avoid double-counting if the featured image is also embedded in content.
+                    $already_listed = false;
+                    foreach ($post_images as $pi) {
+                        if ($pi['attach_id'] === $thumb_id) { $already_listed = true; break; }
+                    }
+                    if (!$already_listed) {
+                        $post_images[] = [
+                            'attach_id'  => $thumb_id,
+                            'src'        => $thumb_src[0],
+                            'alt'        => $thumb_alt,
+                            'missing'    => $missing_thumb,
+                            'is_featured'=> true,
+                        ];
+                        $total_images++;
+                        if ($missing_thumb) $missing_alt++;
+                    }
+                }
+            }
+
             if (!empty($post_images)) {
                 $post_missing = count(array_filter($post_images, fn($i) => $i['missing']));
                 $results[] = [
@@ -2249,9 +2338,56 @@ Write a single meta description for the article provided. Rules:
         }
     }
 
-    public function admin_head_css(): void {
+    public function admin_enqueue_assets(): void {
         if (!$this->is_our_page()) return;
-        echo '<style>#wpfooter { display:none !important; } #wpcontent, #wpbody-content { padding-bottom:0 !important; }</style>';
+
+        // Register a no-op handle so we can attach inline style and scripts to it.
+        wp_register_style('cs-seo-admin', false, [], self::VERSION);
+        wp_enqueue_style('cs-seo-admin');
+        wp_add_inline_style('cs-seo-admin', '#wpfooter { display:none !important; } #wpcontent, #wpbody-content { padding-bottom:0 !important; }');
+
+        // Register a no-op script handle for inline scripts that have no external file.
+        wp_register_script('cs-seo-admin-js', false, [], self::VERSION, true);
+        wp_enqueue_script('cs-seo-admin-js');
+
+        // Pass PHP values needed by inline scripts as a JS object.
+        wp_localize_script('cs-seo-admin-js', 'csSeoAdmin', [
+            'defaultPrompt' => self::default_prompt(),
+        ]);
+
+        // Reset-prompt button (was inline at line 3540).
+        wp_add_inline_script('cs-seo-admin-js',
+            'document.addEventListener("DOMContentLoaded", function() {
+                var resetBtn = document.getElementById("ab-reset-prompt");
+                if (resetBtn) {
+                    resetBtn.addEventListener("click", function() {
+                        document.getElementById("ab-prompt-field").value = csSeoAdmin.defaultPrompt;
+                    });
+                }
+            });'
+        );
+
+        // Defer JS excludes toggle (was inline at line 4574).
+        wp_add_inline_script('cs-seo-admin-js',
+            'document.addEventListener("DOMContentLoaded", function() {
+                var deferToggle = document.getElementById("ab-defer-toggle");
+                if (deferToggle) {
+                    deferToggle.addEventListener("change", function() {
+                        document.getElementById("ab-defer-excludes-wrap").style.display = this.checked ? "" : "none";
+                    });
+                }
+            });'
+        );
+
+        // Scheduled batch day toggle (was inline at line 4654).
+        wp_add_inline_script('cs-seo-admin-js',
+            'function csToggleSchedDays(enabled) {
+                document.querySelectorAll(".cs-sched-day").forEach(function(cb) {
+                    cb.disabled = !enabled;
+                    cb.closest("label").style.opacity = enabled ? "1" : "0.4";
+                });
+            }'
+        );
     }
 
     /**
@@ -2324,7 +2460,7 @@ Write a single meta description for the article provided. Rules:
     public function register_dashboard_widget(): void {
         wp_add_dashboard_widget(
             'cs_seo_dashboard_widget',
-            '🥷 AndrewBaker.Ninja AI SEO Optimizer',
+            '🥷 AndrewBaker.Ninja AI SEO Optimizer <span style="font-size:11px;font-weight:400;color:#999;margin-left:6px">v' . self::VERSION . '</span>',
             [$this, 'render_dashboard_widget']
         );
     }
@@ -2356,7 +2492,7 @@ Write a single meta description for the article provided. Rules:
                           transition:filter 0.15s,transform 0.15s"
                    onmouseover="this.style.filter='brightness(1.15)';this.style.transform='scale(1.02)'"
                    onmouseout="this.style.filter='';this.style.transform=''">
-                    <span style="font-size:15px">⚙</span> SEO Settings
+                    <span style="font-size:15px">🔭</span> View SEO AI Optimizer
                 </a>
             </div>
         </div>
@@ -2364,7 +2500,7 @@ Write a single meta description for the article provided. Rules:
 
     public function admin_menu(): void {
         add_management_page(
-            'CloudScale SEO AI Optimizer',
+            'CloudScale SEO AI Optimizer v' . self::VERSION,
             'CloudScale SEO AI',
             'manage_options',
             'cs-seo-optimizer',
@@ -3054,7 +3190,7 @@ Write a single meta description for the article provided. Rules:
         $nonce = wp_create_nonce('cs_seo_nonce');
         ?>
         <div class="wrap">
-        <h1>CloudScale SEO AI Optimizer</h1>
+        <h1>CloudScale SEO AI Optimizer <span style="font-size:13px;font-weight:400;color:#999;margin-left:6px">v<?php echo esc_html(self::VERSION); ?></span></h1>
         <a href="https://andrewbaker.ninja" target="_blank" rel="noopener" style="
             display:inline-flex;
             align-items:center;
@@ -3537,11 +3673,7 @@ Write a single meta description for the article provided. Rules:
                                     Reset to default
                                 </button>
                             </div>
-                            <script>
-                            document.getElementById('ab-reset-prompt').addEventListener('click', function() {
-                                document.getElementById('ab-prompt-field').value = <?php echo wp_json_encode(self::default_prompt()); ?>;
-                            });
-                            </script>
+                            <?php /* reset-prompt listener moved to admin_enqueue_assets() */ ?>
                         </td>
                     </tr>
                 </table>
@@ -3556,6 +3688,7 @@ Write a single meta description for the article provided. Rules:
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">✦</span> Update Posts with AI Descriptions</span>
                     <?php $this->explain_btn('updateposts', '✦ Update Posts — How this works', [
+                        ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Writes the short text snippet that appears under your page title in Google search results — using AI to craft a compelling 140–155 character summary for each post.'],
                         ['rec'=>'ℹ️ Info','name'=>'Total Posts','desc'=>'The total number of published posts and pages on your site that are eligible for meta description generation.'],
                         ['rec'=>'ℹ️ Info','name'=>'Have Description','desc'=>'Posts that already have a meta description saved — either written manually or previously generated by the AI.'],
                         ['rec'=>'ℹ️ Info','name'=>'Unprocessed','desc'=>'Posts with no meta description yet. These are the ones Google is currently generating its own snippet for — which is often not the best representation of your content.'],
@@ -3646,6 +3779,7 @@ Write a single meta description for the article provided. Rules:
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">🖼</span> AI Image ALT Text Generator</span>
                     <?php $this->explain_btn('alttext', '🖼 ALT Text — How this works', [
+                        ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Adds descriptive labels to every image on your site — used by screen readers for accessibility and by Google to understand image content for search ranking.'],
                         ['rec'=>'✅ Recommended','name'=>'Why ALT text matters','desc'=>'ALT (alternative) text describes images to screen readers and search engines. Missing ALT text is an accessibility failure and an SEO missed opportunity — Google uses ALT text to understand image content and rank your images in Google Images search.'],
                         ['rec'=>'ℹ️ Info','name'=>'Posts with missing ALT','desc'=>'Shows how many posts have at least one image with an empty ALT attribute. Click Load to scan your site.'],
                         ['rec'=>'ℹ️ Info','name'=>'Images missing ALT','desc'=>'The total count of individual image tags across all posts that have empty ALT attributes.'],
@@ -4571,11 +4705,7 @@ Write a single meta description for the article provided. Rules:
                             placeholder="jquery&#10;woocommerce&#10;my-critical-script"><?php echo esc_textarea((string)($o['defer_js_excludes'] ?? '')); ?></textarea>
                         <p class="description">Scripts whose handle name or URL contains any of these strings will be excluded from deferring. jQuery and a set of other commonly problematic scripts are excluded automatically — you only need to add scripts that are still breaking your site after enabling defer.</p>
                     </div>
-                    <script>
-                    document.getElementById('ab-defer-toggle').addEventListener('change', function() {
-                        document.getElementById('ab-defer-excludes-wrap').style.display = this.checked ? '' : 'none';
-                    });
-                    </script>
+                    <?php /* defer-toggle listener moved to admin_enqueue_assets() */ ?>
                     </div>
 
                     <div style="margin-top:16px;border-top:1px solid #e5e5e5;padding-top:16px">
@@ -4651,14 +4781,7 @@ Write a single meta description for the article provided. Rules:
                                 </label>
                             <?php endforeach; ?>
                             </div>
-                            <script>
-                            function csToggleSchedDays(enabled) {
-                                document.querySelectorAll('.cs-sched-day').forEach(function(cb) {
-                                    cb.disabled = !enabled;
-                                    cb.closest('label').style.opacity = enabled ? '1' : '0.4';
-                                });
-                            }
-                            </script>
+                            <?php /* csToggleSchedDays moved to admin_enqueue_assets() */ ?>
                             <p class="description" style="margin-top:10px">
                                 <?php
                                 $cron_next = wp_next_scheduled('cs_seo_daily_batch');

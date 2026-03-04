@@ -1,6 +1,6 @@
 # CloudScale SEO AI Optimizer
 
-![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-blue) ![PHP](https://img.shields.io/badge/PHP-8.0%2B-purple) ![License](https://img.shields.io/badge/License-GPLv2-green) ![Version](https://img.shields.io/badge/Version-4.10.20-orange)
+![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-blue) ![PHP](https://img.shields.io/badge/PHP-8.0%2B-purple) ![License](https://img.shields.io/badge/License-GPLv2-green) ![Version](https://img.shields.io/badge/Version-4.10.22-orange)
 
 Enterprise grade WordPress SEO with AI powered meta description and ALT text generation via Anthropic Claude or Google Gemini. Completely free.
 
