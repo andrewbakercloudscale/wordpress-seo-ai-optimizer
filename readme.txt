@@ -3,7 +3,7 @@ Contributors: andrewbaker007
 Tags: seo, meta description, ai, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.10.30
+Stable tag: 4.10.34
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -174,6 +174,14 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 8. Scheduled Batch configuration with day selector and last run status
 
 == Changelog ==
+
+= 4.10.34 =
+* OG image now uses a dedicated 1200x630 crop for correct WhatsApp and social media thumbnail aspect ratio
+* Added og:image:secure_url meta tag required by WhatsApp scraper for HTTPS pages
+* ALT text scanner now includes featured images, not just images embedded in post content
+* ALT text generator now writes ALT for featured images via attachment meta
+* Added one-line summary to Explain modals on Update Posts and ALT Text panels
+* S3Deploy.sh scripts made self-contained across all plugin repos
 
 = 4.10.30 =
 * Changed dashboard widget button icon from gear to browser emoji
