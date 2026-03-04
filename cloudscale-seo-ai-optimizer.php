@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.10.33
+ * Version:     4.10.34
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -33,7 +33,7 @@ final class CloudScale_SEO_AI_Optimizer {
     const META_TITLE = '_cs_seo_title';
     const META_DESC  = '_cs_seo_desc';
     const META_OGIMG = '_cs_seo_ogimg';
-    const VERSION    = '4.10.33';
+    const VERSION    = '4.10.34';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -2077,8 +2077,53 @@ Write a single meta description for the article provided. Rules:
             }
         }
 
-        if ($updated > 0) {
-            // Save updated post content.
+        // Also handle the featured image — it lives in post meta, not post_content,
+        // so the img-tag loop above will never reach it.
+        $thumb_id = (int) get_post_thumbnail_id($post_id);
+        if ($thumb_id) {
+            $thumb_alt = trim((string) get_post_meta($thumb_id, '_wp_attachment_image_alt', true));
+            if ($force || $thumb_alt === '') {
+                $thumb_src  = wp_get_attachment_image_src($thumb_id, 'full');
+                $thumb_url  = $thumb_src ? (string) $thumb_src[0] : '';
+                $filename   = pathinfo(wp_parse_url($thumb_url, PHP_URL_PATH), PATHINFO_FILENAME);
+                $filename   = preg_replace('/[-_](\d+x\d+)$/', '', $filename);
+                $filename   = str_replace(['-', '_'], ' ', $filename);
+
+                $system   = 'You write concise, descriptive image alt text for blog post images. '
+                    . 'Alt text should describe what the image shows in 5–15 words, relevant to the post context. '
+                    . 'Do not start with "Image of" or "Photo of". Output ONLY the alt text, nothing else.';
+                $user_msg = "Post title: \"{$title}\"\n"
+                    . "Article excerpt: \"{$article_text}\"\n"
+                    . "Image filename hint: \"{$filename}\"\n"
+                    . "Write appropriate alt text for this image.";
+
+                try {
+                    $alt_text = $this->dispatch_ai($provider, $key, $model, $system, $user_msg, null, 80);
+                    $alt_text = trim(trim($alt_text, '"\''));
+                    if ($alt_text) {
+                        $word_count = str_word_count($alt_text);
+                        if ($word_count < $min_words || $word_count > $max_words) {
+                            $retry_msg  = "Your previous alt text was {$word_count} words: \"{$alt_text}\"\n"
+                                . "Post title: \"{$title}\"\n"
+                                . "Image filename hint: \"{$filename}\"\n"
+                                . "Rewrite the alt text to be between {$min_words} and {$max_words} words. Output ONLY the alt text.";
+                            $retry_text = $this->dispatch_ai($provider, $key, $model, $system, $retry_msg, null, 80);
+                            $retry_text = trim(trim($retry_text, '"\''));
+                            if ($retry_text) $alt_text = $retry_text;
+                        }
+                        $alt_text = sanitize_text_field($alt_text);
+                        update_post_meta($thumb_id, '_wp_attachment_image_alt', $alt_text);
+                        $generated[] = ['src' => $thumb_url, 'alt' => $alt_text, 'attach_id' => $thumb_id];
+                        $updated++;
+                    }
+                } catch (\Throwable $e) {
+                    $warnings[] = sprintf( 'Featured image %s: %s', esc_url( $thumb_url ), $e->getMessage() );
+                }
+            }
+        }
+
+        if ($updated > 0 && $new_content !== $content) {
+            // Save updated post content only if content images were changed.
             wp_update_post([
                 'ID'           => $post_id,
                 'post_content' => $new_content,
@@ -6293,7 +6338,7 @@ Write a single meta description for the article provided. Rules:
                 : altState.posts.filter(p => p.missing_count > 0 || p._done);
 
             if (!altState.posts.length) {
-                wrap.innerHTML = '<p style="color:#1a7a34;margin-top:12px">✓ No images found in post content.</p>';
+                wrap.innerHTML = '<p style="color:#1a7a34;margin-top:12px">✓ No images found in posts or featured images.</p>';
                 return;
             }
 
