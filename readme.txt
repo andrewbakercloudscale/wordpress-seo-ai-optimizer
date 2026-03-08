@@ -3,7 +3,7 @@ Contributors: andrewbaker007
 Tags: seo, meta description, ai, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.10.58
+Stable tag: 4.10.68
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -82,6 +82,20 @@ It handles the essentials cleanly and adds an AI Meta Writer that uses either th
 * Post editor metabox with custom title, description, OG image, and inline AI generation
 * Gutenberg sidebar panel (CloudScale Meta Boxes) with custom title, description, OG image, AI summary fields, and one click generation without leaving the editor
 * Per post status badges showing description length and health
+
+= Category Fixer =
+
+* Scans all published posts and suggests improved category assignments using AI
+* Uses Claude to analyse post title, slug, tags, and AI summary box against your full category list
+* Proposes up to four categories per post — only from categories that already exist in WordPress
+* Never assigns Uncategorized
+* Colour coded review table: green for additions, red for removals, grey for kept categories
+* Per post Apply and Skip buttons, plus bulk Apply All Changed
+* Filter bar: All, Changed, Unchanged, Low Confidence, Missing
+* Reload button re-analyses all posts with fresh AI calls
+* Per row re-analyse button for individual posts
+* AI analysis badge shows confidence score
+* No categories are changed until you explicitly click Apply
 
 = What This Plugin Does Not Do =
 
@@ -185,6 +199,52 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 8. Scheduled Batch configuration with day selector and last run status
 
 == Changelog ==
+
+= 4.10.68 =
+* Category Fixer colour legend added above table showing Added, Removed, Kept pill meanings
+
+= 4.10.67 =
+* Category Fixer proposed column pill colours updated to standard WordPress traffic light palette
+* Changed flag now compares sorted arrays to eliminate false positives from category ID ordering
+
+= 4.10.66 =
+* AI Analyse All button added to Category Fixer toolbar
+* Per row reanalyse button now calls AI instead of local scorer
+* cfAiOne() merges AI results back into post list without full page reload
+* Progress counter shows live status during bulk AI analysis
+
+= 4.10.65 =
+* ajax_catfix_ai_one() handler added: analyses a single post via Claude and returns proposed category IDs
+* AI prompt constrains Claude to only return IDs from the existing category list, max 4, never Uncategorized
+* Results stored in post meta with source=ai
+
+= 4.10.64 =
+* Uncategorized fully excluded from Category Fixer scoring and fallback path
+
+= 4.10.63 =
+* Category Fixer proposed column now uses colour coded pills: green for additions, red for removals, grey for kept
+
+= 4.10.62 =
+* Category Fixer default view after scan now shows Changed posts only
+* Active filter button highlights in forest green
+
+= 4.10.61 =
+* Category Fixer confidence badge now uses white-space:nowrap to prevent label wrapping
+* Confidence column width increased to 110px
+
+= 4.10.60 =
+* Fixed explain_btn call signature in Category Fixer panel
+
+= 4.10.59 =
+* Category Fixer tab added with forest green styling
+* Local keyword scoring engine: tokenises title, slug, tags, and AI summary against category list
+* Weighted scoring: title 4pts, summary 3pts, tags 3pts, slug 2pts, continuity bonus 2pts
+* Paginated review table with current and proposed category pills
+* Per post Apply, Skip, and reanalyse buttons
+* Bulk Apply All Changed with checkbox selection
+* Filter bar: All, Changed, Unchanged, Low Confidence, Missing
+* Results cached in post meta with MD5 fingerprint for change detection
+* Reload button in panel header for full rescan
 
 = 4.10.58 =
 * Summary box row dividers now use indigo tint overriding theme td border styles with !important

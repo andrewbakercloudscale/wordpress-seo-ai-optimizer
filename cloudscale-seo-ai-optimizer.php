@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.10.55
+ * Version:     4.10.68
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -143,6 +143,13 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('wp_ajax_cs_seo_summary_generate_all', [$this, 'ajax_summary_generate_all']);
 
         // Font-display optimization
+        add_action('wp_ajax_cs_catfix_load',    [$this, 'ajax_catfix_load']);
+        add_action('wp_ajax_cs_catfix_analyse',  [$this, 'ajax_catfix_analyse']);
+        add_action('wp_ajax_cs_catfix_apply',    [$this, 'ajax_catfix_apply']);
+        add_action('wp_ajax_cs_catfix_skip',     [$this, 'ajax_catfix_skip']);
+        add_action('wp_ajax_cs_catfix_bulk_apply', [$this, 'ajax_catfix_bulk_apply']);
+        add_action('wp_ajax_cs_catfix_ai_one',    [$this, 'ajax_catfix_ai_one']);
+
         add_action('wp_ajax_cs_seo_font_scan', [$this, 'ajax_font_scan']);
         add_action('wp_ajax_cs_seo_font_fix', [$this, 'ajax_font_fix']);
         add_action('wp_ajax_cs_seo_font_undo', [$this, 'ajax_font_undo']);
@@ -839,19 +846,25 @@ Write a single meta description for the article provided. Rules:
 
         if (!$sum_what || !$sum_why || !$sum_key) return $content;
 
+        $row_sep = 'border-bottom:1px solid rgba(79,70,229,0.15);';
+        $lbl     = 'padding:14px 20px 14px 24px;vertical-align:top;width:148px;font-weight:600;font-size:12.5px;color:#4f46e5;white-space:nowrap;letter-spacing:.01em;border:none!important;border-bottom:inherit;border-right:none!important;';
+        $val     = 'padding:14px 24px 14px 0;color:#374151;font-size:14px;line-height:1.7;border:none!important;border-bottom:inherit;border-right:none!important;';
+
         $box  = '<div class="cs-seo-summary-box" style="';
-        $box .= 'background:#f8f9fa;border:1px solid #e2e8f0;border-left:4px solid #4f46e5;';
-        $box .= 'border-radius:6px;padding:20px 24px;margin:0 0 28px;font-size:15px;line-height:1.6;';
+        $box .= 'background:#ffffff;border-radius:14px;overflow:hidden;';
+        $box .= 'margin:0 0 36px;';
+        $box .= 'box-shadow:0 2px 8px rgba(0,0,0,0.06),0 8px 32px rgba(79,70,229,0.12),0 1px 2px rgba(0,0,0,0.04);';
         $box .= '">';
-        $box .= '<p style="margin:0 0 14px;font-size:11px;font-weight:700;letter-spacing:.08em;';
-        $box .= 'text-transform:uppercase;color:#6b7280;">In this article</p>';
-        $box .= '<table style="width:100%;border-collapse:collapse;">';
-        $box .= '<tr><td style="padding:6px 0 6px;vertical-align:top;width:130px;font-weight:700;font-size:13px;color:#374151;">What it is</td>';
-        $box .= '<td style="padding:6px 0 6px;color:#1f2937;">' . esc_html($sum_what) . '</td></tr>';
-        $box .= '<tr><td style="padding:6px 0 6px;vertical-align:top;font-weight:700;font-size:13px;color:#374151;">Why it matters</td>';
-        $box .= '<td style="padding:6px 0 6px;color:#1f2937;">' . esc_html($sum_why) . '</td></tr>';
-        $box .= '<tr><td style="padding:6px 0 6px;vertical-align:top;font-weight:700;font-size:13px;color:#374151;">Key takeaway</td>';
-        $box .= '<td style="padding:6px 0 6px;color:#1f2937;">' . esc_html($sum_key) . '</td></tr>';
+        $box .= '<div style="background:linear-gradient(120deg,#4338ca 0%,#6366f1 60%,#818cf8 100%);padding:12px 24px;display:flex;align-items:center;gap:9px;">';
+        $box .= '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>';
+        $box .= '<span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.95);">CloudScale SEO &mdash; AI Article Summary</span>';
+        $box .= '</div>';
+        $box .= '<table style="width:100%;border-collapse:collapse;background:#ffffff;">';
+        $box .= '<tr style="' . $row_sep . '"><td style="' . $lbl . '">What it is</td><td style="' . $val . '">' . esc_html($sum_what) . '</td></tr>';
+        $box .= '<tr style="' . $row_sep . '"><td style="' . $lbl . '">Why it matters</td><td style="' . $val . '">' . esc_html($sum_why) . '</td></tr>';
+        $last_lbl = str_replace('border-bottom:inherit', 'border-bottom:none!important', $lbl);
+        $last_val = str_replace('border-bottom:inherit', 'border-bottom:none!important', $val);
+        $box .= '<tr><td style="' . $last_lbl . '">Key takeaway</td><td style="' . $last_val . '">' . esc_html($sum_key) . '</td></tr>';
         $box .= '</table>';
         $box .= '</div>';
 
@@ -4147,6 +4160,380 @@ JSCODE;
     }
 
     // =========================================================================
+    // Category Fixer AJAX
+    // =========================================================================
+
+    private function catfix_nonce_check(): void {
+        check_ajax_referer('cs_seo_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_die();
+    }
+
+    /**
+     * Tokenise a string into lowercase words, stripping punctuation.
+     */
+    private function catfix_tokens(string $text): array {
+        $text = strtolower(wp_strip_all_tags($text));
+        $text = preg_replace('/[^a-z0-9\s]/', ' ', $text);
+        $words = preg_split('/\s+/', trim($text), -1, PREG_SPLIT_NO_EMPTY);
+        // Strip very short stop words
+        $stop = ['a','an','the','and','or','of','in','to','for','is','are','was','were',
+                 'it','its','this','that','with','on','at','by','as','be','not','but',
+                 'from','how','what','why','when','which','who','will','can','has','have',
+                 'had','do','does','did','so','if','up','out','all','more','some'];
+        return array_values(array_diff($words, $stop));
+    }
+
+    /**
+     * Score a category against a set of token bags. Returns 0-100.
+     * Token bags: ['title'=>[], 'summary'=>[], 'tags'=>[], 'slug'=>[]]
+     */
+    private function catfix_score(string $cat_name, array $bags): int {
+        $cat_tokens = $this->catfix_tokens($cat_name);
+        if (empty($cat_tokens)) return 0;
+        $score = 0;
+        $weights = ['title' => 4, 'summary' => 3, 'tags' => 3, 'slug' => 2, 'current' => 2];
+        foreach ($bags as $bag_name => $bag_tokens) {
+            $w = $weights[$bag_name] ?? 1;
+            $hits = count(array_intersect($cat_tokens, $bag_tokens));
+            $score += $hits * $w;
+        }
+        // Normalise loosely: cap at 20, scale to 0-100
+        return (int) min(100, round(($score / max(1, count($cat_tokens))) * 25));
+    }
+
+    /**
+     * Analyse one post: returns proposed category ids, scores, reason, fingerprint.
+     */
+    private function catfix_analyse_post(int $post_id): array {
+        $post = get_post($post_id);
+        if (!$post) return [];
+
+        // Build token bags
+        $title_tokens   = $this->catfix_tokens($post->post_title);
+        $slug_tokens    = $this->catfix_tokens(str_replace('-', ' ', $post->post_name));
+        $sum_what       = trim((string) get_post_meta($post_id, self::META_SUM_WHAT, true));
+        $summary_tokens = $this->catfix_tokens($sum_what);
+        $tags           = wp_get_post_tags($post_id, ['fields' => 'names']);
+        $tag_tokens     = [];
+        foreach ($tags as $t) $tag_tokens = array_merge($tag_tokens, $this->catfix_tokens($t));
+        $current_ids    = wp_get_post_categories($post_id, ['fields' => 'ids']);
+
+        $bags = [
+            'title'   => $title_tokens,
+            'summary' => $summary_tokens,
+            'tags'    => $tag_tokens,
+            'slug'    => $slug_tokens,
+        ];
+
+        // Score every category
+        $all_cats = get_categories(['hide_empty' => false]);
+        $scored = [];
+        foreach ($all_cats as $cat) {
+            if (strtolower($cat->name) === 'uncategorized') continue;
+            $b = $bags;
+            // Continuity bonus: if already assigned, add it to current bag
+            if (in_array((int) $cat->term_id, array_map('intval', $current_ids))) {
+                $b['current'] = $this->catfix_tokens($cat->name);
+            }
+            $s = $this->catfix_score($cat->name, $b);
+            if ($s > 0) $scored[(int) $cat->term_id] = $s;
+        }
+        arsort($scored);
+
+        // Cap at 4, require score >= 8
+        $proposed_ids = [];
+        foreach ($scored as $cid => $s) {
+            if ($s < 8) break;
+            $proposed_ids[] = $cid;
+            if (count($proposed_ids) >= 4) break;
+        }
+
+        // Confidence: top score normalised
+        $top_score  = !empty($scored) ? reset($scored) : 0;
+        $confidence = min(100, $top_score);
+        $source     = 'local';
+
+        // If proposed is empty, keep current (minus Uncategorized)
+        if (empty($proposed_ids)) {
+            $uncat_id     = (int) get_cat_ID('Uncategorized');
+            $proposed_ids = array_values(array_filter(
+                array_map('intval', $current_ids),
+                fn($id) => $id !== $uncat_id
+            ));
+            $confidence   = 10;
+            $source       = 'fallback';
+        }
+
+        // Fingerprint
+        $fp = md5($post->post_title . $sum_what . implode(',', $tag_tokens));
+
+        // Reason string
+        $top_names = [];
+        foreach (array_slice($scored, 0, 3, true) as $cid => $s) {
+            $c = get_term($cid);
+            if ($c && !is_wp_error($c)) $top_names[] = $c->name . '(' . $s . ')';
+        }
+        $reason = empty($top_names) ? 'No strong matches found' : 'Top matches: ' . implode(', ', $top_names);
+
+        return [
+            'post_id'      => $post_id,
+            'proposed_ids' => $proposed_ids,
+            'current_ids'  => array_map('intval', $current_ids),
+            'confidence'   => $confidence,
+            'reason'       => $reason,
+            'source'       => $source,
+            'fingerprint'  => $fp,
+        ];
+    }
+
+    public function ajax_catfix_load(): void {
+        $this->catfix_nonce_check();
+
+        $posts = get_posts([
+            'post_type'      => 'post',
+            'post_status'    => 'publish',
+            'posts_per_page' => -1,
+            'fields'         => 'ids',
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+        ]);
+
+        $all_cats = get_categories(['hide_empty' => false]);
+        $cat_map  = [];
+        foreach ($all_cats as $c) $cat_map[(int) $c->term_id] = $c->name;
+
+        $results = [];
+        foreach ($posts as $pid) {
+            $pid  = (int) $pid;
+            $post = get_post($pid);
+
+            // Check cached proposal
+            $cached_fp  = (string) get_post_meta($pid, 'cloudscale_categoryfix_fingerprint', true);
+            $sum_what   = trim((string) get_post_meta($pid, self::META_SUM_WHAT, true));
+            $tags       = wp_get_post_tags($pid, ['fields' => 'names']);
+            $tag_str    = implode(',', array_map(function($t){ return $this->catfix_tokens($t); }, $tags));
+            // Flatten tag tokens for fingerprint
+            $tag_flat   = implode(',', wp_get_post_tags($pid, ['fields' => 'names']));
+            $fp_now     = md5($post->post_title . $sum_what . $tag_flat);
+            $use_cache  = ($cached_fp === $fp_now) &&
+                          !empty(get_post_meta($pid, 'cloudscale_categoryfix_proposed_ids', true));
+
+            if ($use_cache) {
+                $proposed_ids = array_map('intval', (array) get_post_meta($pid, 'cloudscale_categoryfix_proposed_ids', true));
+                $current_ids  = array_map('intval', wp_get_post_categories($pid, ['fields' => 'ids']));
+                $confidence   = (int) get_post_meta($pid, 'cloudscale_categoryfix_confidence', true);
+                $reason       = (string) get_post_meta($pid, 'cloudscale_categoryfix_reason', true);
+                $source       = 'cache';
+            } else {
+                $data         = $this->catfix_analyse_post($pid);
+                $proposed_ids = $data['proposed_ids'];
+                $current_ids  = $data['current_ids'];
+                $confidence   = $data['confidence'];
+                $reason       = $data['reason'];
+                $source       = $data['source'];
+                $fp_now       = $data['fingerprint'];
+                // Store
+                update_post_meta($pid, 'cloudscale_categoryfix_proposed_ids',  $proposed_ids);
+                update_post_meta($pid, 'cloudscale_categoryfix_current_ids',    $current_ids);
+                update_post_meta($pid, 'cloudscale_categoryfix_confidence',     $confidence);
+                update_post_meta($pid, 'cloudscale_categoryfix_reason',         $reason);
+                update_post_meta($pid, 'cloudscale_categoryfix_source',         $source);
+                update_post_meta($pid, 'cloudscale_categoryfix_generated_at',   current_time('mysql'));
+                update_post_meta($pid, 'cloudscale_categoryfix_fingerprint',    $fp_now);
+                update_post_meta($pid, 'cloudscale_categoryfix_status',         'pending');
+            }
+
+            $current_names  = array_map(fn($id) => $cat_map[$id] ?? 'Unknown', $current_ids);
+            $proposed_names = array_map(fn($id) => $cat_map[$id] ?? 'Unknown', $proposed_ids);
+            $add_ids        = array_values(array_diff($proposed_ids, $current_ids));
+            $remove_ids     = array_values(array_diff($current_ids, $proposed_ids));
+            $unchanged_ids  = array_values(array_intersect($current_ids, $proposed_ids));
+
+            $current_sorted  = $current_ids;  sort($current_sorted);
+            $proposed_sorted = $proposed_ids; sort($proposed_sorted);
+            $truly_changed   = ($current_sorted !== $proposed_sorted);
+
+            $results[] = [
+                'post_id'         => $pid,
+                'title'           => get_the_title($pid),
+                'current_ids'     => $current_ids,
+                'current_names'   => $current_names,
+                'proposed_ids'    => $proposed_ids,
+                'proposed_names'  => $proposed_names,
+                'add_ids'         => $add_ids,
+                'add_names'       => array_map(fn($id) => $cat_map[$id] ?? 'Unknown', $add_ids),
+                'remove_ids'      => $remove_ids,
+                'remove_names'    => array_map(fn($id) => $cat_map[$id] ?? 'Unknown', $remove_ids),
+                'unchanged_names' => array_map(fn($id) => $cat_map[$id] ?? 'Unknown', $unchanged_ids),
+                'confidence'      => $confidence,
+                'reason'          => $reason,
+                'source'          => $source,
+                'changed'         => $truly_changed,
+                'status'          => (string) get_post_meta($pid, 'cloudscale_categoryfix_status', true),
+            ];
+        }
+
+        wp_send_json(['success' => true, 'posts' => $results, 'cat_map' => $cat_map]);
+    }
+
+    public function ajax_catfix_apply(): void {
+        $this->catfix_nonce_check();
+        $pid          = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
+        $proposed_raw = isset($_POST['proposed_ids']) ? (array) wp_unslash($_POST['proposed_ids']) : [];
+        if (!$pid) wp_send_json(['success' => false, 'error' => 'No post_id']);
+        $ids = array_map('intval', $proposed_raw);
+        wp_set_post_categories($pid, $ids);
+        update_post_meta($pid, 'cloudscale_categoryfix_status', 'applied');
+        wp_send_json(['success' => true]);
+    }
+
+    public function ajax_catfix_skip(): void {
+        $this->catfix_nonce_check();
+        $pid = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
+        if (!$pid) wp_send_json(['success' => false, 'error' => 'No post_id']);
+        update_post_meta($pid, 'cloudscale_categoryfix_status', 'skipped');
+        wp_send_json(['success' => true]);
+    }
+
+    public function ajax_catfix_bulk_apply(): void {
+        $this->catfix_nonce_check();
+        $items_raw = isset($_POST['items']) ? (array) wp_unslash($_POST['items']) : [];
+        $applied   = 0;
+        foreach ($items_raw as $item) {
+            $pid  = isset($item['post_id'])     ? absint($item['post_id']) : 0;
+            $ids  = isset($item['proposed_ids']) ? array_map('intval', (array) $item['proposed_ids']) : [];
+            if (!$pid || empty($ids)) continue;
+            wp_set_post_categories($pid, $ids);
+            update_post_meta($pid, 'cloudscale_categoryfix_status', 'applied');
+            $applied++;
+        }
+        wp_send_json(['success' => true, 'applied' => $applied]);
+    }
+
+    // ajax_catfix_analyse: re-analyse a single post (force)
+    public function ajax_catfix_analyse(): void {
+        $this->catfix_nonce_check();
+        $pid = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
+        if (!$pid) wp_send_json(['success' => false, 'error' => 'No post_id']);
+        $data = $this->catfix_analyse_post($pid);
+        update_post_meta($pid, 'cloudscale_categoryfix_proposed_ids',  $data['proposed_ids']);
+        update_post_meta($pid, 'cloudscale_categoryfix_current_ids',    $data['current_ids']);
+        update_post_meta($pid, 'cloudscale_categoryfix_confidence',     $data['confidence']);
+        update_post_meta($pid, 'cloudscale_categoryfix_reason',         $data['reason']);
+        update_post_meta($pid, 'cloudscale_categoryfix_source',         $data['source']);
+        update_post_meta($pid, 'cloudscale_categoryfix_generated_at',   current_time('mysql'));
+        update_post_meta($pid, 'cloudscale_categoryfix_fingerprint',    $data['fingerprint']);
+        update_post_meta($pid, 'cloudscale_categoryfix_status',         'pending');
+        wp_send_json(['success' => true, 'data' => $data]);
+    }
+
+    public function ajax_catfix_ai_one(): void {
+        $this->catfix_nonce_check();
+        $pid = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
+        if (!$pid) wp_send_json(['success' => false, 'error' => 'No post_id']);
+
+        $post = get_post($pid);
+        if (!$post) wp_send_json(['success' => false, 'error' => 'Post not found']);
+
+        // ── API credentials ───────────────────────────────────────────────────
+        $provider = $this->ai_opts['ai_provider'] ?? 'anthropic';
+        $key      = $provider === 'gemini'
+            ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
+            : trim((string) $this->ai_opts['anthropic_key']);
+        $model    = trim((string) $this->ai_opts['model']) ?: 'claude-sonnet-4-20250514';
+        if (!$key) wp_send_json(['success' => false, 'error' => 'No API key configured']);
+
+        // ── Build category list for the prompt ───────────────────────────────
+        $all_cats = get_categories(['hide_empty' => false]);
+        $cat_map  = [];
+        foreach ($all_cats as $c) {
+            if (strtolower($c->name) === 'uncategorized') continue;
+            $cat_map[(int) $c->term_id] = $c->name;
+        }
+        $cat_list_str = implode(', ', array_map(
+            fn($id, $name) => "{$id}:{$name}",
+            array_keys($cat_map), array_values($cat_map)
+        ));
+
+        // ── Post context ─────────────────────────────────────────────────────
+        $title      = get_the_title($pid);
+        $slug       = $post->post_name;
+        $sum_what   = trim((string) get_post_meta($pid, self::META_SUM_WHAT, true));
+        $tags       = wp_get_post_tags($pid, ['fields' => 'names']);
+        $tag_str    = implode(', ', $tags);
+        $current_ids = wp_get_post_categories($pid, ['fields' => 'ids']);
+        $current_names = implode(', ', array_filter(array_map(
+            fn($id) => $cat_map[(int)$id] ?? null, $current_ids
+        )));
+
+        // ── Prompt ───────────────────────────────────────────────────────────
+        $system = 'You are a WordPress category assignment expert. '
+            . 'You will be given a blog post and a list of available categories. '
+            . 'Respond ONLY with a valid JSON array of integer category IDs, e.g. [12,7,45]. '
+            . 'Rules: pick 1 to 4 categories maximum. Only use IDs from the provided list. '
+            . 'Never invent new IDs. Never return Uncategorized. '
+            . 'Return only the JSON array with no other text, no markdown, no explanation.';
+
+        $user_msg = "AVAILABLE CATEGORIES (id:name):\n{$cat_list_str}\n\n"
+            . "POST TITLE: {$title}\n"
+            . "POST SLUG: {$slug}\n"
+            . ( $sum_what   ? "SUMMARY: {$sum_what}\n"       : '' )
+            . ( $tag_str    ? "TAGS: {$tag_str}\n"           : '' )
+            . ( $current_names ? "CURRENT CATEGORIES: {$current_names}\n" : '' )
+            . "\nReturn the best category IDs as a JSON array.";
+
+        try {
+            $raw = $this->call_claude($key, $model, $system, $user_msg, null, 256);
+            // Strip any accidental markdown fences
+            $raw = preg_replace('/^```[a-z]*\s*/i', '', trim($raw));
+            $raw = preg_replace('/\s*```$/', '', $raw);
+            $ids = json_decode($raw, true);
+            if (!is_array($ids)) throw new \RuntimeException('AI returned non-array: ' . $raw); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+
+            // Sanitise: only keep valid IDs from our map, cap at 4
+            $valid_ids = array_values(array_slice(
+                array_filter(array_map('intval', $ids), fn($id) => isset($cat_map[$id])),
+                0, 4
+            ));
+            if (empty($valid_ids)) throw new \RuntimeException('AI returned no valid category IDs'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+
+            // Store result
+            $current_ids_int = array_map('intval', $current_ids);
+            $fp = md5($post->post_title . $sum_what . $tag_str);
+            update_post_meta($pid, 'cloudscale_categoryfix_proposed_ids', $valid_ids);
+            update_post_meta($pid, 'cloudscale_categoryfix_confidence',   90);
+            update_post_meta($pid, 'cloudscale_categoryfix_reason',       'AI analysis');
+            update_post_meta($pid, 'cloudscale_categoryfix_source',       'ai');
+            update_post_meta($pid, 'cloudscale_categoryfix_generated_at', current_time('mysql'));
+            update_post_meta($pid, 'cloudscale_categoryfix_fingerprint',  $fp);
+            update_post_meta($pid, 'cloudscale_categoryfix_status',       'pending');
+
+            $add_ids      = array_values(array_diff($valid_ids, $current_ids_int));
+            $remove_ids   = array_values(array_diff($current_ids_int, $valid_ids));
+            $unchanged_ids = array_values(array_intersect($current_ids_int, $valid_ids));
+
+            wp_send_json([
+                'success'         => true,
+                'post_id'         => $pid,
+                'proposed_ids'    => $valid_ids,
+                'proposed_names'  => array_map(fn($id) => $cat_map[$id] ?? 'Unknown', $valid_ids),
+                'current_ids'     => $current_ids_int,
+                'current_names'   => array_map(fn($id) => $cat_map[$id] ?? 'Unknown', $current_ids_int),
+                'add_ids'         => $add_ids,
+                'add_names'       => array_map(fn($id) => $cat_map[$id] ?? 'Unknown', $add_ids),
+                'remove_ids'      => $remove_ids,
+                'remove_names'    => array_map(fn($id) => $cat_map[$id] ?? 'Unknown', $remove_ids),
+                'unchanged_names' => array_map(fn($id) => $cat_map[$id] ?? 'Unknown', $unchanged_ids),
+                'confidence'      => 90,
+                'source'          => 'ai',
+                'changed'         => (function() use ($current_ids_int, $valid_ids) { $a = $current_ids_int; $b = $valid_ids; sort($a); sort($b); return $a !== $b; })(),
+            ]);
+        } catch (\Exception $e) {
+            wp_send_json(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    // =========================================================================
     // Settings Page
     // =========================================================================
 
@@ -4196,6 +4583,7 @@ JSCODE;
             .ab-tab[data-tab="seo"].active    { background:#2271b1; color:#fff; }
             .ab-tab[data-tab="sitemap"].active { background:#1a7a34; color:#fff; }
             .ab-tab[data-tab="batch"].active  { background:#e67e00; color:#fff; }
+            .ab-tab[data-tab="catfix"].active { background:#2d6a4f; color:#fff; }
             .ab-tab[data-tab="perf"].active   { background:#d946a6; color:#fff; }
             .ab-pane { display:none; padding-top:24px; }
             .ab-pane.active { display:block; }
@@ -4327,6 +4715,7 @@ JSCODE;
             .ab-zone-card.ab-card-lastrun  .ab-zone-header  { background:#1a4a7a; } /* dark blue */
             .ab-zone-card.ab-card-alt      .ab-zone-header  { background:#0e6b6b; } /* teal */
             .ab-zone-card.ab-card-summary  .ab-zone-header  { background:#6b3fa0; } /* purple */
+            .ab-zone-card.ab-card-catfix   .ab-zone-header  { background:#2d6a4f; } /* forest green */
             .ab-zone-card.ab-card-sitemap-settings .ab-zone-header { background:#1a7a34; }
             .ab-zone-card.ab-card-sitemap-preview .ab-zone-header  { background:#0e5229; }
             .ab-zone-card.ab-card-llms .ab-zone-header             { background:#1a4a8a; }
@@ -4428,6 +4817,7 @@ JSCODE;
             <button class="ab-tab"        data-tab="sitemap" onclick="abTab('sitemap',this)">🗺 Sitemap &amp; Robots</button>
             <button class="ab-tab"        data-tab="perf"    onclick="abTab('perf',this)">⚡ Performance</button>
             <button class="ab-tab"        data-tab="batch"   onclick="abTab('batch',this)">🔄 Scheduled Batch</button>
+            <button class="ab-tab"        data-tab="catfix"  onclick="abTab('catfix',this)">🏷 Categories</button>
         </div>
         </div>
 
@@ -5926,6 +6316,71 @@ JSCODE;
             </div><!-- /ab-card-lastrun -->
 
         </div><!-- /ab-pane-batch -->
+
+        <?php /* ══════════════════ CATEGORY FIXER PANE ══════════════════ */ ?>
+        <div class="ab-pane" id="ab-pane-catfix">
+
+            <div class="ab-zone-card ab-card-catfix">
+                <div class="ab-zone-header" style="display:flex;align-items:center;justify-content:space-between;">
+                    <span>🏷 Category Fixer</span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button class="button" id="cf-reload-hdr" onclick="cfLoad()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#8635; Reload</button>
+                        <?php $this->explain_btn('catfix', 'Category Fixer', [
+                            ['name'=>'How it works','rec'=>'Info','desc'=>'Scans all posts using local keyword matching against your category list. No AI calls are made.'],
+                            ['name'=>'Scoring','rec'=>'Info','desc'=>'Compares post title (4pts), AI summary (3pts), tags (3pts), and slug (2pts) against each category name. Existing categories get a continuity bonus.'],
+                            ['name'=>'Proposal','rec'=>'Info','desc'=>'Up to four categories are proposed per post. Posts where no category scores above 8 keep their existing categories and are flagged.'],
+                            ['name'=>'Apply','rec'=>'Info','desc'=>'You review every suggestion before anything changes. Use Apply to set categories on one post or Apply All Changed for a bulk update.'],
+                        ]); ?>
+                    </span>
+                </div>
+                <div class="ab-zone-body" style="padding:20px 24px;">
+
+                    <div id="cf-cta" style="text-align:center;padding:32px 0;">
+                        <p style="color:#555;margin:0 0 16px;">Scan all posts and suggest improved category assignments.</p>
+                        <button class="button button-primary button-hero" onclick="cfLoad()">&#128269; Scan Posts</button>
+                    </div>
+
+                    <div id="cf-toolbar" style="display:none;margin-bottom:16px;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span id="cf-status" style="color:#555;font-size:13px;flex:1;"></span>
+                        <button class="button" onclick="cfFilter('all')" id="cf-f-all">All</button>
+                        <button class="button" onclick="cfFilter('changed')" id="cf-f-changed">Changed</button>
+                        <button class="button" onclick="cfFilter('unchanged')" id="cf-f-unchanged">Unchanged</button>
+                        <button class="button" onclick="cfFilter('low')" id="cf-f-low">Low Confidence</button>
+                        <button class="button" onclick="cfFilter('missing')" id="cf-f-missing">Missing</button>
+                        <button class="button" id="cf-ai-btn" onclick="cfAiAnalyseAll()" style="background:#1a4a7a;border-color:#1a4a7a;color:#fff;">&#129302; AI Analyse All</button>
+                        <button class="button button-primary" id="cf-bulk-btn" onclick="cfBulkApply()" style="margin-left:auto;background:#2d6a4f;border-color:#2d6a4f;color:#fff;">&#10003; Apply All Changed</button>
+                    </div>
+
+                    <div id="cf-stats" style="display:none;margin-bottom:16px;gap:12px;flex-wrap:wrap;"></div>
+
+                    <div id="cf-legend" style="display:none;margin-bottom:12px;font-size:12px;color:#555;">
+                        <span style="margin-right:16px;">Proposed changes:</span>
+                        <span style="display:inline-block;background:#1a7a34;color:#fff;border-radius:10px;padding:1px 10px;margin-right:8px;">+ Added</span>
+                        <span style="display:inline-block;background:#d63638;color:#fff;border-radius:10px;padding:1px 10px;margin-right:8px;">− Removed</span>
+                        <span style="display:inline-block;background:#787c82;color:#fff;border-radius:10px;padding:1px 10px;">Kept</span>
+                    </div>
+
+                    <div id="cf-posts-wrap">
+                        <table id="cf-table" style="display:none;width:100%;border-collapse:collapse;font-size:13px;">
+                            <thead>
+                                <tr style="background:#f0f0f0;">
+                                    <th style="padding:8px 10px;text-align:left;width:24px;"><input type="checkbox" id="cf-check-all" onchange="cfToggleAll(this)"></th>
+                                    <th style="padding:8px 10px;text-align:left;">Post</th>
+                                    <th style="padding:8px 10px;text-align:left;width:180px;">Current</th>
+                                    <th style="padding:8px 10px;text-align:left;width:180px;">Proposed</th>
+                                    <th style="padding:8px 10px;text-align:left;width:110px;">Confidence</th>
+                                    <th style="padding:8px 10px;text-align:left;width:140px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cf-tbody"></tbody>
+                        </table>
+                        <div id="cf-pager" style="display:none;margin-top:12px;text-align:center;font-size:13px;"></div>
+                    </div>
+
+                </div><!-- /ab-zone-body -->
+            </div><!-- /ab-card-catfix -->
+
+        </div><!-- /ab-pane-catfix -->
 
         <script>
         function abFontLog(type, text) {
@@ -7763,6 +8218,248 @@ JSCODE;
         }
 
         function sumStop() { sumState.stopped = true; sumSetStatus('Stopping...'); }
+
+        // ── Category Fixer ───────────────────────────────────────────────────
+        const cfNonce = '<?php echo esc_js(wp_create_nonce('cs_seo_nonce')); ?>';
+        let cfAllPosts   = [];
+        let cfFiltered   = [];
+        let cfPage       = 1;
+        const CF_PER_PAGE = 50;
+
+        function cfPills(names, colour) {
+            if (!names || !names.length) return '<span style="color:#aaa;font-size:12px;">None</span>';
+            return names.map(n => `<span style="display:inline-block;background:${colour};color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;margin:2px 2px;white-space:nowrap;">${n}</span>`).join('');
+        }
+
+        function cfConfBadge(score) {
+            const bg = score >= 60 ? '#2d6a4f' : score >= 30 ? '#e67e00' : '#c3372b';
+            const label = score >= 60 ? 'High' : score >= 30 ? 'Medium' : 'Low';
+            return `<span style="background:${bg};color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;white-space:nowrap;">${label} ${score}%</span>`;
+        }
+
+        function cfStatusBadge(status) {
+            if (status === 'applied')  return '<span style="background:#2d6a4f;color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;">Applied</span>';
+            if (status === 'skipped')  return '<span style="background:#888;color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;">Skipped</span>';
+            return '';
+        }
+
+        function cfRender() {
+            const tbody = document.getElementById('cf-tbody');
+            const start = (cfPage - 1) * CF_PER_PAGE;
+            const slice = cfFiltered.slice(start, start + CF_PER_PAGE);
+            tbody.innerHTML = slice.map(p => {
+                const rowStyle = p.status === 'applied' ? 'opacity:.55;' : p.status === 'skipped' ? 'opacity:.4;' : '';
+                const changedCols = p.changed
+                    ? [
+                        p.add_names.map(n => `<span style="display:inline-block;background:#1a7a34;color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;margin:2px 2px;white-space:nowrap;">+ ${n}</span>`).join(''),
+                        p.remove_names.map(n => `<span style="display:inline-block;background:#d63638;color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;margin:2px 2px;white-space:nowrap;">− ${n}</span>`).join(''),
+                        p.unchanged_names.map(n => `<span style="display:inline-block;background:#787c82;color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;margin:2px 2px;white-space:nowrap;">${n}</span>`).join(''),
+                      ].join('')
+                    : cfPills(p.proposed_names, '#2d6a4f');
+                const actions = (p.status === 'applied' || p.status === 'skipped')
+                    ? cfStatusBadge(p.status)
+                    : `<button class="button button-small" style="background:#2d6a4f;color:#fff;border-color:#2d6a4f;" onclick="cfApplyOne(${p.post_id})">Apply</button>
+                       <button class="button button-small" onclick="cfSkipOne(${p.post_id})">Skip</button>
+                       <button class="button button-small" title="${p.reason}" onclick="cfReanalyse(${p.post_id})">&#8635;</button>`;
+                return `<tr data-pid="${p.post_id}" data-changed="${p.changed?1:0}" data-conf="${p.confidence}" data-status="${p.status}" style="border-bottom:1px solid #f0f0f0;${rowStyle}">
+                    <td style="padding:8px 10px;"><input type="checkbox" class="cf-chk" data-pid="${p.post_id}"></td>
+                    <td style="padding:8px 10px;"><a href="/wp-admin/post.php?post=${p.post_id}&action=edit" target="_blank">${p.title}</a></td>
+                    <td style="padding:8px 10px;">${cfPills(p.current_names, '#555')}</td>
+                    <td style="padding:8px 10px;">${changedCols}</td>
+                    <td style="padding:8px 10px;">${cfConfBadge(p.confidence)}</td>
+                    <td style="padding:8px 10px;white-space:nowrap;">${actions}</td>
+                </tr>`;
+            }).join('');
+
+            // Pager
+            const total = cfFiltered.length;
+            const pages = Math.ceil(total / CF_PER_PAGE);
+            const pager = document.getElementById('cf-pager');
+            if (pages > 1) {
+                let html = `<span style="color:#555;">Page ${cfPage} of ${pages} &nbsp;</span>`;
+                if (cfPage > 1) html += `<button class="button button-small" onclick="cfPage--;cfRender()">&#8592; Prev</button> `;
+                if (cfPage < pages) html += `<button class="button button-small" onclick="cfPage++;cfRender()">Next &#8594;</button>`;
+                pager.innerHTML = html;
+                pager.style.display = 'block';
+            } else {
+                pager.style.display = 'none';
+            }
+
+            // Stats
+            const changed   = cfAllPosts.filter(p => p.changed).length;
+            const applied   = cfAllPosts.filter(p => p.status === 'applied').length;
+            const low       = cfAllPosts.filter(p => p.confidence < 30).length;
+            const missing   = cfAllPosts.filter(p => !p.current_ids || p.current_ids.length === 0).length;
+            const statsEl   = document.getElementById('cf-stats');
+            statsEl.innerHTML = [
+                cfStatPill('Total', cfAllPosts.length, '#555'),
+                cfStatPill('Changed', changed, '#e67e00'),
+                cfStatPill('Applied', applied, '#2d6a4f'),
+                cfStatPill('Low Conf', low, '#c3372b'),
+                cfStatPill('Missing', missing, '#1a4a7a'),
+            ].join('');
+            statsEl.style.display = 'flex';
+
+            document.getElementById('cf-status').textContent =
+                `${cfFiltered.length} posts shown (${changed} changed, ${applied} applied)`;
+        }
+
+        function cfStatPill(label, val, colour) {
+            return `<span style="background:${colour};color:#fff;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;">${label}: ${val}</span>`;
+        }
+
+        function cfFilter(type) {
+            cfPage = 1;
+            if (type === 'changed')   cfFiltered = cfAllPosts.filter(p => p.changed);
+            else if (type === 'unchanged') cfFiltered = cfAllPosts.filter(p => !p.changed);
+            else if (type === 'low')  cfFiltered = cfAllPosts.filter(p => p.confidence < 30);
+            else if (type === 'missing') cfFiltered = cfAllPosts.filter(p => !p.current_ids || p.current_ids.length === 0);
+            else cfFiltered = [...cfAllPosts];
+            // Highlight active filter button
+            ['all','changed','unchanged','low','missing'].forEach(t => {
+                const btn = document.getElementById('cf-f-' + t);
+                if (btn) btn.style.background = (t === type) ? '#2d6a4f' : '';
+                if (btn) btn.style.color = (t === type) ? '#fff' : '';
+                if (btn) btn.style.borderColor = (t === type) ? '#2d6a4f' : '';
+            });
+            cfRender();
+        }
+
+        function cfToggleAll(cb) {
+            document.querySelectorAll('.cf-chk').forEach(c => c.checked = cb.checked);
+        }
+
+        async function cfLoad() {
+            document.getElementById('cf-cta').style.display = 'none';
+            document.getElementById('cf-status').textContent = 'Scanning posts...';
+            document.getElementById('cf-toolbar').style.display = 'flex';
+            document.getElementById('cf-stats').style.display = 'none';
+            document.getElementById('cf-table').style.display = 'none';
+            document.getElementById('cf-reload-hdr').style.display = '';
+
+            const fd = new FormData();
+            fd.append('action', 'cs_catfix_load');
+            fd.append('nonce', cfNonce);
+            const r = await fetch(ajaxurl, {method:'POST', body:fd});
+            const d = await r.json();
+            if (!d.success) { document.getElementById('cf-status').textContent = 'Error loading posts.'; return; }
+
+            cfAllPosts = d.posts;
+            cfPage = 1;
+            document.getElementById('cf-table').style.display = 'table';
+            document.getElementById('cf-legend').style.display = 'block';
+            cfFilter('changed'); // default to changed-only view after scan
+        }
+
+        async function cfApplyOne(postId) {
+            const p = cfAllPosts.find(x => x.post_id === postId);
+            if (!p) return;
+            const fd = new FormData();
+            fd.append('action', 'cs_catfix_apply');
+            fd.append('nonce', cfNonce);
+            fd.append('post_id', postId);
+            p.proposed_ids.forEach(id => fd.append('proposed_ids[]', id));
+            const r = await fetch(ajaxurl, {method:'POST', body:fd});
+            const d = await r.json();
+            if (d.success) {
+                p.status = 'applied';
+                cfRender();
+            }
+        }
+
+        async function cfSkipOne(postId) {
+            const p = cfAllPosts.find(x => x.post_id === postId);
+            if (!p) return;
+            const fd = new FormData();
+            fd.append('action', 'cs_catfix_skip');
+            fd.append('nonce', cfNonce);
+            fd.append('post_id', postId);
+            await fetch(ajaxurl, {method:'POST', body:fd});
+            p.status = 'skipped';
+            cfRender();
+        }
+
+        async function cfAiOne(postId) {
+            const fd = new FormData();
+            fd.append('action', 'cs_catfix_ai_one');
+            fd.append('nonce', cfNonce);
+            fd.append('post_id', postId);
+            const r = await fetch(ajaxurl, {method:'POST', body:fd});
+            const d = await r.json();
+            if (!d.success) return null;
+            // Merge result back into cfAllPosts
+            const idx = cfAllPosts.findIndex(p => p.post_id === postId);
+            if (idx !== -1) {
+                cfAllPosts[idx] = Object.assign(cfAllPosts[idx], {
+                    proposed_ids:    d.proposed_ids,
+                    proposed_names:  d.proposed_names,
+                    add_ids:         d.add_ids,
+                    add_names:       d.add_names,
+                    remove_ids:      d.remove_ids,
+                    remove_names:    d.remove_names,
+                    unchanged_names: d.unchanged_names,
+                    confidence:      d.confidence,
+                    changed:         d.changed,
+                    source:          'ai',
+                    status:          'pending',
+                });
+            }
+            return d;
+        }
+
+        async function cfAiAnalyseAll() {
+            const btn = document.getElementById('cf-ai-btn');
+            btn.disabled = true;
+            const posts = cfAllPosts.filter(p => p.status !== 'applied' && p.status !== 'skipped');
+            const total = posts.length;
+            let done = 0;
+            for (const p of posts) {
+                document.getElementById('cf-status').textContent = `AI analysing ${++done} / ${total}...`;
+                await cfAiOne(p.post_id);
+                // Re-apply current filter so row updates live
+                const active = document.querySelector('[id^="cf-f-"][style*="#2d6a4f"]');
+                const type = active ? active.id.replace('cf-f-','') : 'changed';
+                cfFilter(type);
+            }
+            document.getElementById('cf-status').textContent = `AI analysis complete. ${total} posts analysed.`;
+            btn.disabled = false;
+        }
+
+        async function cfReanalyse(postId) {
+            // Now uses AI instead of local scorer
+            document.getElementById('cf-status').textContent = `AI analysing post ${postId}...`;
+            const d = await cfAiOne(postId);
+            if (d) {
+                const active = document.querySelector('[id^="cf-f-"][style*="#2d6a4f"]');
+                const type = active ? active.id.replace('cf-f-','') : 'changed';
+                cfFilter(type);
+                document.getElementById('cf-status').textContent = `AI re-analysis complete.`;
+            }
+        }
+
+        async function cfBulkApply() {
+            const checked = Array.from(document.querySelectorAll('.cf-chk:checked')).map(c => parseInt(c.dataset.pid));
+            const targets = checked.length
+                ? cfAllPosts.filter(p => checked.includes(p.post_id) && p.changed && p.status !== 'applied')
+                : cfAllPosts.filter(p => p.changed && p.status !== 'applied');
+            if (!targets.length) { alert('No changed posts to apply.'); return; }
+            if (!confirm(`Apply category changes to ${targets.length} posts?`)) return;
+
+            const fd = new FormData();
+            fd.append('action', 'cs_catfix_bulk_apply');
+            fd.append('nonce', cfNonce);
+            targets.forEach((p, i) => {
+                fd.append(`items[${i}][post_id]`, p.post_id);
+                p.proposed_ids.forEach(id => fd.append(`items[${i}][proposed_ids][]`, id));
+            });
+            const r = await fetch(ajaxurl, {method:'POST', body:fd});
+            const d = await r.json();
+            if (d.success) {
+                targets.forEach(p => p.status = 'applied');
+                document.getElementById('cf-status').textContent = `Applied ${d.applied} posts.`;
+                cfRender();
+            }
+        }
         </script>
         </div><!-- /wrap -->
         <?php
