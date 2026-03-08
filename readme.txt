@@ -3,7 +3,7 @@ Contributors: andrewbaker007
 Tags: seo, meta description, ai, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.10.55
+Stable tag: 4.10.58
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -29,6 +29,16 @@ It handles the essentials cleanly and adds an AI Meta Writer that uses either th
 * llms.txt support for AI crawler guidance
 * noindex controls for search results, 404 pages, attachment pages, author archives, and tag archives
 * UTM parameter stripping in canonical URLs
+
+= AI Summary Box =
+
+* AI generated article summary box automatically prepended to post content
+* Three fields generated per post: What it is, Why it matters, Key takeaway
+* Bulk generation panel with progress tracking, stop button, and paginated post list
+* Force regenerate option to overwrite all existing summaries
+* Summary fields written to Article JSON-LD schema: description, abstract, and disambiguatingDescription
+* Collapsible display with modern card styling including gradient header and drop shadow
+* Toggle to show or hide the summary box globally without deleting generated content
 
 = AI Meta Writer =
 
@@ -70,6 +80,7 @@ It handles the essentials cleanly and adds an AI Meta Writer that uses either th
 
 * WordPress dashboard widget with SEO status overview
 * Post editor metabox with custom title, description, OG image, and inline AI generation
+* Gutenberg sidebar panel (CloudScale Meta Boxes) with custom title, description, OG image, AI summary fields, and one click generation without leaving the editor
 * Per post status badges showing description length and health
 
 = What This Plugin Does Not Do =
@@ -174,6 +185,77 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 8. Scheduled Batch configuration with day selector and last run status
 
 == Changelog ==
+
+= 4.10.58 =
+* Summary box row dividers now use indigo tint overriding theme td border styles with !important
+* Last row explicitly gets border-bottom:none to keep clean bottom padding
+
+= 4.10.57 =
+* Summary box redesigned with modern card styling: gradient indigo header, drop shadow, rounded corners
+* Row separators changed to subtle indigo tint, right cell border removed, content padding increased
+* Header changed to flex layout with layers SVG icon alongside title text
+
+= 4.10.56 =
+* Summary box header updated to CloudScale SEO AI Article Summary
+* Header given solid indigo background with white uppercase text
+* Label column colours changed to indigo, row dividers added between rows
+
+= 4.10.55 =
+* Article JSON-LD schema now includes abstract field from Why it matters summary
+* Article JSON-LD schema now includes disambiguatingDescription field from Key takeaway summary
+
+= 4.10.54 =
+* Reload and Hide Posts buttons moved into panel card headers, visible once panel is loaded
+* Header buttons styled with semi-transparent white to sit cleanly on coloured headers
+
+= 4.10.53 =
+* Status text repositioned to left of toolbar buttons to prevent flex overflow at narrow viewports
+* Fixes Hide Posts button being pushed off screen on 1024px displays
+
+= 4.10.52 =
+* Pagination added to ALT Text panel: 100 posts per page with Prev and Next controls
+* Pagination added to AI Summary panel: 100 posts per page with Prev and Next controls
+
+= 4.10.51 =
+* Reload and Hide Posts buttons added to ALT Text and Summary panel toolbars
+* Load CTA always hides after load regardless of post count
+
+= 4.10.50 =
+* AI Summary Box generator panel completed with paginated post list, Missing and Has Summary badges
+* Posts sorted A to Z, Generated This Session counter, Force Regenerate All button
+
+= 4.10.49 =
+* AI Summary Box bulk generator panel added with purple header, stats row, and Generate Missing button
+* Summary panel toolbar with stop button and live status text
+
+= 4.10.48 =
+* AI Summary Box admin panel scaffolded with Load Posts CTA and post list table
+
+= 4.10.47 =
+* AI Summary Box generation endpoint added: generates What it is, Why it matters, Key takeaway via Claude
+* Summary stored in three separate post meta keys per post
+* Returns JSON with what, why, takeaway fields
+
+= 4.10.46 =
+* AI Summary Box renderer added: prepends styled summary card to singular post content
+* Summary box only renders when all three fields are populated
+* show_summary_box toggle added to plugin settings
+
+= 4.10.45 =
+* PHPCS fixes: sanitized post_id inputs with absint and wp_unslash across AJAX handlers
+* Suppressed meta_query slow query PHPCS notices
+
+= 4.10.44 =
+* Gutenberg sidebar panel registered via enqueue_block_editor_assets using PluginDocumentSettingPanel
+* Panel includes custom SEO title, meta description, OG image URL, AI summary fields, and generate buttons
+* Summary fields editable and saveable directly from the Gutenberg document sidebar
+
+= 4.10.43 =
+* Post meta keys for summary fields registered via register_post_meta for REST API and Gutenberg access
+
+= 4.10.35 =
+* Bulk Update Posts panel header buttons (Reload, Hide Posts) added to toolbar
+* Toolbar status text added with live feedback during generation runs
 
 = 4.10.34 =
 * OG image now uses a dedicated 1200x630 crop for correct WhatsApp and social media thumbnail aspect ratio
