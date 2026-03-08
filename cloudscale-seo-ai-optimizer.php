@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.10.36
+ * Version:     4.10.45
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -30,10 +30,13 @@ if (version_compare(PHP_VERSION, '8.0', '<')) {
 final class CloudScale_SEO_AI_Optimizer {
 
     const OPT        = 'cs_seo_options';
-    const META_TITLE = '_cs_seo_title';
-    const META_DESC  = '_cs_seo_desc';
-    const META_OGIMG = '_cs_seo_ogimg';
-    const VERSION    = '4.10.36';
+    const META_TITLE    = '_cs_seo_title';
+    const META_DESC     = '_cs_seo_desc';
+    const META_OGIMG    = '_cs_seo_ogimg';
+    const META_SUM_WHAT = '_cs_seo_summary_what';
+    const META_SUM_WHY  = '_cs_seo_summary_why';
+    const META_SUM_KEY  = '_cs_seo_summary_takeaway';
+    const VERSION    = '4.10.45';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -61,6 +64,7 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('admin_menu',     [$this, 'admin_menu']);
         add_action('admin_notices',  [$this, 'admin_notices']);
         add_action('admin_enqueue_scripts', [$this, 'admin_enqueue_assets']);
+        add_action('enqueue_block_editor_assets', [$this, 'enqueue_block_editor_assets']);
         add_action('wp_ajax_nopriv_cs_seo_download_fonts', [$this, 'ajax_download_fonts']);
         add_action('wp_ajax_cs_seo_download_fonts', [$this, 'ajax_download_fonts']);
         
@@ -74,6 +78,7 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('wp_dashboard_setup', [$this, 'register_dashboard_widget']);
         add_action('add_meta_boxes', [$this, 'add_metabox']);
         add_action('save_post',      [$this, 'save_metabox'], 10, 2);
+        add_filter('the_content',    [$this, 'prepend_summary_box']);
         // Clear stale custom OG image when the featured image is changed.
         add_action('updated_post_meta', [$this, 'on_thumbnail_updated'], 10, 4);
         add_action('added_post_meta',   [$this, 'on_thumbnail_updated'], 10, 4);
@@ -131,8 +136,10 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('wp_ajax_cs_seo_https_fix',        [$this, 'ajax_https_fix']);
         add_action('wp_ajax_cs_seo_https_delete',     [$this, 'ajax_https_delete']);
         add_action('wp_ajax_cs_seo_alt_get_posts',    [$this, 'ajax_alt_get_posts']);
-        add_action('wp_ajax_cs_seo_alt_generate_one', [$this, 'ajax_alt_generate_one']);
-        add_action('wp_ajax_cs_seo_alt_generate_all', [$this, 'ajax_alt_generate_all']);
+        add_action('wp_ajax_cs_seo_alt_generate_one',     [$this, 'ajax_alt_generate_one']);
+        add_action('wp_ajax_cs_seo_alt_generate_all',     [$this, 'ajax_alt_generate_all']);
+        add_action('wp_ajax_cs_seo_summary_generate_one', [$this, 'ajax_summary_generate_one']);
+        add_action('wp_ajax_cs_seo_summary_generate_all', [$this, 'ajax_summary_generate_all']);
 
         // Font-display optimization
         add_action('wp_ajax_cs_seo_font_scan', [$this, 'ajax_font_scan']);
@@ -160,6 +167,7 @@ final class CloudScale_SEO_AI_Optimizer {
             'enable_schema_website'   => 1,
             'enable_schema_article'   => 1,
             'enable_schema_breadcrumbs' => 1,
+            'show_summary_box'          => 1,
             'strip_tracking_params'   => 1,
             'enable_sitemap'          => 0,
             'enable_llms_txt'         => 0,
@@ -257,6 +265,15 @@ Write a single meta description for the article provided. Rules:
                 'auth_callback'     => fn() => current_user_can('edit_posts'),
                 'sanitize_callback' => 'esc_url_raw',
             ]);
+            foreach ([self::META_SUM_WHAT, self::META_SUM_WHY, self::META_SUM_KEY] as $sum_key) {
+                register_post_meta($post_type, $sum_key, [
+                    'show_in_rest'      => true,
+                    'single'            => true,
+                    'type'              => 'string',
+                    'auth_callback'     => fn() => current_user_can('edit_posts'),
+                    'sanitize_callback' => 'sanitize_textarea_field',
+                ]);
+            }
         }
     }
 
@@ -603,10 +620,16 @@ Write a single meta description for the article provided. Rules:
             } elseif (has_post_thumbnail($pid)) {
                 $thumb_id = (int) get_post_thumbnail_id($pid);
                 // Prefer the 1200×630 OG crop — WhatsApp requires ~1.91:1 aspect ratio.
-                // Fall back to full size if the crop has not been generated yet.
+                // If the crop does not exist (e.g. portrait source image that is too narrow),
+                // generate a letterboxed 1200×630 JPEG with white padding and cache it.
                 $src = wp_get_attachment_image_src($thumb_id, 'cs_seo_og_image');
-                if (empty($src[0])) {
-                    $src = wp_get_attachment_image_src($thumb_id, 'full');
+                if (empty($src[0]) || (isset($src[1]) && (int)$src[1] !== 1200)) {
+                    $letterbox_url = $this->generate_og_letterbox($thumb_id);
+                    if ($letterbox_url) {
+                        $src = [$letterbox_url, 1200, 630, false];
+                    } else {
+                        $src = wp_get_attachment_image_src($thumb_id, 'full');
+                    }
                 }
                 if (!empty($src[0])) {
                     $url    = (string) $src[0];
@@ -633,6 +656,97 @@ Write a single meta description for the article provided. Rules:
         }
 
         return compact('url', 'width', 'height', 'type', 'alt');
+    }
+
+    // =========================================================================
+    // OG letterbox generator
+    // =========================================================================
+
+    /**
+     * Generate a 1200×630 letterboxed JPEG for a featured image that is too narrow
+     * to be hard-cropped to 1200×630 (e.g. portrait or square images).
+     *
+     * The source image is scaled to fit within 1200×630 while preserving its aspect
+     * ratio, then centred on a white 1200×630 canvas. The result is saved alongside
+     * the original upload and the URL is cached in post meta so the GD work only
+     * runs once per attachment.
+     *
+     * @param int $attachment_id WordPress attachment ID.
+     * @return string|false URL of the letterboxed image, or false on failure.
+     */
+    private function generate_og_letterbox(int $attachment_id): string|false {
+        // Return cached result if already generated.
+        $cached = get_post_meta($attachment_id, '_cs_seo_og_letterbox_url', true);
+        if ($cached) return $cached;
+
+        // GD is required.
+        if (!function_exists('imagecreatefromjpeg') || !function_exists('imagecreatetruecolor')) {
+            return false;
+        }
+
+        $file = get_attached_file($attachment_id);
+        if (!$file || !file_exists($file)) return false;
+
+        $mime = mime_content_type($file) ?: '';
+        $src_img = match(true) {
+            str_contains($mime, 'jpeg') || str_contains($mime, 'jpg') => @imagecreatefromjpeg($file),
+            str_contains($mime, 'png')                                 => @imagecreatefrompng($file),
+            str_contains($mime, 'webp')                                => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($file) : false,
+            str_contains($mime, 'gif')                                 => @imagecreatefromgif($file),
+            default                                                    => false,
+        };
+
+        if (!$src_img) return false;
+
+        $src_w = imagesx($src_img);
+        $src_h = imagesy($src_img);
+
+        $canvas_w = 1200;
+        $canvas_h = 630;
+
+        // Scale source to fit inside the canvas, preserving aspect ratio.
+        $scale  = min($canvas_w / $src_w, $canvas_h / $src_h);
+        $dst_w  = (int) round($src_w * $scale);
+        $dst_h  = (int) round($src_h * $scale);
+        $dst_x  = (int) round(($canvas_w - $dst_w) / 2);
+        $dst_y  = (int) round(($canvas_h - $dst_h) / 2);
+
+        // Create white canvas.
+        $canvas = imagecreatetruecolor($canvas_w, $canvas_h);
+        if (!$canvas) { imagedestroy($src_img); return false; }
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        imagefill($canvas, 0, 0, $white);
+
+        // Copy scaled source onto canvas.
+        imagecopyresampled($canvas, $src_img, $dst_x, $dst_y, 0, 0, $dst_w, $dst_h, $src_w, $src_h);
+        imagedestroy($src_img);
+
+        // Save next to original file using a -og1200x630 suffix.
+        $dir       = dirname($file);
+        $base      = pathinfo($file, PATHINFO_FILENAME);
+        $out_file  = $dir . '/' . $base . '-og1200x630.jpg';
+        $saved     = imagejpeg($canvas, $out_file, 88);
+        imagedestroy($canvas);
+
+        if (!$saved) return false;
+
+        // Build URL from file path.
+        $upload_dir = wp_upload_dir();
+        $base_dir   = trailingslashit($upload_dir['basedir']);
+        $base_url   = trailingslashit($upload_dir['baseurl']);
+        if (str_starts_with($out_file, $base_dir)) {
+            $relative = substr($out_file, strlen($base_dir));
+            $url      = $base_url . $relative;
+        } else {
+            return false;
+        }
+
+        // Cache so we do not re-generate on every page load.
+        update_post_meta($attachment_id, '_cs_seo_og_letterbox_url', $url);
+
+        self::debug_log("CS SEO: Generated OG letterbox for attachment {$attachment_id}: {$url}");
+
+        return $url;
     }
 
     // =========================================================================
@@ -701,6 +815,47 @@ Write a single meta description for the article provided. Rules:
     // =========================================================================
     // Schemas
     // =========================================================================
+
+    // =========================================================================
+    // AI Summary Box — front end render
+    // =========================================================================
+
+    /**
+     * Prepends the AI summary box to singular post content when all 3 fields are
+     * populated and the show_summary_box option is enabled.
+     */
+    public function prepend_summary_box(string $content): string {
+        if (!is_singular('post') || is_admin() || !(int)($this->opts['show_summary_box'] ?? 1)) {
+            return $content;
+        }
+        // Only run on the main query to avoid duplicating in widgets or shortcodes.
+        if (!in_the_loop() || !is_main_query()) return $content;
+
+        $pid      = (int) get_the_ID();
+        $sum_what = trim((string) get_post_meta($pid, self::META_SUM_WHAT, true));
+        $sum_why  = trim((string) get_post_meta($pid, self::META_SUM_WHY,  true));
+        $sum_key  = trim((string) get_post_meta($pid, self::META_SUM_KEY,  true));
+
+        if (!$sum_what || !$sum_why || !$sum_key) return $content;
+
+        $box  = '<div class="cs-seo-summary-box" style="';
+        $box .= 'background:#f8f9fa;border:1px solid #e2e8f0;border-left:4px solid #4f46e5;';
+        $box .= 'border-radius:6px;padding:20px 24px;margin:0 0 28px;font-size:15px;line-height:1.6;';
+        $box .= '">';
+        $box .= '<p style="margin:0 0 14px;font-size:11px;font-weight:700;letter-spacing:.08em;';
+        $box .= 'text-transform:uppercase;color:#6b7280;">In this article</p>';
+        $box .= '<table style="width:100%;border-collapse:collapse;">';
+        $box .= '<tr><td style="padding:6px 0 6px;vertical-align:top;width:130px;font-weight:700;font-size:13px;color:#374151;">What it is</td>';
+        $box .= '<td style="padding:6px 0 6px;color:#1f2937;">' . esc_html($sum_what) . '</td></tr>';
+        $box .= '<tr><td style="padding:6px 0 6px;vertical-align:top;font-weight:700;font-size:13px;color:#374151;">Why it matters</td>';
+        $box .= '<td style="padding:6px 0 6px;color:#1f2937;">' . esc_html($sum_why) . '</td></tr>';
+        $box .= '<tr><td style="padding:6px 0 6px;vertical-align:top;font-weight:700;font-size:13px;color:#374151;">Key takeaway</td>';
+        $box .= '<td style="padding:6px 0 6px;color:#1f2937;">' . esc_html($sum_key) . '</td></tr>';
+        $box .= '</table>';
+        $box .= '</div>';
+
+        return $box . $content;
+    }
 
     private function render_schemas(): string {
         $out     = '';
@@ -810,6 +965,10 @@ Write a single meta description for the article provided. Rules:
         if (!empty($cats[0])) $s['articleSection'] = $cats[0]->name;
         if (!empty($tags))    $s['keywords']       = implode(', ', $tags);
 
+        // Enrich description with the AI summary 'what' field if available.
+        $sum_what = trim((string) get_post_meta($pid, self::META_SUM_WHAT, true));
+        if ($sum_what) $s['description'] = $sum_what;
+
         return $s;
     }
 
@@ -871,16 +1030,19 @@ Write a single meta description for the article provided. Rules:
 
     public function add_metabox(): void {
         foreach (['post', 'page'] as $pt) {
-            add_meta_box('cs_seo_adv', 'CloudScale SEO', [$this, 'render_metabox'], $pt, 'normal', 'high');
+            add_meta_box('cs_seo_adv', 'CloudScale Meta Boxes', [$this, 'render_metabox'], $pt, 'normal', 'high');
         }
     }
 
     public function render_metabox(WP_Post $post): void {
         wp_nonce_field('cs_seo_save', 'cs_seo_nonce');
-        $title = (string) get_post_meta($post->ID, self::META_TITLE, true);
-        $desc  = (string) get_post_meta($post->ID, self::META_DESC,  true);
-        $ogimg = (string) get_post_meta($post->ID, self::META_OGIMG, true);
-        $has_key = !empty($this->ai_opts['anthropic_key']);
+        $title   = (string) get_post_meta($post->ID, self::META_TITLE,    true);
+        $desc    = (string) get_post_meta($post->ID, self::META_DESC,     true);
+        $ogimg   = (string) get_post_meta($post->ID, self::META_OGIMG,    true);
+        $sum_what = (string) get_post_meta($post->ID, self::META_SUM_WHAT, true);
+        $sum_why  = (string) get_post_meta($post->ID, self::META_SUM_WHY,  true);
+        $sum_key  = (string) get_post_meta($post->ID, self::META_SUM_KEY,  true);
+        $has_key = !empty($this->ai_opts['anthropic_key']) || !empty($this->ai_opts['gemini_key']);
         ?>
         <p><strong>Custom SEO title</strong> — leave blank to auto-generate<br>
             <input class="widefat" name="cs_seo_title" value="<?php echo esc_attr($title); ?>"></p>
@@ -962,6 +1124,84 @@ Write a single meta description for the article provided. Rules:
             <span class="cs-og-status" style="display:block;font-size:11px;color:#888;margin-top:3px">No featured image set — using site default OG image</span>
             <?php endif; ?>
         </p>
+
+        <hr style="margin:16px 0;border:none;border-top:1px solid #ddd">
+        <p style="margin:0 0 8px"><strong>AI Summary Box</strong> <span style="font-size:11px;font-weight:400;color:#888">— shown at the top of the post for readers and AI search engines</span></p>
+
+        <p style="margin:0 0 6px">
+            <label style="font-size:12px;font-weight:600;color:#555">What it is</label><br>
+            <textarea class="widefat" rows="2" name="cs_seo_sum_what" id="cs_seo_sum_what_<?php echo (int) $post->ID; ?>" style="font-size:13px"><?php echo esc_textarea($sum_what); ?></textarea>
+        </p>
+        <p style="margin:0 0 6px">
+            <label style="font-size:12px;font-weight:600;color:#555">Why it matters</label><br>
+            <textarea class="widefat" rows="2" name="cs_seo_sum_why" id="cs_seo_sum_why_<?php echo (int) $post->ID; ?>" style="font-size:13px"><?php echo esc_textarea($sum_why); ?></textarea>
+        </p>
+        <p style="margin:0 0 10px">
+            <label style="font-size:12px;font-weight:600;color:#555">Key takeaway</label><br>
+            <textarea class="widefat" rows="2" name="cs_seo_sum_key" id="cs_seo_sum_key_<?php echo (int) $post->ID; ?>" style="font-size:13px"><?php echo esc_textarea($sum_key); ?></textarea>
+        </p>
+
+        <?php if ($has_key): ?>
+        <p style="margin:0">
+            <button type="button" class="button" id="cs_seo_sum_gen_<?php echo (int) $post->ID; ?>"
+                onclick="csSeoSumGenOne(<?php echo (int) $post->ID; ?>)">
+                ✦ Generate Summary
+            </button>
+            <button type="button" class="button" style="margin-left:6px" id="cs_seo_sum_regen_<?php echo (int) $post->ID; ?>"
+                onclick="csSeoSumGenOne(<?php echo (int) $post->ID; ?>, true)">
+                ↺ Regenerate
+            </button>
+            <span id="cs_seo_sum_status_<?php echo (int) $post->ID; ?>" style="margin-left:8px;font-size:12px;color:#888;"></span>
+        </p>
+        <script>
+        function csSeoSumGenOne(postId, force) {
+            const btn    = document.getElementById('cs_seo_sum_gen_' + postId);
+            const regen  = document.getElementById('cs_seo_sum_regen_' + postId);
+            const status = document.getElementById('cs_seo_sum_status_' + postId);
+            const fWhat  = document.getElementById('cs_seo_sum_what_' + postId);
+            const fWhy   = document.getElementById('cs_seo_sum_why_' + postId);
+            const fKey   = document.getElementById('cs_seo_sum_key_' + postId);
+            btn.disabled = true;
+            regen.disabled = true;
+            status.textContent = '⟳ Generating...';
+            status.style.color = '#888';
+            fetch(ajaxurl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({
+                    action: 'cs_seo_summary_generate_one',
+                    post_id: postId,
+                    force: force ? 1 : 0,
+                    nonce: '<?php echo esc_js( wp_create_nonce('cs_seo_nonce') ); ?>'
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.data.skipped) {
+                        status.textContent = '✓ Already generated — use Regenerate to overwrite';
+                        status.style.color = '#888';
+                    } else {
+                        fWhat.value = data.data.what;
+                        fWhy.value  = data.data.why;
+                        fKey.value  = data.data.takeaway;
+                        status.textContent = '✓ Done — save post to keep';
+                        status.style.color = '#46b450';
+                    }
+                } else {
+                    status.textContent = '✗ ' + (data.data || 'Error');
+                    status.style.color = '#dc3232';
+                }
+            })
+            .catch(e => {
+                status.textContent = '✗ ' + e.message;
+                status.style.color = '#dc3232';
+            })
+            .finally(() => { btn.disabled = false; regen.disabled = false; });
+        }
+        </script>
+        <?php endif; ?>
+
         <?php
     }
 
@@ -970,9 +1210,12 @@ Write a single meta description for the article provided. Rules:
         if (!wp_verify_nonce( sanitize_key( wp_unslash( $_POST['cs_seo_nonce'] ) ), 'cs_seo_save')) return;
         if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
         if (!current_user_can('edit_post', $post_id)) return;
-        $this->set_meta($post_id, self::META_TITLE, sanitize_text_field( wp_unslash( (string) ($_POST['cs_seo_title'] ?? '') ) ));
-        $this->set_meta($post_id, self::META_DESC,  sanitize_textarea_field( wp_unslash( (string) ($_POST['cs_seo_desc'] ?? '') ) ));
-        $this->set_meta($post_id, self::META_OGIMG, esc_url_raw( wp_unslash( (string) ($_POST['cs_seo_ogimg'] ?? '') ) ));
+        $this->set_meta($post_id, self::META_TITLE,    sanitize_text_field( wp_unslash( (string) ($_POST['cs_seo_title'] ?? '') ) ));
+        $this->set_meta($post_id, self::META_DESC,     sanitize_textarea_field( wp_unslash( (string) ($_POST['cs_seo_desc'] ?? '') ) ));
+        $this->set_meta($post_id, self::META_OGIMG,    esc_url_raw( wp_unslash( (string) ($_POST['cs_seo_ogimg'] ?? '') ) ));
+        $this->set_meta($post_id, self::META_SUM_WHAT, sanitize_textarea_field( wp_unslash( (string) ($_POST['cs_seo_sum_what'] ?? '') ) ));
+        $this->set_meta($post_id, self::META_SUM_WHY,  sanitize_textarea_field( wp_unslash( (string) ($_POST['cs_seo_sum_why']  ?? '') ) ));
+        $this->set_meta($post_id, self::META_SUM_KEY,  sanitize_textarea_field( wp_unslash( (string) ($_POST['cs_seo_sum_key']  ?? '') ) ));
     }
 
     private function set_meta(int $id, string $key, string $val): void {
@@ -1086,6 +1329,40 @@ Write a single meta description for the article provided. Rules:
             sleep(1); // Pace requests — T4g Micro friendly.
         }
 
+        // ── Pass 3: generate missing AI summaries across all posts ──────────
+        $sum_done   = 0;
+        $sum_errors = 0;
+
+        $q3 = new WP_Query([
+            'post_type'           => 'post',
+            'post_status'         => 'publish',
+            'posts_per_page'      => 500,
+            'no_found_rows'       => true,
+            'ignore_sticky_posts' => true,
+            'orderby'             => 'date',
+            'order'               => 'DESC',
+            'meta_query'          => [[ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- NOT EXISTS has no alternative
+                'key'     => self::META_SUM_WHAT,
+                'compare' => 'NOT EXISTS',
+            ]],
+        ]);
+
+        foreach ($q3->posts as $p) {
+            try {
+                $summary = $this->call_ai_generate_summary($p->ID);
+                update_post_meta($p->ID, self::META_SUM_WHAT, $summary['what']);
+                update_post_meta($p->ID, self::META_SUM_WHY,  $summary['why']);
+                update_post_meta($p->ID, self::META_SUM_KEY,  $summary['takeaway']);
+                $log[] = ['status' => 'sum_ok', 'title' => get_the_title($p->ID)];
+                $sum_done++;
+            } catch (\Throwable $e) {
+                $log[] = ['status' => 'sum_err', 'title' => get_the_title($p->ID), 'message' => $e->getMessage()];
+                $sum_errors++;
+                sleep(2);
+            }
+            sleep(1); // Pace requests — T4g Micro friendly.
+        }
+
         // Append to batch history (keep 28 days of runs).
         $history = get_option('cs_seo_batch_history', []);
         if (!is_array($history)) $history = [];
@@ -1098,6 +1375,8 @@ Write a single meta description for the article provided. Rules:
             'alt_done'          => $alt_done,
             'alt_skipped_posts' => $alt_skipped_posts,
             'alt_errors'        => $alt_errors,
+            'sum_done'          => $sum_done,
+            'sum_errors'        => $sum_errors,
             'elapsed'           => round((time() - $start) / 60, 1),
             'log'               => array_slice($log, 0, 100), // Keep last 100 entries per run.
         ];
@@ -2274,6 +2553,155 @@ Write a single meta description for the article provided. Rules:
         $this->ajax_alt_generate_one();
     }
 
+    // =========================================================================
+    // AI Summary Box
+    // =========================================================================
+
+    /**
+     * Generate a 3-field AI summary for a post: what it is, why it matters, key takeaway.
+     * Returns an array with keys 'what', 'why', 'takeaway', or throws on failure.
+     */
+    private function call_ai_generate_summary(int $post_id): array {
+        $post = get_post($post_id);
+        if (!$post) throw new \RuntimeException("Post {$post_id} not found"); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+
+        $provider = $this->ai_opts['ai_provider'] ?? 'anthropic';
+        $key      = $provider === 'gemini'
+            ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
+            : trim((string) $this->ai_opts['anthropic_key']);
+        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-sonnet-4-20250514');
+
+        if (!$key) throw new \RuntimeException($provider === 'gemini' ? 'No Gemini API key configured' : 'No Anthropic API key configured'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+
+        $content = $this->text_from_html((string) $post->post_content);
+        $content = mb_substr($content, 0, 6000);
+
+        $system = <<<'PROMPT'
+You are a technical writing assistant. Given an article title and content, write a concise 3-part summary.
+
+Rules:
+- "what": 1-2 sentences. What is this article about? Be specific and concrete.
+- "why": 1-2 sentences. Why does this matter to the reader? Focus on practical impact.
+- "takeaway": 1 sentence. The single most important thing to remember.
+- Plain language. No jargon introductions like "In this article" or "This post".
+- Do not start any field with the article title.
+- Respond ONLY with valid JSON in exactly this format, no other text:
+{"what": "...", "why": "...", "takeaway": "..."}
+PROMPT;
+
+        $user_msg = "Article title: \"{$post->post_title}\"\n\nArticle content:\n{$content}";
+
+        $raw = $this->dispatch_ai($provider, $key, $model, $system, $user_msg, null, 400);
+        $raw = trim($raw);
+        $raw = preg_replace('/^```(?:json)?\s*/i', '', $raw);
+        $raw = preg_replace('/\s*```$/', '', $raw);
+
+        $json = json_decode($raw, true);
+        if (!is_array($json) || empty($json['what']) || empty($json['why']) || empty($json['takeaway'])) {
+            throw new \RuntimeException('Invalid summary response from AI: ' . esc_html(mb_substr($raw, 0, 200))); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+        }
+
+        return [
+            'what'     => sanitize_textarea_field(trim($json['what'])),
+            'why'      => sanitize_textarea_field(trim($json['why'])),
+            'takeaway' => sanitize_textarea_field(trim($json['takeaway'])),
+        ];
+    }
+
+    /**
+     * AJAX: generate summary for a single post.
+     */
+    public function ajax_summary_generate_one(): void {
+        check_ajax_referer('cs_seo_nonce', 'nonce');
+        if (!current_user_can('edit_posts')) wp_send_json_error('Forbidden', 403);
+
+        $post_id = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
+        if (!$post_id) wp_send_json_error('Missing post_id');
+
+        $force = !empty($_POST['force']);
+
+        // Skip if already generated and not forced.
+        if (!$force) {
+            $existing_what = get_post_meta($post_id, self::META_SUM_WHAT, true);
+            if ($existing_what) {
+                wp_send_json_success(['post_id' => $post_id, 'skipped' => true]);
+            }
+        }
+
+        try {
+            $summary = $this->call_ai_generate_summary($post_id);
+            update_post_meta($post_id, self::META_SUM_WHAT, $summary['what']);
+            update_post_meta($post_id, self::META_SUM_WHY,  $summary['why']);
+            update_post_meta($post_id, self::META_SUM_KEY,  $summary['takeaway']);
+            wp_send_json_success([
+                'post_id'  => $post_id,
+                'what'     => $summary['what'],
+                'why'      => $summary['why'],
+                'takeaway' => $summary['takeaway'],
+            ]);
+        } catch (\Throwable $e) {
+            wp_send_json_error($e->getMessage());
+        }
+    }
+
+    /**
+     * AJAX: generate summaries for all posts missing them (batch).
+     * Processes one post per call — JS loops until done (same pattern as ALT batch).
+     */
+    public function ajax_summary_generate_all(): void {
+        check_ajax_referer('cs_seo_nonce', 'nonce');
+        if (!current_user_can('edit_posts')) wp_send_json_error('Forbidden', 403);
+
+        $force = !empty($_POST['force']);
+
+        $args = [
+            'post_type'      => 'post',
+            'post_status'    => 'publish',
+            'posts_per_page' => 1,
+            'fields'         => 'ids',
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+        ];
+
+        if (!$force) {
+            $args['meta_query'] = [[ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- NOT EXISTS has no alternative
+                'key'     => self::META_SUM_WHAT,
+                'compare' => 'NOT EXISTS',
+            ]];
+        }
+
+        $ids = get_posts($args);
+
+        if (empty($ids)) {
+            wp_send_json_success(['done' => true, 'remaining' => 0]);
+        }
+
+        $post_id = (int) $ids[0];
+
+        try {
+            $summary = $this->call_ai_generate_summary($post_id);
+            update_post_meta($post_id, self::META_SUM_WHAT, $summary['what']);
+            update_post_meta($post_id, self::META_SUM_WHY,  $summary['why']);
+            update_post_meta($post_id, self::META_SUM_KEY,  $summary['takeaway']);
+
+            // Count remaining after this one.
+            $remaining_args = $args;
+            $remaining_args['posts_per_page'] = -1;
+            $remaining = count(get_posts($remaining_args));
+
+            wp_send_json_success([
+                'post_id'   => $post_id,
+                'what'      => $summary['what'],
+                'why'       => $summary['why'],
+                'takeaway'  => $summary['takeaway'],
+                'done'      => $remaining === 0,
+                'remaining' => $remaining,
+            ]);
+        } catch (\Throwable $e) {
+            wp_send_json_error($e->getMessage());
+        }
+    }
+
     /**
      * Regenerate Static — clears stale custom OG image meta for a single post
      * so the featured image takes over, and returns the resolved image URL.
@@ -2564,6 +2992,286 @@ Write a single meta description for the article provided. Rules:
         );
     }
 
+    // =========================================================================
+    // Gutenberg sidebar panel
+    // =========================================================================
+
+    public function enqueue_block_editor_assets(): void {
+        $screen = get_current_screen();
+        if (!$screen || !in_array($screen->post_type, ['post', 'page'], true)) return;
+
+        $post_id  = (int) (isset($_GET['post']) ? $_GET['post'] : 0); // phpcs:ignore
+        $has_key  = !empty($this->ai_opts['anthropic_key']) || !empty($this->ai_opts['gemini_key']);
+        $nonce    = wp_create_nonce('cs_seo_nonce');
+        $settings_url = esc_url(admin_url('options-general.php?page=cs-seo-optimizer#ai'));
+
+        // Existing meta values passed to JS so the panel can pre-populate.
+        $title    = $post_id ? (string) get_post_meta($post_id, self::META_TITLE,    true) : '';
+        $desc     = $post_id ? (string) get_post_meta($post_id, self::META_DESC,     true) : '';
+        $ogimg    = $post_id ? (string) get_post_meta($post_id, self::META_OGIMG,    true) : '';
+        $sum_what = $post_id ? (string) get_post_meta($post_id, self::META_SUM_WHAT, true) : '';
+        $sum_why  = $post_id ? (string) get_post_meta($post_id, self::META_SUM_WHY,  true) : '';
+        $sum_key  = $post_id ? (string) get_post_meta($post_id, self::META_SUM_KEY,  true) : '';
+
+        wp_register_script('cs-seo-block-panel', false, [
+            'wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components', 'wp-data', 'wp-api-fetch', 'jquery'
+        ], self::VERSION, true);
+        wp_enqueue_script('cs-seo-block-panel');
+
+        wp_localize_script('cs-seo-block-panel', 'csSeoPanel', [
+            'postId'      => $post_id,
+            'nonce'       => $nonce,
+            'ajaxUrl'     => admin_url('admin-ajax.php'),
+            'hasKey'      => $has_key,
+            'settingsUrl' => $settings_url,
+            'metaKeys'    => [
+                'title'   => self::META_TITLE,
+                'desc'    => self::META_DESC,
+                'ogimg'   => self::META_OGIMG,
+                'sumWhat' => self::META_SUM_WHAT,
+                'sumWhy'  => self::META_SUM_WHY,
+                'sumKey'  => self::META_SUM_KEY,
+            ],
+            'initial'     => [
+                'title'   => $title,
+                'desc'    => $desc,
+                'ogimg'   => $ogimg,
+                'sumWhat' => $sum_what,
+                'sumWhy'  => $sum_why,
+                'sumKey'  => $sum_key,
+            ],
+        ]);
+
+        wp_add_inline_script('cs-seo-block-panel', $this->get_block_panel_js());
+    }
+
+    private function get_block_panel_js(): string {
+        return <<<'JSCODE'
+(function() {
+    var cfg     = window.csSeoPanel || {};
+    var el      = wp.element.createElement;
+    var Panel   = wp.editPost.PluginDocumentSettingPanel;
+    var useState = wp.element.useState;
+    var useEffect = wp.element.useEffect;
+    var useSelect = wp.data.useSelect;
+    var useDispatch = wp.data.useDispatch;
+    var TextControl = wp.components.TextControl;
+    var TextareaControl = wp.components.TextareaControl;
+    var Button = wp.components.Button;
+    var Notice = wp.components.Notice;
+    var Spinner = wp.components.Spinner;
+
+    function CsSeoPanel() {
+        var meta = useSelect(function(select) {
+            return select('core/editor').getEditedPostAttribute('meta') || {};
+        });
+        var editPost = useDispatch('core/editor').editPost;
+
+        var keys    = cfg.metaKeys || {};
+        var initial = cfg.initial  || {};
+
+        var title   = meta[keys.title]   !== undefined ? meta[keys.title]   : (initial.title   || '');
+        var desc    = meta[keys.desc]    !== undefined ? meta[keys.desc]    : (initial.desc    || '');
+        var ogimg   = meta[keys.ogimg]   !== undefined ? meta[keys.ogimg]   : (initial.ogimg   || '');
+        var sumWhat = meta[keys.sumWhat] !== undefined ? meta[keys.sumWhat] : (initial.sumWhat || '');
+        var sumWhy  = meta[keys.sumWhy]  !== undefined ? meta[keys.sumWhy]  : (initial.sumWhy  || '');
+        var sumKey  = meta[keys.sumKey]  !== undefined ? meta[keys.sumKey]  : (initial.sumKey  || '');
+
+        var setMeta = function(key, val) {
+            var patch = {};
+            patch[key] = val;
+            editPost({ meta: patch });
+        };
+
+        var descLen  = desc.length;
+        var descColor = descLen >= 140 && descLen <= 160 ? '#46b450' : (descLen > 0 ? '#dc3232' : '#888');
+        var descHint  = descLen > 0 ? descLen + ' chars' : 'No description set';
+
+        var genStatus = useState('');
+        var genLoading = useState(false);
+        var sumStatus = useState('');
+        var sumLoading = useState(false);
+
+        function doGenDesc() {
+            genLoading[1](true);
+            genStatus[1]('⟳ Generating...');
+            fetch(cfg.ajaxUrl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({
+                    action: 'cs_seo_ai_generate_one',
+                    post_id: cfg.postId,
+                    nonce: cfg.nonce
+                })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var patch = {};
+                    patch[keys.desc] = data.data.description;
+                    editPost({ meta: patch });
+                    genStatus[1]('✓ Done — save post to keep');
+                } else {
+                    genStatus[1]('✗ ' + (data.data || 'Error'));
+                }
+            })
+            .catch(function(e) { genStatus[1]('✗ ' + e.message); })
+            .finally(function() { genLoading[1](false); });
+        }
+
+        function doGenSummary(force) {
+            sumLoading[1](true);
+            sumStatus[1]('⟳ Generating...');
+            fetch(cfg.ajaxUrl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({
+                    action: 'cs_seo_summary_generate_one',
+                    post_id: cfg.postId,
+                    force: force ? 1 : 0,
+                    nonce: cfg.nonce
+                })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    if (data.data.skipped) {
+                        sumStatus[1]('✓ Already set — use Regenerate to overwrite');
+                    } else {
+                        var patch = {};
+                        patch[keys.sumWhat] = data.data.what;
+                        patch[keys.sumWhy]  = data.data.why;
+                        patch[keys.sumKey]  = data.data.takeaway;
+                        editPost({ meta: patch });
+                        sumStatus[1]('✓ Done — save post to keep');
+                    }
+                } else {
+                    sumStatus[1]('✗ ' + (data.data || 'Error'));
+                }
+            })
+            .catch(function(e) { sumStatus[1]('✗ ' + e.message); })
+            .finally(function() { sumLoading[1](false); });
+        }
+
+        return el(Panel,
+            { name: 'cs-seo-panel', title: 'CloudScale Meta Boxes', icon: el('span', { style: { fontSize: '14px' } }, '🥷') },
+
+            // SEO Title
+            el('div', { style: { marginBottom: '12px' } },
+                el('p', { style: { margin: '0 0 4px', fontWeight: '600', fontSize: '12px' } }, 'Custom SEO title'),
+                el('p', { style: { margin: '0 0 4px', fontSize: '11px', color: '#888' } }, 'Leave blank to auto-generate'),
+                el('input', {
+                    className: 'widefat',
+                    style: { width: '100%', fontSize: '12px' },
+                    value: title,
+                    onChange: function(e) { setMeta(keys.title, e.target.value); }
+                })
+            ),
+
+            // Meta Description
+            el('div', { style: { marginBottom: '12px' } },
+                el('p', { style: { margin: '0 0 4px', fontWeight: '600', fontSize: '12px' } }, 'Meta description'),
+                el('p', { style: { margin: '0 0 4px', fontSize: '11px', color: '#888' } }, 'Leave blank to use excerpt'),
+                el('textarea', {
+                    className: 'widefat',
+                    rows: 3,
+                    style: { width: '100%', fontSize: '12px', resize: 'vertical' },
+                    value: desc,
+                    onChange: function(e) { setMeta(keys.desc, e.target.value); }
+                }),
+                el('span', { style: { fontSize: '11px', color: descColor } }, descHint)
+            ),
+
+            // Generate desc button
+            cfg.hasKey
+                ? el('div', { style: { marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } },
+                    el(Button, { variant: 'secondary', isSmall: true, isBusy: genLoading[0], disabled: genLoading[0], onClick: doGenDesc }, '✦ Generate with AI'),
+                    genStatus[0] ? el('span', { style: { fontSize: '11px', color: genStatus[0].startsWith('✓') ? '#46b450' : '#dc3232' } }, genStatus[0]) : null
+                  )
+                : el('p', { style: { fontSize: '11px', color: '#888', marginBottom: '16px' } },
+                    'Add an API key in ',
+                    el('a', { href: cfg.settingsUrl }, 'SEO Settings'),
+                    ' to enable AI generation.'
+                  ),
+
+            // Divider
+            el('hr', { style: { margin: '4px 0 12px', borderTop: '1px solid #ddd', border: 'none', borderTopStyle: 'solid', borderTopWidth: '1px', borderTopColor: '#ddd' } }),
+
+            // OG Image
+            el('div', { style: { marginBottom: '16px' } },
+                el('p', { style: { margin: '0 0 4px', fontWeight: '600', fontSize: '12px' } }, 'OG image URL'),
+                el('p', { style: { margin: '0 0 4px', fontSize: '11px', color: '#888' } }, 'Leave blank to use featured image'),
+                el('input', {
+                    className: 'widefat',
+                    style: { width: '100%', fontSize: '12px' },
+                    value: ogimg,
+                    onChange: function(e) { setMeta(keys.ogimg, e.target.value); }
+                })
+            ),
+
+            // Divider
+            el('hr', { style: { margin: '4px 0 12px', border: 'none', borderTopStyle: 'solid', borderTopWidth: '1px', borderTopColor: '#ddd' } }),
+
+            // AI Summary
+            el('p', { style: { margin: '0 0 8px', fontWeight: '600', fontSize: '12px' } }, 'AI Summary Box'),
+            el('p', { style: { margin: '0 0 8px', fontSize: '11px', color: '#888' } }, 'Shown at top of post for readers'),
+
+            el('div', { style: { marginBottom: '8px' } },
+                el('label', { style: { display: 'block', fontSize: '11px', fontWeight: '600', color: '#555', marginBottom: '3px' } }, 'What it is'),
+                el('textarea', {
+                    className: 'widefat',
+                    rows: 2,
+                    style: { width: '100%', fontSize: '12px', resize: 'vertical' },
+                    value: sumWhat,
+                    onChange: function(e) { setMeta(keys.sumWhat, e.target.value); }
+                })
+            ),
+            el('div', { style: { marginBottom: '8px' } },
+                el('label', { style: { display: 'block', fontSize: '11px', fontWeight: '600', color: '#555', marginBottom: '3px' } }, 'Why it matters'),
+                el('textarea', {
+                    className: 'widefat',
+                    rows: 2,
+                    style: { width: '100%', fontSize: '12px', resize: 'vertical' },
+                    value: sumWhy,
+                    onChange: function(e) { setMeta(keys.sumWhy, e.target.value); }
+                })
+            ),
+            el('div', { style: { marginBottom: '8px' } },
+                el('label', { style: { display: 'block', fontSize: '11px', fontWeight: '600', color: '#555', marginBottom: '3px' } }, 'Key takeaway'),
+                el('textarea', {
+                    className: 'widefat',
+                    rows: 2,
+                    style: { width: '100%', fontSize: '12px', resize: 'vertical' },
+                    value: sumKey,
+                    onChange: function(e) { setMeta(keys.sumKey, e.target.value); }
+                })
+            ),
+
+            // Generate summary buttons
+            cfg.hasKey
+                ? el('div', { style: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' } },
+                    el(Button, { variant: 'secondary', isSmall: true, isBusy: sumLoading[0], disabled: sumLoading[0], onClick: function() { doGenSummary(false); } }, '✦ Generate'),
+                    el(Button, { variant: 'secondary', isSmall: true, isBusy: sumLoading[0], disabled: sumLoading[0], onClick: function() { doGenSummary(true); } }, '↺ Regenerate'),
+                    sumStatus[0] ? el('span', { style: { fontSize: '11px', color: sumStatus[0].startsWith('✓') ? '#46b450' : '#dc3232', width: '100%' } }, sumStatus[0]) : null
+                  )
+                : el('p', { style: { fontSize: '11px', color: '#888', margin: '0' } },
+                    'Add an API key in ',
+                    el('a', { href: cfg.settingsUrl }, 'SEO Settings'),
+                    ' to enable AI generation.'
+                  )
+        );
+    }
+
+    wp.domReady(function() {
+        wp.plugins.registerPlugin('cs-seo-block-panel', {
+            render: CsSeoPanel,
+            icon: 'admin-generic'
+        });
+    });
+})();
+JSCODE;
+    }
+
     /**
      * Render an "? Explain" button and its modal.
      * $id      — unique ID suffix, e.g. 'identity'
@@ -2655,11 +3363,13 @@ Write a single meta description for the article provided. Rules:
             $batch_line  = '⏳ Batch pending';
             $batch_style = 'background:linear-gradient(135deg,#f59e0b 0%,#b45309 100%);box-shadow:0 3px 10px rgba(245,158,11,0.4);';
         } else {
-            $date_fmt  = gmdate('d M Y', strtotime($last_run['date'] ?? ''));
+            $date_fmt  = gmdate('d M y', strtotime($last_run['date'] ?? ''));
             $desc_done = (int) ($last_run['done']      ?? 0);
             $alt_done  = (int) ($last_run['alt_done']  ?? 0);
+            $sum_done  = (int) ($last_run['sum_done']  ?? 0);
             $errors    = (int) ($last_run['errors']    ?? 0) + (int) ($last_run['alt_errors'] ?? 0);
-            $batch_line = $date_fmt . ' · ' . $desc_done . ' descs · ' . $alt_done . ' ALTs';
+            $batch_line = 'Batch: ' . $date_fmt . ' · ' . $desc_done . ' Posts and ' . $alt_done . ' Images';
+            if ($sum_done > 0) $batch_line .= ' and ' . $sum_done . ' Summaries';
             if ($errors) $batch_line .= ' · ' . $errors . ' err';
             $batch_style = 'background:linear-gradient(135deg,#22c55e 0%,#15803d 100%);box-shadow:0 3px 10px rgba(34,197,94,0.4);';
         }
@@ -2769,7 +3479,7 @@ Write a single meta description for the article provided. Rules:
         }
         foreach ([
             'enable_og','enable_schema_person','enable_schema_website','enable_schema_article',
-            'enable_schema_breadcrumbs','strip_tracking_params','enable_sitemap','enable_llms_txt',
+            'enable_schema_breadcrumbs','show_summary_box','strip_tracking_params','enable_sitemap','enable_llms_txt',
             'noindex_search','noindex_404','noindex_attachment','noindex_author_archives','noindex_tag_archives',
             'block_ai_bots','sitemap_taxonomies','defer_js','minify_html','defer_fonts',
         ] as $k) {
@@ -4089,6 +4799,7 @@ Write a single meta description for the article provided. Rules:
                     <label class="ab-rec"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_person]" value="1" <?php checked((int)($o['enable_schema_person'] ?? 0), 1); ?>> Person JSON-LD schema</label>
                     <label class="ab-rec"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_article]" value="1" <?php checked((int)($o['enable_schema_article'] ?? 0), 1); ?>> BlogPosting JSON-LD schema</label>
                     <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_breadcrumbs]" value="1" <?php checked((int)($o['enable_schema_breadcrumbs'] ?? 0), 1); ?>> Breadcrumb JSON-LD schema</label>
+                    <label class="ab-rec"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[show_summary_box]" value="1" <?php checked((int)($o['show_summary_box'] ?? 1), 1); ?>> Show AI summary box on posts</label>
                     <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[strip_tracking_params]" value="1" <?php checked((int)($o['strip_tracking_params'] ?? 0), 1); ?>> Strip UTM params in canonical URLs</label>
                     <label class="ab-rec"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[enable_sitemap]" value="1" <?php checked((int)($o['enable_sitemap'] ?? 0), 1); ?>> Enable /sitemap.xml</label>
                     <label class="ab-rec"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[noindex_search]" value="1" <?php checked((int)($o['noindex_search'] ?? 0), 1); ?>> noindex search results</label>
