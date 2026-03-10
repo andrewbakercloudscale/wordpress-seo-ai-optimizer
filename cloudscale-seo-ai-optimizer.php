@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.10.68
+ * Version:     4.11.19
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -33,10 +33,37 @@ final class CloudScale_SEO_AI_Optimizer {
     const META_TITLE    = '_cs_seo_title';
     const META_DESC     = '_cs_seo_desc';
     const META_OGIMG    = '_cs_seo_ogimg';
-    const META_SUM_WHAT = '_cs_seo_summary_what';
-    const META_SUM_WHY  = '_cs_seo_summary_why';
-    const META_SUM_KEY  = '_cs_seo_summary_takeaway';
-    const VERSION    = '4.10.48';
+    const META_SUM_WHAT    = '_cs_seo_summary_what';
+    const META_SUM_WHY     = '_cs_seo_summary_why';
+    const META_SUM_KEY     = '_cs_seo_summary_takeaway';
+    const META_HIDE_SUMMARY = '_cs_seo_hide_summary';
+
+    // Related Articles meta keys
+    const META_RC_TOP        = '_cs_rc_top_ids';
+    const META_RC_BOTTOM     = '_cs_rc_bottom_ids';
+    const META_RC_CANDIDATES = '_cs_rc_candidate_ids';
+    const META_RC_SCORES     = '_cs_rc_scores';
+    const META_RC_FINGERPRINT= '_cs_rc_fingerprint';
+    const META_RC_VERSION    = '_cs_rc_version';
+    const META_RC_GENERATED  = '_cs_rc_generated_at';
+    const META_RC_LAST_STEP  = '_cs_rc_last_step';
+    const META_RC_STATUS     = '_cs_rc_status';
+    const META_RC_ERROR      = '_cs_rc_error';
+
+    // Related Articles step constants
+    const RC_STEP_LOAD         = 1;
+    const RC_STEP_VALIDATE     = 2;
+    const RC_STEP_CANDIDATES   = 3;
+    const RC_STEP_SCORE        = 4;
+    const RC_STEP_TOP          = 5;
+    const RC_STEP_BOTTOM       = 6;
+    const RC_STEP_VALIDATE_OUT = 7;
+    const RC_STEP_COMPLETE     = 8;
+
+    // Related Articles generator version — bump when scoring logic changes
+    const RC_VERSION = '1.0';
+
+    const VERSION    = '4.11.19';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -79,6 +106,7 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('add_meta_boxes', [$this, 'add_metabox']);
         add_action('save_post',      [$this, 'save_metabox'], 10, 2);
         add_filter('the_content',    [$this, 'prepend_summary_box']);
+        add_filter('the_content',    [$this, 'inject_related_links'], 20);
         // Clear stale custom OG image when the featured image is changed.
         add_action('updated_post_meta', [$this, 'on_thumbnail_updated'], 10, 4);
         add_action('added_post_meta',   [$this, 'on_thumbnail_updated'], 10, 4);
@@ -149,6 +177,15 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('wp_ajax_cs_catfix_skip',     [$this, 'ajax_catfix_skip']);
         add_action('wp_ajax_cs_catfix_bulk_apply', [$this, 'ajax_catfix_bulk_apply']);
         add_action('wp_ajax_cs_catfix_ai_one',    [$this, 'ajax_catfix_ai_one']);
+        add_action('wp_ajax_cs_catfix_health',    [$this, 'ajax_catfix_health']);
+        add_action('wp_ajax_cs_catfix_drift',                  [$this, 'ajax_catfix_drift']);
+        add_action('wp_ajax_cs_catfix_drift_cache_get',       [$this, 'ajax_catfix_drift_cache_get']);
+        add_action('wp_ajax_cs_catfix_drift_analyse_remaining', [$this, 'ajax_catfix_drift_analyse_remaining']);
+
+        // Related Articles
+        add_action('wp_ajax_cs_rc_get_posts', [$this, 'ajax_rc_get_posts']);
+        add_action('wp_ajax_cs_rc_step',      [$this, 'ajax_rc_step']);
+        add_action('wp_ajax_cs_rc_reset',     [$this, 'ajax_rc_reset']);
 
         add_action('wp_ajax_cs_seo_font_scan', [$this, 'ajax_font_scan']);
         add_action('wp_ajax_cs_seo_font_fix', [$this, 'ajax_font_fix']);
@@ -201,6 +238,17 @@ final class CloudScale_SEO_AI_Optimizer {
             'font_display_enabled'    => 1,
             'font_display_value'      => 'swap',
             'font_metric_overrides'   => 1,
+            // Related Articles
+            'rc_enable'               => 1,
+            'rc_top_enabled'          => 1,
+            'rc_bottom_enabled'       => 1,
+            'rc_top_count'            => 3,
+            'rc_bottom_count'         => 5,
+            'rc_pool_size'            => 20,
+            'rc_use_categories'       => 1,
+            'rc_use_tags'             => 1,
+            'rc_use_summary'          => 1,
+            'rc_exclude_cats'         => [],
         ];
     }
 
@@ -282,6 +330,13 @@ Write a single meta description for the article provided. Rules:
                     'sanitize_callback' => 'sanitize_textarea_field',
                 ]);
             }
+            register_post_meta($post_type, self::META_HIDE_SUMMARY, [
+                'show_in_rest'      => true,
+                'single'            => true,
+                'type'              => 'integer',
+                'auth_callback'     => fn() => current_user_can('edit_posts'),
+                'sanitize_callback' => 'absint',
+            ]);
         }
     }
 
@@ -840,6 +895,7 @@ Write a single meta description for the article provided. Rules:
         if (!in_the_loop() || !is_main_query()) return $content;
 
         $pid      = (int) get_the_ID();
+        if ((int) get_post_meta($pid, self::META_HIDE_SUMMARY, true)) return $content;
         $sum_what = trim((string) get_post_meta($pid, self::META_SUM_WHAT, true));
         $sum_why  = trim((string) get_post_meta($pid, self::META_SUM_WHY,  true));
         $sum_key  = trim((string) get_post_meta($pid, self::META_SUM_KEY,  true));
@@ -866,9 +922,136 @@ Write a single meta description for the article provided. Rules:
         $last_val = str_replace('border-bottom:inherit', 'border-bottom:none!important', $val);
         $box .= '<tr><td style="' . $last_lbl . '">Key takeaway</td><td style="' . $last_val . '">' . esc_html($sum_key) . '</td></tr>';
         $box .= '</table>';
-        $box .= '</div>';
+        $box .= '</div><!-- /cs-seo-summary-box -->';
 
         return $box . $content;
+    }
+
+    // =========================================================================
+    // Related Articles — front end render
+    // =========================================================================
+
+    /**
+     * Injects the Related Articles block (top) and You Might Also Like block (bottom)
+     * into singular post content. Runs at priority 20, after prepend_summary_box.
+     */
+    public function inject_related_links(string $content): string {
+        if (!is_singular('post') || is_admin()) return $content;
+        if (!in_the_loop() || !is_main_query()) return $content;
+        if (!(int)($this->opts['rc_enable'] ?? 1)) return $content;
+
+        $pid    = (int) get_the_ID();
+        $status = get_post_meta($pid, self::META_RC_STATUS, true);
+        if ($status !== 'complete') return $content;
+
+        $top_raw    = maybe_unserialize(get_post_meta($pid, self::META_RC_TOP,    true));
+        $bottom_raw = maybe_unserialize(get_post_meta($pid, self::META_RC_BOTTOM, true));
+        $top_ids    = array_values(array_filter(array_map('intval', is_array($top_raw)    ? $top_raw    : [])));
+        $bottom_ids = array_values(array_filter(array_map('intval', is_array($bottom_raw) ? $bottom_raw : [])));
+
+        // Slice to the current settings — decreasing the count just hides links immediately
+        // without needing regeneration. Increasing requires a regenerate (handled in admin UI).
+        $top_count    = max(2, min(5,  (int)($this->opts['rc_top_count']    ?? 3)));
+        $bottom_count = max(3, min(10, (int)($this->opts['rc_bottom_count'] ?? 5)));
+        $top_ids      = array_slice($top_ids,    0, $top_count);
+        $bottom_ids   = array_slice($bottom_ids, 0, $bottom_count);
+
+        // Top block — inject after the summary box div if present, otherwise prepend.
+        // prepend_summary_box() runs first (priority 10) so its output is already in $content.
+        // The summary box wrapper ends with a known closing </table></div> sequence we can
+        // anchor on via the unique class marker.
+        if ((int)($this->opts['rc_top_enabled'] ?? 1) && count($top_ids) >= 2) {
+            $top_html = $this->render_rc_block('Related Articles', $top_ids, 'top');
+            if (strpos($content, 'cs-seo-summary-box') !== false) {
+                // Append a sentinel comment to the summary box output so we have a
+                // reliable anchor regardless of nesting depth.
+                $anchor = '<!-- /cs-seo-summary-box -->';
+                if (strpos($content, $anchor) !== false) {
+                    $content = str_replace($anchor, $anchor . $top_html, $content);
+                } else {
+                    // Fallback: insert after the first occurrence of the wrapper closing tag.
+                    // We know the summary box is a single-level <div> wrapping a <table>.
+                    // Find end of div that contains class cs-seo-summary-box.
+                    $pos = strpos($content, 'cs-seo-summary-box');
+                    if ($pos !== false) {
+                        $end = strpos($content, '</div>', $pos);
+                        if ($end !== false) {
+                            $end += strlen('</div>');
+                            $content = substr($content, 0, $end) . $top_html . substr($content, $end);
+                        } else {
+                            $content = $top_html . $content;
+                        }
+                    } else {
+                        $content = $top_html . $content;
+                    }
+                }
+            } else {
+                $content = $top_html . $content;
+            }
+        }
+
+        // Bottom block — append after content
+        if ((int)($this->opts['rc_bottom_enabled'] ?? 1) && count($bottom_ids) >= 3) {
+            $content .= $this->render_rc_block('You Might Also Like', $bottom_ids, 'bottom');
+        }
+
+        return $content;
+    }
+
+    /**
+     * Renders a Related Articles or You Might Also Like link block.
+     *
+     * @param string $heading  Block heading text.
+     * @param int[]  $post_ids Ordered list of post IDs to link.
+     * @param string $position 'top' or 'bottom' — controls accent colour.
+     */
+    private function render_rc_block(string $heading, array $post_ids, string $position): string {
+        $accent  = $position === 'top' ? '#4f46e5' : '#0e7490';
+        $bg_head = $position === 'top'
+            ? 'linear-gradient(120deg,#4338ca 0%,#6366f1 60%,#818cf8 100%)'
+            : 'linear-gradient(120deg,#0c4a6e 0%,#0e7490 60%,#22d3ee 100%)';
+
+        $links = [];
+        foreach ($post_ids as $tid) {
+            $post = get_post($tid);
+            if (!$post || $post->post_status !== 'publish') continue;
+            $links[] = [
+                'url'   => get_permalink($post),
+                'title' => get_the_title($post),
+            ];
+        }
+
+        if (empty($links)) return '';
+
+        $icon_top    = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+        $icon_bottom = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+        $icon = $position === 'top' ? $icon_top : $icon_bottom;
+
+        $out  = '<div class="cs-rc-block cs-rc-' . esc_attr($position) . '" style="';
+        $out .= 'background:#ffffff;border-radius:14px;overflow:hidden;';
+        $out .= 'margin:0 0 36px;';
+        $out .= 'box-shadow:0 2px 8px rgba(0,0,0,0.06),0 4px 24px rgba(79,70,229,0.10),0 1px 2px rgba(0,0,0,0.04);';
+        $out .= '">';
+
+        // Header bar
+        $out .= '<div style="background:' . $bg_head . ';padding:12px 24px;display:flex;align-items:center;gap:9px;">';
+        $out .= $icon;
+        $out .= '<span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.95);">' . esc_html($heading) . '</span>';
+        $out .= '</div>';
+
+        // Link list
+        $out .= '<ul style="margin:0;padding:16px 24px;list-style:none;display:flex;flex-direction:column;gap:10px;">';
+        foreach ($links as $link) {
+            $out .= '<li style="margin:0;padding:0;">';
+            $out .= '<a href="' . esc_url($link['url']) . '" style="color:' . esc_attr($accent) . ';font-size:14px;font-weight:500;text-decoration:none;line-height:1.5;"';
+            $out .= ' onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">'
+                  . '&#8594;&nbsp;' . esc_html($link['title']) . '</a>';
+            $out .= '</li>';
+        }
+        $out .= '</ul>';
+        $out .= '</div>';
+
+        return $out;
     }
 
     private function render_schemas(): string {
@@ -1144,7 +1327,14 @@ Write a single meta description for the article provided. Rules:
         </p>
 
         <hr style="margin:16px 0;border:none;border-top:1px solid #ddd">
-        <p style="margin:0 0 8px"><strong>AI Summary Box</strong> <span style="font-size:11px;font-weight:400;color:#888">— shown at the top of the post for readers and AI search engines</span></p>
+        <?php $hide_summary = (int) get_post_meta($post->ID, self::META_HIDE_SUMMARY, true); ?>
+        <p style="margin:0 0 8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+            <span><strong>AI Summary Box</strong> <span style="font-size:11px;font-weight:400;color:#888">— shown at the top of the post for readers and AI search engines</span></span>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
+                <input type="checkbox" name="cs_seo_hide_summary" value="1" <?php checked($hide_summary, 1); ?>>
+                <span style="color:#c3372b;font-weight:600">Hide on this post</span>
+            </label>
+        </p>
 
         <p style="margin:0 0 6px">
             <label style="font-size:12px;font-weight:600;color:#555">What it is</label><br>
@@ -1234,6 +1424,8 @@ Write a single meta description for the article provided. Rules:
         $this->set_meta($post_id, self::META_SUM_WHAT, sanitize_textarea_field( wp_unslash( (string) ($_POST['cs_seo_sum_what'] ?? '') ) ));
         $this->set_meta($post_id, self::META_SUM_WHY,  sanitize_textarea_field( wp_unslash( (string) ($_POST['cs_seo_sum_why']  ?? '') ) ));
         $this->set_meta($post_id, self::META_SUM_KEY,  sanitize_textarea_field( wp_unslash( (string) ($_POST['cs_seo_sum_key']  ?? '') ) ));
+        $hide = isset($_POST['cs_seo_hide_summary']) ? 1 : 0;
+        $hide ? update_post_meta($post_id, self::META_HIDE_SUMMARY, 1) : delete_post_meta($post_id, self::META_HIDE_SUMMARY);
     }
 
     private function set_meta(int $id, string $key, string $val): void {
@@ -2594,18 +2786,15 @@ Write a single meta description for the article provided. Rules:
         $content = $this->text_from_html((string) $post->post_content);
         $content = mb_substr($content, 0, 6000);
 
-        $system = <<<'PROMPT'
-You are a technical writing assistant. Given an article title and content, write a concise 3-part summary.
-
-Rules:
-- "what": 1-2 sentences. What is this article about? Be specific and concrete.
-- "why": 1-2 sentences. Why does this matter to the reader? Focus on practical impact.
-- "takeaway": 1 sentence. The single most important thing to remember.
-- Plain language. No jargon introductions like "In this article" or "This post".
-- Do not start any field with the article title.
-- Respond ONLY with valid JSON in exactly this format, no other text:
-{"what": "...", "why": "...", "takeaway": "..."}
-PROMPT;
+        $system = 'You are a technical writing assistant. Given an article title and content, write a concise 3-part summary.' . "\n\n"
+            . 'Rules:' . "\n"
+            . '- "what": 1-2 sentences. What is this article about? Be specific and concrete.' . "\n"
+            . '- "why": 1-2 sentences. Why does this matter to the reader? Focus on practical impact.' . "\n"
+            . '- "takeaway": 1 sentence. The single most important thing to remember.' . "\n"
+            . '- Plain language. No jargon introductions like "In this article" or "This post".' . "\n"
+            . '- Do not start any field with the article title.' . "\n"
+            . '- Respond ONLY with valid JSON in exactly this format, no other text:' . "\n"
+            . '{"what": "...", "why": "...", "takeaway": "..."}';
 
         $user_msg = "Article title: \"{$post->post_title}\"\n\nArticle content:\n{$content}";
 
@@ -3066,9 +3255,10 @@ PROMPT;
         $title    = $post_id ? (string) get_post_meta($post_id, self::META_TITLE,    true) : '';
         $desc     = $post_id ? (string) get_post_meta($post_id, self::META_DESC,     true) : '';
         $ogimg    = $post_id ? (string) get_post_meta($post_id, self::META_OGIMG,    true) : '';
-        $sum_what = $post_id ? (string) get_post_meta($post_id, self::META_SUM_WHAT, true) : '';
-        $sum_why  = $post_id ? (string) get_post_meta($post_id, self::META_SUM_WHY,  true) : '';
-        $sum_key  = $post_id ? (string) get_post_meta($post_id, self::META_SUM_KEY,  true) : '';
+        $sum_what    = $post_id ? (string) get_post_meta($post_id, self::META_SUM_WHAT,     true) : '';
+        $sum_why     = $post_id ? (string) get_post_meta($post_id, self::META_SUM_WHY,      true) : '';
+        $sum_key     = $post_id ? (string) get_post_meta($post_id, self::META_SUM_KEY,      true) : '';
+        $hide_summary = $post_id ? (int)   get_post_meta($post_id, self::META_HIDE_SUMMARY, true) : 0;
 
         wp_register_script('cs-seo-block-panel', false, [
             'wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components', 'wp-data', 'wp-api-fetch', 'jquery'
@@ -3082,20 +3272,22 @@ PROMPT;
             'hasKey'      => $has_key,
             'settingsUrl' => $settings_url,
             'metaKeys'    => [
-                'title'   => self::META_TITLE,
-                'desc'    => self::META_DESC,
-                'ogimg'   => self::META_OGIMG,
-                'sumWhat' => self::META_SUM_WHAT,
-                'sumWhy'  => self::META_SUM_WHY,
-                'sumKey'  => self::META_SUM_KEY,
+                'title'       => self::META_TITLE,
+                'desc'        => self::META_DESC,
+                'ogimg'       => self::META_OGIMG,
+                'sumWhat'     => self::META_SUM_WHAT,
+                'sumWhy'      => self::META_SUM_WHY,
+                'sumKey'      => self::META_SUM_KEY,
+                'hideSummary' => self::META_HIDE_SUMMARY,
             ],
             'initial'     => [
-                'title'   => $title,
-                'desc'    => $desc,
-                'ogimg'   => $ogimg,
-                'sumWhat' => $sum_what,
-                'sumWhy'  => $sum_why,
-                'sumKey'  => $sum_key,
+                'title'       => $title,
+                'desc'        => $desc,
+                'ogimg'       => $ogimg,
+                'sumWhat'     => $sum_what,
+                'sumWhy'      => $sum_why,
+                'sumKey'      => $sum_key,
+                'hideSummary' => $hide_summary,
             ],
         ]);
 
@@ -3103,8 +3295,7 @@ PROMPT;
     }
 
     private function get_block_panel_js(): string {
-        return <<<'JSCODE'
-(function() {
+        return '(function() {
     var cfg     = window.csSeoPanel || {};
     var el      = wp.element.createElement;
     var Panel   = wp.editPost.PluginDocumentSettingPanel;
@@ -3120,19 +3311,20 @@ PROMPT;
 
     function CsSeoPanel() {
         var meta = useSelect(function(select) {
-            return select('core/editor').getEditedPostAttribute('meta') || {};
+            return select(\'core/editor\').getEditedPostAttribute(\'meta\') || {};
         });
-        var editPost = useDispatch('core/editor').editPost;
+        var editPost = useDispatch(\'core/editor\').editPost;
 
         var keys    = cfg.metaKeys || {};
         var initial = cfg.initial  || {};
 
-        var title   = meta[keys.title]   !== undefined ? meta[keys.title]   : (initial.title   || '');
-        var desc    = meta[keys.desc]    !== undefined ? meta[keys.desc]    : (initial.desc    || '');
-        var ogimg   = meta[keys.ogimg]   !== undefined ? meta[keys.ogimg]   : (initial.ogimg   || '');
-        var sumWhat = meta[keys.sumWhat] !== undefined ? meta[keys.sumWhat] : (initial.sumWhat || '');
-        var sumWhy  = meta[keys.sumWhy]  !== undefined ? meta[keys.sumWhy]  : (initial.sumWhy  || '');
-        var sumKey  = meta[keys.sumKey]  !== undefined ? meta[keys.sumKey]  : (initial.sumKey  || '');
+        var title   = meta[keys.title]   !== undefined ? meta[keys.title]   : (initial.title   || \'\');
+        var desc    = meta[keys.desc]    !== undefined ? meta[keys.desc]    : (initial.desc    || \'\');
+        var ogimg   = meta[keys.ogimg]   !== undefined ? meta[keys.ogimg]   : (initial.ogimg   || \'\');
+        var sumWhat     = meta[keys.sumWhat]     !== undefined ? meta[keys.sumWhat]     : (initial.sumWhat    || \'\');
+        var sumWhy      = meta[keys.sumWhy]      !== undefined ? meta[keys.sumWhy]      : (initial.sumWhy     || \'\');
+        var sumKey      = meta[keys.sumKey]      !== undefined ? meta[keys.sumKey]      : (initial.sumKey     || \'\');
+        var hideSummary = meta[keys.hideSummary] !== undefined ? meta[keys.hideSummary] : (initial.hideSummary || 0);
 
         var setMeta = function(key, val) {
             var patch = {};
@@ -3141,26 +3333,26 @@ PROMPT;
         };
 
         var titleLen   = title.length;
-        var titleColor = titleLen >= 50 && titleLen <= 60 ? '#46b450' : (titleLen > 0 ? '#dc3232' : '#888');
-        var titleHint  = titleLen > 0 ? titleLen + ' chars (ideal 50–60)' : 'No title set';
+        var titleColor = titleLen >= 50 && titleLen <= 60 ? \'#46b450\' : (titleLen > 0 ? \'#dc3232\' : \'#888\');
+        var titleHint  = titleLen > 0 ? titleLen + \' chars (ideal 50–60)\' : \'No title set\';
 
         var descLen  = desc.length;
-        var descColor = descLen >= 140 && descLen <= 160 ? '#46b450' : (descLen > 0 ? '#dc3232' : '#888');
-        var descHint  = descLen > 0 ? descLen + ' chars (ideal 140–160)' : 'No description set';
+        var descColor = descLen >= 140 && descLen <= 160 ? \'#46b450\' : (descLen > 0 ? \'#dc3232\' : \'#888\');
+        var descHint  = descLen > 0 ? descLen + \' chars (ideal 140–160)\' : \'No description set\';
 
-        var genStatus = useState('');
+        var genStatus = useState(\'\');
         var genLoading = useState(false);
-        var sumStatus = useState('');
+        var sumStatus = useState(\'\');
         var sumLoading = useState(false);
 
         function doGenDesc() {
             genLoading[1](true);
-            genStatus[1]('⟳ Generating...');
+            genStatus[1](\'⟳ Generating...\');
             fetch(cfg.ajaxUrl, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                method: \'POST\',
+                headers: {\'Content-Type\': \'application/x-www-form-urlencoded\'},
                 body: new URLSearchParams({
-                    action: 'cs_seo_ai_generate_one',
+                    action: \'cs_seo_ai_generate_one\',
                     post_id: cfg.postId,
                     nonce: cfg.nonce
                 })
@@ -3171,23 +3363,23 @@ PROMPT;
                     var patch = {};
                     patch[keys.desc] = data.data.description;
                     editPost({ meta: patch });
-                    genStatus[1]('✓ Done — save post to keep');
+                    genStatus[1](\'✓ Done — save post to keep\');
                 } else {
-                    genStatus[1]('✗ ' + (data.data || 'Error'));
+                    genStatus[1](\'✗ \' + (data.data || \'Error\'));
                 }
             })
-            .catch(function(e) { genStatus[1]('✗ ' + e.message); })
+            .catch(function(e) { genStatus[1](\'✗ \' + e.message); })
             .finally(function() { genLoading[1](false); });
         }
 
         function doGenSummary(force) {
             sumLoading[1](true);
-            sumStatus[1]('⟳ Generating...');
+            sumStatus[1](\'⟳ Generating...\');
             fetch(cfg.ajaxUrl, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                method: \'POST\',
+                headers: {\'Content-Type\': \'application/x-www-form-urlencoded\'},
                 body: new URLSearchParams({
-                    action: 'cs_seo_summary_generate_one',
+                    action: \'cs_seo_summary_generate_one\',
                     post_id: cfg.postId,
                     force: force ? 1 : 0,
                     nonce: cfg.nonce
@@ -3197,113 +3389,123 @@ PROMPT;
             .then(function(data) {
                 if (data.success) {
                     if (data.data.skipped) {
-                        sumStatus[1]('✓ Already set — use Regenerate to overwrite');
+                        sumStatus[1](\'✓ Already set — use Regenerate to overwrite\');
                     } else {
                         var patch = {};
                         patch[keys.sumWhat] = data.data.what;
                         patch[keys.sumWhy]  = data.data.why;
                         patch[keys.sumKey]  = data.data.takeaway;
                         editPost({ meta: patch });
-                        sumStatus[1]('✓ Done — save post to keep');
+                        sumStatus[1](\'✓ Done — save post to keep\');
                     }
                 } else {
-                    sumStatus[1]('✗ ' + (data.data || 'Error'));
+                    sumStatus[1](\'✗ \' + (data.data || \'Error\'));
                 }
             })
-            .catch(function(e) { sumStatus[1]('✗ ' + e.message); })
+            .catch(function(e) { sumStatus[1](\'✗ \' + e.message); })
             .finally(function() { sumLoading[1](false); });
         }
 
         return el(Panel,
-            { name: 'cs-seo-panel', title: 'CloudScale Meta Boxes', icon: el('span', { style: { fontSize: '14px' } }, '🥷') },
+            { name: \'cs-seo-panel\', title: \'CloudScale Meta Boxes\', icon: el(\'span\', { style: { fontSize: \'14px\' } }, \'🥷\') },
 
             // SEO Title
-            el('div', { style: { marginBottom: '12px' } },
-                el('p', { style: { margin: '0 0 4px', fontWeight: '600', fontSize: '12px' } }, 'Custom SEO title'),
-                el('p', { style: { margin: '0 0 4px', fontSize: '11px', color: '#888' } }, 'Leave blank to auto-generate'),
-                el('input', {
-                    className: 'widefat',
-                    style: { width: '100%', fontSize: '12px' },
+            el(\'div\', { style: { marginBottom: \'12px\' } },
+                el(\'p\', { style: { margin: \'0 0 4px\', fontWeight: \'600\', fontSize: \'12px\' } }, \'Custom SEO title\'),
+                el(\'p\', { style: { margin: \'0 0 4px\', fontSize: \'11px\', color: \'#888\' } }, \'Leave blank to auto-generate\'),
+                el(\'input\', {
+                    className: \'widefat\',
+                    style: { width: \'100%\', fontSize: \'12px\' },
                     value: title,
                     onChange: function(e) { setMeta(keys.title, e.target.value); }
                 }),
-                el('span', { style: { fontSize: '11px', color: titleColor } }, titleHint)
+                el(\'span\', { style: { fontSize: \'11px\', color: titleColor } }, titleHint)
             ),
 
             // Meta Description
-            el('div', { style: { marginBottom: '12px' } },
-                el('p', { style: { margin: '0 0 4px', fontWeight: '600', fontSize: '12px' } }, 'Meta description'),
-                el('p', { style: { margin: '0 0 4px', fontSize: '11px', color: '#888' } }, 'Leave blank to use excerpt'),
-                el('textarea', {
-                    className: 'widefat',
+            el(\'div\', { style: { marginBottom: \'12px\' } },
+                el(\'p\', { style: { margin: \'0 0 4px\', fontWeight: \'600\', fontSize: \'12px\' } }, \'Meta description\'),
+                el(\'p\', { style: { margin: \'0 0 4px\', fontSize: \'11px\', color: \'#888\' } }, \'Leave blank to use excerpt\'),
+                el(\'textarea\', {
+                    className: \'widefat\',
                     rows: 3,
-                    style: { width: '100%', fontSize: '12px', resize: 'vertical' },
+                    style: { width: \'100%\', fontSize: \'12px\', resize: \'vertical\' },
                     value: desc,
                     onChange: function(e) { setMeta(keys.desc, e.target.value); }
                 }),
-                el('span', { style: { fontSize: '11px', color: descColor } }, descHint)
+                el(\'span\', { style: { fontSize: \'11px\', color: descColor } }, descHint)
             ),
 
             // Generate desc button
             cfg.hasKey
-                ? el('div', { style: { marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } },
-                    el(Button, { variant: 'secondary', isSmall: true, isBusy: genLoading[0], disabled: genLoading[0], onClick: doGenDesc }, '✦ Generate with AI'),
-                    genStatus[0] ? el('span', { style: { fontSize: '11px', color: genStatus[0].startsWith('✓') ? '#46b450' : '#dc3232' } }, genStatus[0]) : null
+                ? el(\'div\', { style: { marginBottom: \'16px\', display: \'flex\', alignItems: \'center\', gap: \'8px\', flexWrap: \'wrap\' } },
+                    el(Button, { variant: \'secondary\', isSmall: true, isBusy: genLoading[0], disabled: genLoading[0], onClick: doGenDesc }, \'✦ Generate with AI\'),
+                    genStatus[0] ? el(\'span\', { style: { fontSize: \'11px\', color: genStatus[0].startsWith(\'✓\') ? \'#46b450\' : \'#dc3232\' } }, genStatus[0]) : null
                   )
-                : el('p', { style: { fontSize: '11px', color: '#888', marginBottom: '16px' } },
-                    'Add an API key in ',
-                    el('a', { href: cfg.settingsUrl }, 'SEO Settings'),
-                    ' to enable AI generation.'
+                : el(\'p\', { style: { fontSize: \'11px\', color: \'#888\', marginBottom: \'16px\' } },
+                    \'Add an API key in \',
+                    el(\'a\', { href: cfg.settingsUrl }, \'SEO Settings\'),
+                    \' to enable AI generation.\'
                   ),
 
             // Divider
-            el('hr', { style: { margin: '4px 0 12px', borderTop: '1px solid #ddd', border: 'none', borderTopStyle: 'solid', borderTopWidth: '1px', borderTopColor: '#ddd' } }),
+            el(\'hr\', { style: { margin: \'4px 0 12px\', borderTop: \'1px solid #ddd\', border: \'none\', borderTopStyle: \'solid\', borderTopWidth: \'1px\', borderTopColor: \'#ddd\' } }),
 
             // OG Image
-            el('div', { style: { marginBottom: '16px' } },
-                el('p', { style: { margin: '0 0 4px', fontWeight: '600', fontSize: '12px' } }, 'OG image URL'),
-                el('p', { style: { margin: '0 0 4px', fontSize: '11px', color: '#888' } }, 'Leave blank to use featured image'),
-                el('input', {
-                    className: 'widefat',
-                    style: { width: '100%', fontSize: '12px' },
+            el(\'div\', { style: { marginBottom: \'16px\' } },
+                el(\'p\', { style: { margin: \'0 0 4px\', fontWeight: \'600\', fontSize: \'12px\' } }, \'OG image URL\'),
+                el(\'p\', { style: { margin: \'0 0 4px\', fontSize: \'11px\', color: \'#888\' } }, \'Leave blank to use featured image\'),
+                el(\'input\', {
+                    className: \'widefat\',
+                    style: { width: \'100%\', fontSize: \'12px\' },
                     value: ogimg,
                     onChange: function(e) { setMeta(keys.ogimg, e.target.value); }
                 })
             ),
 
             // Divider
-            el('hr', { style: { margin: '4px 0 12px', border: 'none', borderTopStyle: 'solid', borderTopWidth: '1px', borderTopColor: '#ddd' } }),
+            el(\'hr\', { style: { margin: \'4px 0 12px\', border: \'none\', borderTopStyle: \'solid\', borderTopWidth: \'1px\', borderTopColor: \'#ddd\' } }),
 
             // AI Summary
-            el('p', { style: { margin: '0 0 8px', fontWeight: '600', fontSize: '12px' } }, 'AI Summary Box'),
-            el('p', { style: { margin: '0 0 8px', fontSize: '11px', color: '#888' } }, 'Shown at top of post for readers'),
+            el(\'div\', { style: { margin: \'0 0 8px\', display: \'flex\', alignItems: \'center\', justifyContent: \'space-between\', flexWrap: \'wrap\', gap: \'6px\' } },
+                el(\'p\', { style: { margin: \'0\', fontWeight: \'600\', fontSize: \'12px\' } }, \'AI Summary Box\'),
+                el(\'label\', { style: { display: \'flex\', alignItems: \'center\', gap: \'4px\', fontSize: \'11px\', cursor: \'pointer\' } },
+                    el(\'input\', {
+                        type: \'checkbox\',
+                        checked: !!hideSummary,
+                        onChange: function(e) { setMeta(keys.hideSummary, e.target.checked ? 1 : 0); }
+                    }),
+                    el(\'span\', { style: { color: \'#c3372b\', fontWeight: \'600\' } }, \'Hide on this post\')
+                )
+            ),
+            el(\'p\', { style: { margin: \'0 0 8px\', fontSize: \'11px\', color: \'#888\' } }, \'Shown at top of post for readers\'),
 
-            el('div', { style: { marginBottom: '8px' } },
-                el('label', { style: { display: 'block', fontSize: '11px', fontWeight: '600', color: '#555', marginBottom: '3px' } }, 'What it is'),
-                el('textarea', {
-                    className: 'widefat',
+            el(\'div\', { style: { marginBottom: \'8px\' } },
+                el(\'label\', { style: { display: \'block\', fontSize: \'11px\', fontWeight: \'600\', color: \'#555\', marginBottom: \'3px\' } }, \'What it is\'),
+                el(\'textarea\', {
+                    className: \'widefat\',
                     rows: 2,
-                    style: { width: '100%', fontSize: '12px', resize: 'vertical' },
+                    style: { width: \'100%\', fontSize: \'12px\', resize: \'vertical\' },
                     value: sumWhat,
                     onChange: function(e) { setMeta(keys.sumWhat, e.target.value); }
                 })
             ),
-            el('div', { style: { marginBottom: '8px' } },
-                el('label', { style: { display: 'block', fontSize: '11px', fontWeight: '600', color: '#555', marginBottom: '3px' } }, 'Why it matters'),
-                el('textarea', {
-                    className: 'widefat',
+            el(\'div\', { style: { marginBottom: \'8px\' } },
+                el(\'label\', { style: { display: \'block\', fontSize: \'11px\', fontWeight: \'600\', color: \'#555\', marginBottom: \'3px\' } }, \'Why it matters\'),
+                el(\'textarea\', {
+                    className: \'widefat\',
                     rows: 2,
-                    style: { width: '100%', fontSize: '12px', resize: 'vertical' },
+                    style: { width: \'100%\', fontSize: \'12px\', resize: \'vertical\' },
                     value: sumWhy,
                     onChange: function(e) { setMeta(keys.sumWhy, e.target.value); }
                 })
             ),
-            el('div', { style: { marginBottom: '8px' } },
-                el('label', { style: { display: 'block', fontSize: '11px', fontWeight: '600', color: '#555', marginBottom: '3px' } }, 'Key takeaway'),
-                el('textarea', {
-                    className: 'widefat',
+            el(\'div\', { style: { marginBottom: \'8px\' } },
+                el(\'label\', { style: { display: \'block\', fontSize: \'11px\', fontWeight: \'600\', color: \'#555\', marginBottom: \'3px\' } }, \'Key takeaway\'),
+                el(\'textarea\', {
+                    className: \'widefat\',
                     rows: 2,
-                    style: { width: '100%', fontSize: '12px', resize: 'vertical' },
+                    style: { width: \'100%\', fontSize: \'12px\', resize: \'vertical\' },
                     value: sumKey,
                     onChange: function(e) { setMeta(keys.sumKey, e.target.value); }
                 })
@@ -3311,27 +3513,27 @@ PROMPT;
 
             // Generate summary buttons
             cfg.hasKey
-                ? el('div', { style: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' } },
-                    el(Button, { variant: 'secondary', isSmall: true, isBusy: sumLoading[0], disabled: sumLoading[0], onClick: function() { doGenSummary(false); } }, '✦ Generate'),
-                    el(Button, { variant: 'secondary', isSmall: true, isBusy: sumLoading[0], disabled: sumLoading[0], onClick: function() { doGenSummary(true); } }, '↺ Regenerate'),
-                    sumStatus[0] ? el('span', { style: { fontSize: '11px', color: sumStatus[0].startsWith('✓') ? '#46b450' : '#dc3232', width: '100%' } }, sumStatus[0]) : null
+                ? el(\'div\', { style: { display: \'flex\', alignItems: \'center\', gap: \'6px\', flexWrap: \'wrap\' } },
+                    el(Button, { variant: \'secondary\', isSmall: true, isBusy: sumLoading[0], disabled: sumLoading[0], onClick: function() { doGenSummary(false); } }, \'✦ Generate\'),
+                    el(Button, { variant: \'secondary\', isSmall: true, isBusy: sumLoading[0], disabled: sumLoading[0], onClick: function() { doGenSummary(true); } }, \'↺ Regenerate\'),
+                    sumStatus[0] ? el(\'span\', { style: { fontSize: \'11px\', color: sumStatus[0].startsWith(\'✓\') ? \'#46b450\' : \'#dc3232\', width: \'100%\' } }, sumStatus[0]) : null
                   )
-                : el('p', { style: { fontSize: '11px', color: '#888', margin: '0' } },
-                    'Add an API key in ',
-                    el('a', { href: cfg.settingsUrl }, 'SEO Settings'),
-                    ' to enable AI generation.'
+                : el(\'p\', { style: { fontSize: \'11px\', color: \'#888\', margin: \'0\' } },
+                    \'Add an API key in \',
+                    el(\'a\', { href: cfg.settingsUrl }, \'SEO Settings\'),
+                    \' to enable AI generation.\'
                   )
         );
     }
 
     wp.domReady(function() {
-        wp.plugins.registerPlugin('cs-seo-block-panel', {
+        wp.plugins.registerPlugin(\'cs-seo-block-panel\', {
             render: CsSeoPanel,
-            icon: 'admin-generic'
+            icon: \'admin-generic\'
         });
     });
 })();
-JSCODE;
+';
     }
 
     /**
@@ -3499,6 +3701,13 @@ JSCODE;
             'sanitize_callback' => [$this, 'sanitize_ai_opts'],
             'default'           => self::ai_defaults(),
         ]);
+
+        // Cron self-heal: if schedule is enabled but the cron event is missing
+        // (e.g. after plugin update or deactivation/reactivation), re-register it silently.
+        $ai = get_option(self::AI_OPT, []);
+        if ((int)($ai['schedule_enabled'] ?? 0) && !wp_next_scheduled('cs_seo_daily_batch')) {
+            wp_schedule_event(strtotime('tomorrow midnight'), 'daily', 'cs_seo_daily_batch');
+        }
     }
 
     public function sanitize_opts($in): array {
@@ -3544,8 +3753,20 @@ JSCODE;
             'enable_schema_breadcrumbs','show_summary_box','strip_tracking_params','enable_sitemap','enable_llms_txt',
             'noindex_search','noindex_404','noindex_attachment','noindex_author_archives','noindex_tag_archives',
             'block_ai_bots','sitemap_taxonomies','defer_js','minify_html','defer_fonts',
+            'rc_enable','rc_top_enabled','rc_bottom_enabled','rc_use_categories','rc_use_tags','rc_use_summary',
         ] as $k) {
             $out[$k] = array_key_exists($k, $in) ? (empty($in[$k]) ? 0 : 1) : (int)($existing[$k] ?? $d[$k]);
+        }
+        // RC integer settings
+        foreach (['rc_top_count','rc_bottom_count','rc_pool_size'] as $k) {
+            $val = array_key_exists($k, $in) ? (int)$in[$k] : (int)($existing[$k] ?? $d[$k]);
+            $out[$k] = max(1, min(20, $val));
+        }
+        // RC excluded categories — array of integer term ids
+        if (array_key_exists('rc_exclude_cats', $in)) {
+            $out['rc_exclude_cats'] = array_map('absint', (array)$in['rc_exclude_cats']);
+        } else {
+            $out['rc_exclude_cats'] = $existing['rc_exclude_cats'] ?? $d['rc_exclude_cats'];
         }
         // Sitemap post types — array of sanitized strings
         $allowed_types = array_map(fn($pt) => $pt->name, get_post_types(['public' => true], 'objects'));
@@ -3571,11 +3792,12 @@ JSCODE;
         $now_enabled = array_key_exists('schedule_enabled', $in) ? (empty($in['schedule_enabled']) ? 0 : 1) : $was_enabled;
 
         // Schedule cron when enabled, unschedule when disabled.
-        if ($now_enabled && !$was_enabled) {
+        // Also self-heal: if enabled but cron is missing (e.g. after plugin update/reactivation), re-register it.
+        if ($now_enabled) {
             if (!wp_next_scheduled('cs_seo_daily_batch')) {
                 wp_schedule_event(strtotime('tomorrow midnight'), 'daily', 'cs_seo_daily_batch');
             }
-        } elseif (!$now_enabled && $was_enabled) {
+        } else {
             wp_clear_scheduled_hook('cs_seo_daily_batch');
         }
 
@@ -3877,8 +4099,6 @@ JSCODE;
         $html .= '<noscript><link rel="stylesheet" href="' . 
                  preg_match('/href=["\']([^"\']+)["\']/', $html, $m) ? $m[1] : '' . 
                  '" /></noscript>';
-        
-        self::debug_log('[CloudScale SEO] Deferred font CSS: ' . $handle);
         
         return $html;
     }
@@ -4379,7 +4599,7 @@ JSCODE;
     public function ajax_catfix_apply(): void {
         $this->catfix_nonce_check();
         $pid          = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
-        $proposed_raw = isset($_POST['proposed_ids']) ? (array) wp_unslash($_POST['proposed_ids']) : [];
+        $proposed_raw = isset($_POST['proposed_ids']) ? (array) wp_unslash($_POST['proposed_ids']) : []; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked via catfix_nonce_check(); array is sanitized via array_map intval below
         if (!$pid) wp_send_json(['success' => false, 'error' => 'No post_id']);
         $ids = array_map('intval', $proposed_raw);
         wp_set_post_categories($pid, $ids);
@@ -4397,7 +4617,7 @@ JSCODE;
 
     public function ajax_catfix_bulk_apply(): void {
         $this->catfix_nonce_check();
-        $items_raw = isset($_POST['items']) ? (array) wp_unslash($_POST['items']) : [];
+        $items_raw = isset($_POST['items']) ? (array) wp_unslash($_POST['items']) : []; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked via catfix_nonce_check(); array items are sanitized in loop below
         $applied   = 0;
         foreach ($items_raw as $item) {
             $pid  = isset($item['post_id'])     ? absint($item['post_id']) : 0;
@@ -4534,6 +4754,848 @@ JSCODE;
     }
 
     // =========================================================================
+    // Category Health
+    // =========================================================================
+
+    public function ajax_catfix_health(): void {
+        $this->catfix_nonce_check();
+
+        $all_cats = get_categories(['hide_empty' => false, 'orderby' => 'count', 'order' => 'DESC']);
+        $results  = [];
+
+        foreach ($all_cats as $cat) {
+            $cid   = (int) $cat->term_id;
+            $count = (int) $cat->count;
+            $is_uncategorized = strtolower($cat->slug) === 'uncategorized';
+
+            // Get posts for this category (max 50) — needed before grading
+            $posts = get_posts([
+                'category'       => $cid,
+                'posts_per_page' => 50,
+                'post_status'    => 'publish',
+                'orderby'        => 'date',
+                'order'          => 'DESC',
+            ]);
+            $post_list = array_map(fn($p) => [
+                'id'    => $p->ID,
+                'title' => get_the_title($p->ID),
+            ], $posts);
+
+            // Detect "New": low count but most recent post is within 90 days
+            $is_new = false;
+            if (!$is_uncategorized && $count >= 1 && $count <= 3 && !empty($posts)) {
+                $newest_date = strtotime($posts[0]->post_date);
+                $days_old    = (time() - $newest_date) / DAY_IN_SECONDS;
+                if ($days_old <= 180) {
+                    $is_new = true;
+                }
+            }
+
+            // Health grade
+            if ($is_uncategorized) {
+                $grade = 'uncategorized';
+            } elseif ($count >= 10) {
+                $grade = 'strong';
+            } elseif ($count >= 4) {
+                $grade = 'moderate';
+            } elseif ($is_new) {
+                $grade = 'new';
+            } elseif ($count >= 2) {
+                $grade = 'weak';
+            } else {
+                $grade = 'empty';
+            }
+
+            $results[] = [
+                'id'         => $cid,
+                'name'       => $cat->name,
+                'slug'       => $cat->slug,
+                'count'      => $count,
+                'grade'      => $grade,
+                'edit_url'   => admin_url('edit.php?post_type=post&category_name=' . $cat->slug),
+                'posts'      => $post_list,
+            ];
+        }
+
+        // Sort: uncategorized last, then by grade weight desc, then count desc
+        $grade_order = ['strong' => 0, 'moderate' => 1, 'new' => 2, 'weak' => 3, 'empty' => 4, 'uncategorized' => 5];
+        usort($results, function($a, $b) use ($grade_order) {
+            $ga = $grade_order[$a['grade']] ?? 5;
+            $gb = $grade_order[$b['grade']] ?? 5;
+            if ($ga !== $gb) return $ga - $gb;
+            return $b['count'] - $a['count'];
+        });
+
+        wp_send_json(['success' => true, 'categories' => $results]);
+    }
+
+    // =========================================================================
+    // Category Drift Detection
+    // =========================================================================
+
+    public function ajax_catfix_drift(): void {
+        $this->catfix_nonce_check();
+
+        // Require configured AI provider key
+        $provider = $this->ai_opts['ai_provider'] ?? 'anthropic';
+        $key      = $provider === 'gemini'
+            ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
+            : trim((string)($this->ai_opts['anthropic_key'] ?? ''));
+        if (!$key) {
+            wp_send_json(['success' => false, 'error' => 'No AI API key configured. Add your key in the AI Settings tab.']);
+            return;
+        }
+
+        $model = trim((string)($this->ai_opts['model'] ?? ''))
+            ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001');
+
+        // ── Collect categories and their post titles ──────────────────────────
+        $all_cats = get_categories(['hide_empty' => false]);
+        $cat_map  = [];
+        foreach ($all_cats as $c) {
+            if (strtolower($c->slug) === 'uncategorized') continue;
+            $cat_map[(int) $c->term_id] = [
+                'name'     => $c->name,
+                'count'    => (int) $c->count,
+                'edit_url' => admin_url('edit.php?post_type=post&category_name=' . $c->slug),
+            ];
+        }
+
+        // For each category fetch up to 15 post titles (published only)
+        $cat_payload = [];
+        $total_posts = 0;
+        foreach ($cat_map as $cid => $cdata) {
+            if ($cdata['count'] < 2) continue; // skip empty / single-post categories
+            // Fetch up to 15 titles for the AI prompt (keep prompt size manageable)
+            $ai_post_ids = get_posts([
+                'category'       => $cid,
+                'posts_per_page' => 15,
+                'post_status'    => 'publish',
+                'orderby'        => 'date',
+                'order'          => 'DESC',
+                'fields'         => 'ids',
+            ]);
+            // Include other categories each post belongs to so AI doesn't suggest moves already covered
+            $titles = array_map(function($pid) use ($cid) {
+                $title      = get_the_title($pid);
+                $post_cats  = get_the_category($pid);
+                $other_cats = array_filter($post_cats, fn($cat) => (int)$cat->term_id !== (int)$cid);
+                $other_names = array_map(fn($cat) => $cat->name, $other_cats);
+                return empty($other_names)
+                    ? $title
+                    : $title . ' [also in: ' . implode(', ', $other_names) . ']';
+            }, $ai_post_ids);
+
+            // Fetch ALL posts for the user-facing list
+            $all_post_ids = get_posts([
+                'category'       => $cid,
+                'posts_per_page' => -1,
+                'post_status'    => 'publish',
+                'orderby'        => 'date',
+                'order'          => 'DESC',
+                'fields'         => 'ids',
+            ]);
+            $post_pairs = array_map(function($pid) {
+                return ['id' => $pid, 'title' => get_the_title($pid)];
+            }, $all_post_ids);
+
+            $cat_payload[] = [
+                'id'     => $cid,
+                'name'   => $cdata['name'],
+                'count'  => $cdata['count'],
+                'titles' => $titles,
+                'posts'  => $post_pairs,
+            ];
+            $total_posts += $cdata['count'];
+        }
+
+        if (empty($cat_payload)) {
+            wp_send_json(['success' => true, 'drift' => [], 'total_posts' => 0]);
+            return;
+        }
+
+        // ── Build AI prompt ───────────────────────────────────────────────────
+        $all_cat_names = implode(', ', array_column($cat_payload, 'name'));
+
+        $cat_list = '';
+        foreach ($cat_payload as $c) {
+            $sample   = implode("\n    - ", array_slice($c['titles'], 0, 15));
+            $cat_list .= "\n\nCategory: {$c['name']} ({$c['count']} posts total, sample titles below)\n    - {$sample}";
+        }
+
+        $system = 'You are a content taxonomy analyst. You assess whether WordPress blog categories '
+            . 'are semantically coherent or are being used as catch-alls for unrelated topics. '
+            . 'Post titles may include an "[also in: X, Y]" annotation showing their other existing categories. '
+            . 'A post already assigned to an appropriate category does NOT need to be moved there — it is already covered. '
+            . 'Only suggest moving a post to a category it is NOT already in. '
+            . 'You respond ONLY with valid JSON and nothing else. No markdown fences, no explanation.';
+        $user_msg = 'Analyse the following WordPress blog categories. Each entry shows the category name, total post count, and a sample of post titles.' . "\n\n"
+            . 'For each category, determine whether the posts form a coherent topic or whether the category is being used inconsistently as a catch-all.' . "\n"
+            . $cat_list . "\n\n"
+            . 'The full list of existing categories on this blog is: ' . $all_cat_names . "\n\n"
+            . 'Return ONLY a JSON array. Include ONLY categories that are drifting or catch-all — omit coherent and broad-but-valid ones entirely.' . "\n\n"
+            . 'Each object in the array must have exactly these fields:' . "\n"
+            . '- "category": string — the category name being flagged' . "\n"
+            . '- "verdict": one of exactly: "drifting" or "catch-all"' . "\n"
+            . '- "confidence": one of exactly: "high", "medium", or "low"' . "\n"
+            . '- "reason": string — one or two sentences explaining why this category is problematic' . "\n"
+            . '- "moves": array of move groups. Each group is an object with:' . "\n"
+            . '    - "to": string — exact name of target category' . "\n"
+            . '    - "because": string — one short sentence why these posts belong there' . "\n"
+            . '    - "titles": array of 2 to 4 post title strings from the sample' . "\n"
+            . '- "action": string — what to do with the category after reassignment. One of: "delete", "rename", or "keep".' . "\n\n"
+            . 'Do NOT use a freeform suggestion string. Express all recommendations through the moves array and action field.' . "\n\n"
+            . 'If no categories are drifting or catch-all, return an empty array: []';
+
+        // ── Call AI ───────────────────────────────────────────────────────────
+        try {
+            $raw = $this->dispatch_ai($provider, $key, $model, $system, $user_msg, null, 3000);
+        } catch (\Throwable $e) {
+            wp_send_json(['success' => false, 'error' => 'AI call failed: ' . $e->getMessage()]);
+            return;
+        }
+
+        // ── Parse response ────────────────────────────────────────────────────
+        // Strip accidental markdown fences if present
+        $json_str = trim((string) preg_replace('/^```(?:json)?\s*/i', '', preg_replace('/\s*```$/i', '', trim($raw))));
+        $parsed   = json_decode($json_str, true);
+
+        if (!is_array($parsed)) {
+            wp_send_json(['success' => false, 'error' => 'AI returned unexpected format. Raw: ' . substr($raw, 0, 200)]);
+            return;
+        }
+
+        // Enrich each result with edit_url from our cat_map
+        $drift = [];
+        foreach ($parsed as $item) {
+            if (empty($item['category']) || empty($item['verdict'])) continue;
+            // Find matching category ID by name
+            $matched_cid = null;
+            foreach ($cat_map as $cid => $cdata) {
+                if (strtolower($cdata['name']) === strtolower($item['category'])) {
+                    $matched_cid = $cid;
+                    break;
+                }
+            }
+            // Find posts for this category from cat_payload
+            $cat_posts = [];
+            foreach ($cat_payload as $cp) {
+                if ($cp['id'] === $matched_cid) {
+                    $cat_posts = $cp['posts'] ?? [];
+                    break;
+                }
+            }
+            $drift[] = [
+                'cat_id'     => $matched_cid,
+                'cat_name'   => $item['category'],
+                'verdict'    => $item['verdict']    ?? 'drifting',
+                'confidence' => $item['confidence'] ?? 'medium',
+                'reason'     => $item['reason']     ?? '',
+                'moves'      => $item['moves']      ?? [],
+                'action'     => $item['action']     ?? '',
+                'post_count' => $cat_map[$matched_cid]['count'] ?? 0,
+                'edit_url'   => $matched_cid ? $cat_map[$matched_cid]['edit_url'] : '',
+                'posts'      => $cat_posts,
+            ];
+        }
+
+        // Sort: catch-all first, then drifting; within each group by confidence (high first)
+        $verdict_order    = ['catch-all' => 0, 'drifting' => 1];
+        $confidence_order = ['high' => 0, 'medium' => 1, 'low' => 2];
+        usort($drift, function($a, $b) use ($verdict_order, $confidence_order) {
+            $vdiff = ($verdict_order[$a['verdict']] ?? 9) - ($verdict_order[$b['verdict']] ?? 9);
+            if ($vdiff !== 0) return $vdiff;
+            return ($confidence_order[$a['confidence']] ?? 9) - ($confidence_order[$b['confidence']] ?? 9);
+        });
+
+        // ── Save to cache ─────────────────────────────────────────────────────
+        // Hash only on taxonomy structure (id + slug), not post counts.
+        // Post count changes do not affect drift analysis — only do so if categories
+        // are added, removed, or renamed.
+        $cache_hash = md5(serialize(array_map(fn($c) => [$c['id'], $c['slug']], $cat_payload)));
+        update_option('cs_seo_drift_cache', [
+            'hash'        => $cache_hash,
+            'timestamp'   => time(),
+            'drift'       => $drift,
+            'total_posts' => $total_posts,
+        ], false);
+
+        wp_send_json(['success' => true, 'drift' => $drift, 'total_posts' => $total_posts]);
+    }
+
+    // ── Drift cache retrieval ─────────────────────────────────────────────────
+    public function ajax_catfix_drift_cache_get(): void {
+        $this->catfix_nonce_check();
+        $cache = get_option('cs_seo_drift_cache', null);
+        if (!$cache || empty($cache['drift'])) {
+            wp_send_json(['success' => false, 'error' => 'No cache found.']);
+            return;
+        }
+        // Validate hash on taxonomy structure only (id + slug), not post counts
+        $all_cats = get_categories(['hide_empty' => false]);
+        $cat_snap = [];
+        foreach ($all_cats as $c) {
+            if (strtolower($c->slug) === 'uncategorized') continue;
+            $cat_snap[] = ['id' => (int)$c->term_id, 'slug' => $c->slug];
+        }
+        $current_hash = md5(serialize($cat_snap));
+        $is_stale = ($current_hash !== $cache['hash']);
+        $cached_at = human_time_diff($cache['timestamp'], time()) . ' ago';
+        if ($is_stale) {
+            wp_send_json([
+                'success'   => false,
+                'stale'     => true,
+                'error'     => 'stale',
+                'drift'     => $cache['drift'],
+                'total_posts' => $cache['total_posts'],
+                'cached_at' => $cached_at,
+            ]);
+            return;
+        }
+        wp_send_json([
+            'success'     => true,
+            'drift'       => $cache['drift'],
+            'total_posts' => $cache['total_posts'],
+            'cached'      => true,
+            'cached_at'   => $cached_at,
+        ]);
+    }
+
+    // ── Drift analyse remaining posts for one category ────────────────────────
+    public function ajax_catfix_drift_analyse_remaining(): void {
+        $this->catfix_nonce_check();
+
+        $cat_id   = (int) (wp_unslash($_POST['cat_id']   ?? 0)); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
+        $cat_name = sanitize_text_field(wp_unslash($_POST['cat_name'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        if (!$cat_id || !$cat_name) {
+            wp_send_json(['success' => false, 'error' => 'Missing category.']);
+            return;
+        }
+
+        // Fetch all posts for this category with their other categories
+        $post_ids = get_posts([
+            'category'       => $cat_id,
+            'posts_per_page' => -1,
+            'post_status'    => 'publish',
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+            'fields'         => 'ids',
+        ]);
+        $titles_with_cats = array_map(function($pid) use ($cat_id) {
+            $title      = get_the_title($pid);
+            $post_cats  = get_the_category($pid);
+            $other_cats = array_filter($post_cats, fn($cat) => (int)$cat->term_id !== $cat_id);
+            $other_names = array_map(fn($cat) => $cat->name, $other_cats);
+            return empty($other_names) ? $title : $title . ' [also in: ' . implode(', ', $other_names) . ']';
+        }, $post_ids);
+
+        // Already-assigned titles passed from JS
+        $already_assigned = array_map('sanitize_text_field', (array)json_decode(wp_unslash($_POST['assigned_titles'] ?? '[]'), true)); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        $unanalysed = array_filter($titles_with_cats, function($t) use ($already_assigned) {
+            $bare = strtolower(preg_replace('/\s*\[also in:.*?\]/', '', $t));
+            foreach ($already_assigned as $a) {
+                if (str_contains(strtolower($a), $bare) || str_contains($bare, strtolower($a))) return false;
+            }
+            return true;
+        });
+
+        if (empty($unanalysed)) {
+            wp_send_json(['success' => true, 'moves' => [], 'message' => 'All posts already assigned.']);
+            return;
+        }
+
+        $provider = $this->ai_opts['ai_provider'] ?? 'anthropic';
+        $key      = $provider === 'gemini'
+            ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
+            : trim((string)($this->ai_opts['anthropic_key'] ?? ''));
+        if (!$key) {
+            wp_send_json(['success' => false, 'error' => 'No AI API key configured.']);
+            return;
+        }
+        $model = trim((string)($this->ai_opts['model'] ?? ''))
+            ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001');
+
+        $all_cat_names = implode(', ', array_column(get_categories(['hide_empty' => false]), 'name'));
+        $title_list    = implode("\n- ", array_values($unanalysed));
+
+        $system = 'You are a content taxonomy analyst. Post titles may include "[also in: X]" annotations. '
+            . 'Only suggest moving a post to a category it is NOT already in. '
+            . 'You respond ONLY with valid JSON and nothing else. No markdown fences, no explanation.';
+        $user_msg = 'The following posts are in the \'' . $cat_name . '\' category and have not yet been assigned to a move group.' . "\n"
+            . 'For each post, determine the best existing category it should be moved to from this list: ' . $all_cat_names . "\n\n"
+            . 'Posts to classify:' . "\n"
+            . '- ' . $title_list . "\n\n"
+            . 'Return ONLY a JSON array of move groups. Each object must have:' . "\n"
+            . '- "to": string — exact name of the target category' . "\n"
+            . '- "because": string — one sentence why these posts belong there' . "\n"
+            . '- "titles": array of post title strings (without the [also in:] annotation)' . "\n\n"
+            . 'Group posts by target category. If a post already belongs to the right category, omit it.' . "\n"
+            . 'If no moves are needed, return: []';
+
+        try {
+            $raw = $this->dispatch_ai($provider, $key, $model, $system, $user_msg, null, 2000);
+        } catch (\Throwable $e) {
+            wp_send_json(['success' => false, 'error' => 'AI call failed: ' . $e->getMessage()]);
+            return;
+        }
+
+        $clean = preg_replace('/^```(?:json)?\s*/i', '', trim($raw));
+        $clean = preg_replace('/```\s*$/', '', $clean);
+        $moves = json_decode(trim($clean), true);
+        if (!is_array($moves)) {
+            wp_send_json(['success' => false, 'error' => 'AI returned invalid JSON.']);
+            return;
+        }
+
+        // Merge into cache
+        $cache = get_option('cs_seo_drift_cache', []);
+        if (!empty($cache['drift'])) {
+            foreach ($cache['drift'] as &$entry) {
+                if ((int)$entry['cat_id'] === $cat_id) {
+                    $entry['moves'] = array_merge($entry['moves'] ?? [], $moves);
+                    break;
+                }
+            }
+            unset($entry);
+            update_option('cs_seo_drift_cache', $cache, false);
+        }
+
+        wp_send_json(['success' => true, 'moves' => $moves]);
+    }
+
+    // =========================================================================
+    // Related Articles — AJAX handlers
+    // =========================================================================
+
+    /**
+     * Returns a paginated list of posts with their RC status for the admin UI.
+     */
+    public function ajax_rc_get_posts(): void {
+        check_ajax_referer('cs_seo_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_die();
+
+        $page     = max(1, (int)($_POST['page'] ?? 1));
+        $per_page = 50;
+        $filter   = sanitize_text_field($_POST['filter'] ?? 'all');
+
+        // Build meta_query filter
+        $meta_query = [];
+        if ($filter === 'pending') {
+            $meta_query = [['key' => self::META_RC_STATUS, 'compare' => 'NOT EXISTS']];
+        } elseif ($filter === 'complete') {
+            $meta_query = [['key' => self::META_RC_STATUS, 'value' => 'complete']];
+        } elseif ($filter === 'error') {
+            $meta_query = [['key' => self::META_RC_STATUS, 'value' => 'error']];
+        }
+
+        $args = [
+            'post_type'      => 'post',
+            'post_status'    => 'publish',
+            'posts_per_page' => $per_page,
+            'paged'          => $page,
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+            'fields'         => 'ids',
+        ];
+        if (!empty($meta_query)) $args['meta_query'] = $meta_query;
+
+        $q     = new WP_Query($args);
+        $posts = [];
+        foreach ($q->posts as $pid) {
+            $status   = get_post_meta($pid, self::META_RC_STATUS, true) ?: 'pending';
+            $gen_at   = (int) get_post_meta($pid, self::META_RC_GENERATED, true);
+            $last_step= (int) get_post_meta($pid, self::META_RC_LAST_STEP, true);
+            $error    = get_post_meta($pid, self::META_RC_ERROR, true);
+            $top_raw  = maybe_unserialize(get_post_meta($pid, self::META_RC_TOP, true));
+            $bot_raw  = maybe_unserialize(get_post_meta($pid, self::META_RC_BOTTOM, true));
+            $posts[]  = [
+                'id'         => $pid,
+                'title'      => get_the_title($pid),
+                'status'     => $status,
+                'last_step'  => $last_step,
+                'top_count'  => is_array($top_raw) ? count($top_raw) : 0,
+                'bot_count'  => is_array($bot_raw) ? count($bot_raw) : 0,
+                'generated'  => $gen_at ? human_time_diff($gen_at) . ' ago' : '',
+                'error'      => $error ?: '',
+            ];
+        }
+
+        wp_send_json_success([
+            'posts'       => $posts,
+            'total'       => $q->found_posts,
+            'total_pages' => $q->max_num_pages,
+            'page'        => $page,
+        ]);
+    }
+
+    /**
+     * Executes exactly one step of the RC generation pipeline for one post.
+     * Saves state after each step and returns the updated status.
+     */
+    public function ajax_rc_step(): void {
+        check_ajax_referer('cs_seo_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_die();
+
+        $pid = (int)($_POST['post_id'] ?? 0);
+        if (!$pid || get_post_status($pid) !== 'publish') {
+            wp_send_json(['success' => false, 'error' => 'Invalid post.']);
+            return;
+        }
+
+        $last_step = (int)(get_post_meta($pid, self::META_RC_LAST_STEP, true) ?: 0);
+        $status    = get_post_meta($pid, self::META_RC_STATUS, true) ?: 'pending';
+
+        // If already complete, return immediately
+        if ($status === 'complete') {
+            wp_send_json_success(['status' => 'complete', 'step' => self::RC_STEP_COMPLETE, 'done' => true]);
+            return;
+        }
+
+        $next_step = $last_step + 1;
+        if ($next_step < self::RC_STEP_LOAD) $next_step = self::RC_STEP_LOAD;
+
+        try {
+            switch ($next_step) {
+                case self::RC_STEP_LOAD:
+                    $this->rc_step_load($pid);
+                    break;
+                case self::RC_STEP_VALIDATE:
+                    $this->rc_step_validate($pid);
+                    break;
+                case self::RC_STEP_CANDIDATES:
+                    $this->rc_step_candidates($pid);
+                    break;
+                case self::RC_STEP_SCORE:
+                    $this->rc_step_score($pid);
+                    break;
+                case self::RC_STEP_TOP:
+                    $this->rc_step_top($pid);
+                    break;
+                case self::RC_STEP_BOTTOM:
+                    $this->rc_step_bottom($pid);
+                    break;
+                case self::RC_STEP_VALIDATE_OUT:
+                    $this->rc_step_validate_out($pid);
+                    break;
+                case self::RC_STEP_COMPLETE:
+                    $this->rc_step_complete($pid);
+                    break;
+                default:
+                    wp_send_json(['success' => false, 'error' => 'Unknown step ' . $next_step]);
+                    return;
+            }
+        } catch (\Throwable $e) {
+            update_post_meta($pid, self::META_RC_STATUS,    'error');
+            update_post_meta($pid, self::META_RC_ERROR,     $e->getMessage());
+            wp_send_json(['success' => false, 'error' => $e->getMessage()]);
+            return;
+        }
+
+        $status_now = get_post_meta($pid, self::META_RC_STATUS, true);
+        $step_now   = (int) get_post_meta($pid, self::META_RC_LAST_STEP, true);
+
+        wp_send_json_success([
+            'status'  => $status_now,
+            'step'    => $step_now,
+            'done'    => ($status_now === 'complete' || $status_now === 'skipped'),
+        ]);
+    }
+
+    /**
+     * Resets RC meta for one or all posts so they can be regenerated.
+     */
+    public function ajax_rc_reset(): void {
+        check_ajax_referer('cs_seo_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_die();
+
+        $pid  = (int)($_POST['post_id'] ?? 0);
+        $mode = sanitize_text_field($_POST['mode'] ?? 'one');
+
+        $meta_keys = [
+            self::META_RC_TOP, self::META_RC_BOTTOM, self::META_RC_CANDIDATES,
+            self::META_RC_SCORES, self::META_RC_FINGERPRINT, self::META_RC_VERSION,
+            self::META_RC_GENERATED, self::META_RC_LAST_STEP, self::META_RC_STATUS,
+            self::META_RC_ERROR,
+        ];
+
+        if ($mode === 'all') {
+            // Delete meta in batches using direct DB query for performance
+            global $wpdb;
+            $placeholders = implode(',', array_fill(0, count($meta_keys), '%s'));
+            $wpdb->query($wpdb->prepare(
+                "DELETE FROM {$wpdb->postmeta} WHERE meta_key IN ({$placeholders})",
+                ...$meta_keys
+            ));
+            wp_send_json_success(['reset' => 'all']);
+        } else {
+            if (!$pid) { wp_send_json(['success' => false, 'error' => 'Missing post_id']); return; }
+            foreach ($meta_keys as $k) delete_post_meta($pid, $k);
+            wp_send_json_success(['reset' => $pid]);
+        }
+    }
+
+    // ── RC Step implementations ───────────────────────────────────────────────
+
+    private function rc_step_load(int $pid): void {
+        $post = get_post($pid);
+        $fp   = $this->rc_fingerprint($pid);
+        update_post_meta($pid, self::META_RC_FINGERPRINT, $fp);
+        update_post_meta($pid, self::META_RC_STATUS,      'processing');
+        update_post_meta($pid, self::META_RC_ERROR,       '');
+        update_post_meta($pid, self::META_RC_LAST_STEP,   self::RC_STEP_LOAD);
+    }
+
+    private function rc_step_validate(int $pid): void {
+        // Check if existing output is still valid — skip if nothing changed
+        $stored_fp  = (string) get_post_meta($pid, self::META_RC_FINGERPRINT, true);
+        $current_fp = $this->rc_fingerprint($pid);
+        $stored_ver = (string) get_post_meta($pid, self::META_RC_VERSION, true);
+        $top_raw    = maybe_unserialize(get_post_meta($pid, self::META_RC_TOP, true));
+        $bot_raw    = maybe_unserialize(get_post_meta($pid, self::META_RC_BOTTOM, true));
+        $has_output = is_array($top_raw) && count($top_raw) >= 2
+                   && is_array($bot_raw) && count($bot_raw) >= 3;
+
+        if ($stored_fp === $current_fp && $stored_ver === self::RC_VERSION && $has_output) {
+            // Validate that linked posts still exist
+            $all_valid = true;
+            foreach (array_merge($top_raw, $bot_raw) as $lid) {
+                if (get_post_status((int)$lid) !== 'publish') { $all_valid = false; break; }
+            }
+            if ($all_valid) {
+                // Mark skipped — already valid
+                update_post_meta($pid, self::META_RC_STATUS,    'complete');
+                update_post_meta($pid, self::META_RC_LAST_STEP, self::RC_STEP_COMPLETE);
+                return;
+            }
+        }
+
+        // Store current fingerprint and continue
+        update_post_meta($pid, self::META_RC_FINGERPRINT, $current_fp);
+        update_post_meta($pid, self::META_RC_LAST_STEP,   self::RC_STEP_VALIDATE);
+    }
+
+    private function rc_step_candidates(int $pid): void {
+        $opts         = $this->opts;
+        $pool_size    = max(10, min(50, (int)($opts['rc_pool_size'] ?? 20)));
+        $use_cats     = (int)($opts['rc_use_categories'] ?? 1);
+        $use_tags     = (int)($opts['rc_use_tags'] ?? 1);
+        $exclude_cats = array_map('intval', (array)($opts['rc_exclude_cats'] ?? []));
+
+        $post_cats = wp_get_post_categories($pid, ['fields' => 'ids']);
+        $post_tags = wp_get_post_tags($pid, ['fields' => 'ids']);
+
+        $candidate_ids = [];
+
+        // By shared category
+        if ($use_cats && !empty($post_cats)) {
+            $active_cats = array_diff($post_cats, $exclude_cats);
+            if (!empty($active_cats)) {
+                $q = new WP_Query([
+                    'post_type'      => 'post',
+                    'post_status'    => 'publish',
+                    'posts_per_page' => $pool_size,
+                    'post__not_in'   => [$pid],
+                    'fields'         => 'ids',
+                    'category__in'   => $active_cats,
+                    'orderby'        => 'date',
+                    'order'          => 'DESC',
+                ]);
+                $candidate_ids = array_merge($candidate_ids, $q->posts);
+            }
+        }
+
+        // By shared tag
+        if ($use_tags && !empty($post_tags)) {
+            $q = new WP_Query([
+                'post_type'      => 'post',
+                'post_status'    => 'publish',
+                'posts_per_page' => $pool_size,
+                'post__not_in'   => [$pid],
+                'fields'         => 'ids',
+                'tag__in'        => $post_tags,
+                'orderby'        => 'date',
+                'order'          => 'DESC',
+            ]);
+            $candidate_ids = array_merge($candidate_ids, $q->posts);
+        }
+
+        // Deduplicate, exclude self, cap at pool_size
+        $candidate_ids = array_values(array_unique(array_map('intval', $candidate_ids)));
+        $candidate_ids = array_slice($candidate_ids, 0, $pool_size);
+
+        update_post_meta($pid, self::META_RC_CANDIDATES, $candidate_ids);
+        update_post_meta($pid, self::META_RC_LAST_STEP,  self::RC_STEP_CANDIDATES);
+    }
+
+    private function rc_step_score(int $pid): void {
+        $opts      = $this->opts;
+        $use_cats  = (int)($opts['rc_use_categories'] ?? 1);
+        $use_tags  = (int)($opts['rc_use_tags'] ?? 1);
+        $use_summ  = (int)($opts['rc_use_summary'] ?? 1);
+
+        $candidates = maybe_unserialize(get_post_meta($pid, self::META_RC_CANDIDATES, true));
+        if (!is_array($candidates) || empty($candidates)) {
+            update_post_meta($pid, self::META_RC_SCORES,    []);
+            update_post_meta($pid, self::META_RC_LAST_STEP, self::RC_STEP_SCORE);
+            return;
+        }
+
+        // Source signals
+        $src_cats  = $use_cats ? wp_get_post_categories($pid, ['fields' => 'ids']) : [];
+        $src_tags  = $use_tags ? array_map(fn($t) => $t->term_id, wp_get_post_tags($pid)) : [];
+        $src_title = $this->rc_keywords(get_the_title($pid));
+        $src_summ  = [];
+        if ($use_summ) {
+            $w = (string) get_post_meta($pid, self::META_SUM_WHAT, true);
+            $y = (string) get_post_meta($pid, self::META_SUM_WHY,  true);
+            $k = (string) get_post_meta($pid, self::META_SUM_KEY,  true);
+            $src_summ = $this->rc_keywords($w . ' ' . $y . ' ' . $k);
+        }
+        $now = time();
+
+        $scores = [];
+        foreach ($candidates as $cid) {
+            $score = 0;
+
+            if ($use_cats) {
+                $cand_cats = wp_get_post_categories($cid, ['fields' => 'ids']);
+                $shared    = array_intersect($src_cats, $cand_cats);
+                // Primary category match: first category in each list
+                if (!empty($src_cats) && !empty($cand_cats) && $src_cats[0] === $cand_cats[0]) {
+                    $score += 40;
+                } else {
+                    $score += min(30, count($shared) * 15);
+                }
+            }
+
+            if ($use_tags) {
+                $cand_tags = array_map(fn($t) => $t->term_id, wp_get_post_tags($cid));
+                $shared    = count(array_intersect($src_tags, $cand_tags));
+                $score    += min(40, $shared * 10);
+            }
+
+            // Title keyword overlap
+            $cand_title_kw = $this->rc_keywords(get_the_title($cid));
+            $shared_title  = count(array_intersect($src_title, $cand_title_kw));
+            $score        += min(20, $shared_title * 5);
+
+            // Summary keyword overlap
+            if ($use_summ && !empty($src_summ)) {
+                $cw = (string) get_post_meta($cid, self::META_SUM_WHAT, true);
+                $cy = (string) get_post_meta($cid, self::META_SUM_WHY,  true);
+                $ck = (string) get_post_meta($cid, self::META_SUM_KEY,  true);
+                $cand_summ_kw = $this->rc_keywords($cw . ' ' . $cy . ' ' . $ck);
+                $shared_summ  = count(array_intersect($src_summ, $cand_summ_kw));
+                $score       += min(15, $shared_summ * 3);
+            }
+
+            // Recency bonus — published within 180 days
+            $pub = get_post_time('U', true, $cid);
+            if ($pub && ($now - $pub) < (180 * DAY_IN_SECONDS)) {
+                $score += 5;
+            }
+
+            $scores[$cid] = $score;
+        }
+
+        // Sort descending by score
+        arsort($scores);
+
+        update_post_meta($pid, self::META_RC_SCORES,    $scores);
+        update_post_meta($pid, self::META_RC_LAST_STEP, self::RC_STEP_SCORE);
+    }
+
+    private function rc_step_top(int $pid): void {
+        $count  = max(2, min(5, (int)($this->opts['rc_top_count'] ?? 3)));
+        $scores = maybe_unserialize(get_post_meta($pid, self::META_RC_SCORES, true));
+        if (!is_array($scores) || empty($scores)) {
+            update_post_meta($pid, self::META_RC_TOP,       []);
+            update_post_meta($pid, self::META_RC_LAST_STEP, self::RC_STEP_TOP);
+            return;
+        }
+        $top = array_keys(array_slice($scores, 0, $count, true));
+        update_post_meta($pid, self::META_RC_TOP,       $top);
+        update_post_meta($pid, self::META_RC_LAST_STEP, self::RC_STEP_TOP);
+    }
+
+    private function rc_step_bottom(int $pid): void {
+        $count   = max(3, min(10, (int)($this->opts['rc_bottom_count'] ?? 5)));
+        $scores  = maybe_unserialize(get_post_meta($pid, self::META_RC_SCORES, true));
+        $top_ids = maybe_unserialize(get_post_meta($pid, self::META_RC_TOP, true));
+        if (!is_array($scores) || empty($scores)) {
+            update_post_meta($pid, self::META_RC_BOTTOM,    []);
+            update_post_meta($pid, self::META_RC_LAST_STEP, self::RC_STEP_BOTTOM);
+            return;
+        }
+        $top_ids = is_array($top_ids) ? array_map('intval', $top_ids) : [];
+        // Exclude posts already in the top block
+        $remaining = array_diff_key($scores, array_flip($top_ids));
+        $bottom    = array_keys(array_slice($remaining, 0, $count, true));
+        update_post_meta($pid, self::META_RC_BOTTOM,    $bottom);
+        update_post_meta($pid, self::META_RC_LAST_STEP, self::RC_STEP_BOTTOM);
+    }
+
+    private function rc_step_validate_out(int $pid): void {
+        $top_raw = maybe_unserialize(get_post_meta($pid, self::META_RC_TOP,    true));
+        $bot_raw = maybe_unserialize(get_post_meta($pid, self::META_RC_BOTTOM, true));
+        $top_ids = is_array($top_raw) ? array_map('intval', $top_raw) : [];
+        $bot_ids = is_array($bot_raw) ? array_map('intval', $bot_raw) : [];
+
+        // Remove self-references and unpublished posts
+        $top_ids = array_values(array_filter($top_ids,
+            fn($id) => $id !== $pid && get_post_status($id) === 'publish'));
+        $bot_ids = array_values(array_filter($bot_ids,
+            fn($id) => $id !== $pid && get_post_status($id) === 'publish' && !in_array($id, $top_ids)));
+
+        update_post_meta($pid, self::META_RC_TOP,       $top_ids);
+        update_post_meta($pid, self::META_RC_BOTTOM,    $bot_ids);
+        update_post_meta($pid, self::META_RC_LAST_STEP, self::RC_STEP_VALIDATE_OUT);
+    }
+
+    private function rc_step_complete(int $pid): void {
+        update_post_meta($pid, self::META_RC_STATUS,    'complete');
+        update_post_meta($pid, self::META_RC_VERSION,   self::RC_VERSION);
+        update_post_meta($pid, self::META_RC_GENERATED, time());
+        update_post_meta($pid, self::META_RC_LAST_STEP, self::RC_STEP_COMPLETE);
+    }
+
+    // ── RC helpers ────────────────────────────────────────────────────────────
+
+    /**
+     * Computes a fingerprint for a post based on signals used in scoring.
+     * If any of these change, the cache is invalidated.
+     */
+    private function rc_fingerprint(int $pid): string {
+        $cats = wp_get_post_categories($pid, ['fields' => 'ids']);
+        $tags = array_map(fn($t) => $t->term_id, wp_get_post_tags($pid));
+        sort($cats); sort($tags);
+        return md5(serialize([
+            get_the_title($pid),
+            $cats,
+            $tags,
+            get_post_meta($pid, self::META_SUM_WHAT, true),
+            get_post_meta($pid, self::META_SUM_WHY,  true),
+            get_post_meta($pid, self::META_SUM_KEY,  true),
+        ]));
+    }
+
+    /**
+     * Extracts significant keywords from a text string for overlap scoring.
+     * Returns lowercase unique words, excluding common stop words.
+     */
+    private function rc_keywords(string $text): array {
+        static $stop = ['the','a','an','is','in','to','of','and','for','with','on','at','by',
+                        'from','as','it','its','be','or','that','this','was','are','how','why',
+                        'what','when','your','you','we','our','has','have','had','not','but',
+                        'more','also','can','will','about','up','if','do','so','all','into'];
+        $text  = strtolower(wp_strip_all_tags($text));
+        $text  = preg_replace('/[^a-z0-9\s]/', ' ', $text);
+        $words = preg_split('/\s+/', trim($text), -1, PREG_SPLIT_NO_EMPTY);
+        $words = array_filter($words, fn($w) => strlen($w) > 2 && !in_array($w, $stop));
+        return array_values(array_unique($words));
+    }
+
+    // =========================================================================
     // Settings Page
     // =========================================================================
 
@@ -4568,16 +5630,20 @@ JSCODE;
         <?php /* ── TAB NAV ── */ ?>
         <style>
             .ab-tabs {
-                display:flex; gap:6px; margin:20px 0 0; padding:0;
+                display:flex; flex-wrap:wrap; gap:6px; margin:20px 0 0; padding:0;
                 border-bottom:3px solid #1d2327;
             }
             .ab-tab {
-                padding:10px 22px; cursor:pointer;
+                padding:8px 14px; cursor:pointer;
                 border:none; border-radius:6px 6px 0 0;
-                font-size:13px; font-weight:600; letter-spacing:0.01em;
+                font-size:12px; font-weight:600; letter-spacing:0.01em;
                 background:#e0e0e0; color:#50575e;
                 transition:background 0.15s, color 0.15s;
                 margin-bottom:0; position:relative; bottom:-1px;
+                white-space:nowrap;
+            }
+            @media (min-width:783px) {
+                .ab-tab { padding:10px 22px; font-size:13px; }
             }
             .ab-tab:hover:not(.active) { background:#c3c4c7; color:#1d2327; }
             .ab-tab[data-tab="seo"].active    { background:#2271b1; color:#fff; }
@@ -4609,7 +5675,7 @@ JSCODE;
             .ab-progress-fill { height:100%; background:#2271b1; border-radius:4px; transition:width 0.3s; width:0%; }
             .ab-stats { font-size:12px; color:#50575e; margin-bottom:12px; }
             .ab-stat-val { font-weight:600; color:#1d2327; }
-            table.ab-posts { width:100%; border-collapse:collapse; margin-top:12px; }
+            table.ab-posts { width:100%; min-width:640px; border-collapse:collapse; margin-top:12px; }
             table.ab-posts th { text-align:left; padding:8px 10px; border-bottom:2px solid #c3c4c7;
                                 font-size:12px; color:#50575e; font-weight:600; }
             table.ab-posts td { padding:9px 10px; border-bottom:1px solid #f0f0f1; font-size:13px; vertical-align:top; }
@@ -4831,7 +5897,9 @@ JSCODE;
                 <div class="ab-zone-card ab-card-identity">
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">🌐</span> Site Identity</span>
-                    <?php $this->explain_btn('identity', '🌐 Site Identity — What each field does', [
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-identity', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <?php $this->explain_btn('identity', '🌐 Site Identity — What each field does', [
                         ['rec'=>'✅ Recommended','name'=>'Site name','desc'=>'The name of your site as it appears in search results, browser tabs, and social sharing. Used in JSON-LD schema and OpenGraph tags. e.g. "Andrew Baker" or "Andrew Baker\'s Tech Blog".'],
                         ['rec'=>'✅ Recommended','name'=>'Title suffix','desc'=>'Appended to every page title in search results. e.g. if your suffix is "| Andrew Baker" then a post titled "AWS Lambda Tips" appears as "AWS Lambda Tips | Andrew Baker". Helps with brand recognition in SERPs.'],
                         ['rec'=>'✅ Recommended','name'=>'Home title','desc'=>'The SEO title for your homepage specifically. This is what Google shows as the blue link for your homepage in search results. Make it descriptive and keyword-rich — e.g. "Andrew Baker – CIO, Cloud Architect & Technology Leader".'],
@@ -4840,6 +5908,7 @@ JSCODE;
                         ['rec'=>'⬜ Optional','name'=>'Locale','desc'=>'BCP 47 language tag used in OpenGraph metadata. "en-US" is fine for most English sites. Use "en-ZA" if you want to signal a South African audience to Facebook/LinkedIn. Has minimal impact on Google rankings.'],
                         ['rec'=>'⬜ Optional','name'=>'Twitter handle','desc'=>'Your Twitter/X username including the @ symbol. Added to Twitter Card metadata so when your posts are shared on X, your account gets attributed as the author. Only matters if you actively use Twitter/X.'],
                     ]); ?>
+                    </span>
                 </div>
                 <div class="ab-zone-body">
                 <table class="form-table" role="presentation">
@@ -4873,19 +5942,23 @@ JSCODE;
                             <p class="description">Meta description for your homepage. Aim for 140–155 characters.</p>
                         </td></tr>
                 </table>
+                <div style="margin-top:16px;"><?php submit_button('Save SEO Settings', 'primary', 'submit', false); ?></div>
                 </div>
                 </div><!-- /ab-card-identity -->
 
                 <div class="ab-zone-card ab-card-person">
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">👤</span> Person Schema</span>
-                    <?php $this->explain_btn('person', '👤 Person Schema — What each field does', [
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-person', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <?php $this->explain_btn('person', '👤 Person Schema — What each field does', [
                         ['rec'=>'✅ Recommended','name'=>'Full name','desc'=>'Your name as it appears in Google search results and Knowledge Graph. Use your real name exactly as you want it attributed — this is what Google uses to connect your content to you as an individual author.'],
                         ['rec'=>'✅ Recommended','name'=>'Profile URL','desc'=>'The canonical URL for your personal profile — usually your homepage (https://yoursite.com/). Google uses this as the authoritative identifier for you as a person in its Knowledge Graph.'],
                         ['rec'=>'✅ Recommended','name'=>'Job title','desc'=>'Your current job title, e.g. "Chief Information Officer". Included in your Person JSON-LD schema and helps Google understand your professional authority in your subject area.'],
                         ['rec'=>'✅ Recommended','name'=>'Person image URL','desc'=>'URL to your headshot or profile photo. Used in Person schema so Google can associate a face with your content. Ideally a square image of at least 400×400px already uploaded to your media library.'],
                         ['rec'=>'✅ Recommended','name'=>'Social profiles (sameAs)','desc'=>'One URL per line — your LinkedIn, Twitter/X, GitHub, Google Scholar etc. Google uses these to verify your identity and connect your various online presences. The more authoritative profiles you link, the stronger your author entity signal.'],
                     ]); ?>
+                    </span>
                 </div>
                 <div class="ab-zone-body">
                 <table class="form-table" role="presentation">
@@ -4911,11 +5984,168 @@ JSCODE;
                             <p class="description">Your profiles on other platforms — one URL per line. Helps Google connect your identity across the web.</p>
                         </td></tr>
                 </table>
+                <div style="margin-top:16px;"><?php submit_button('Save SEO Settings', 'primary', 'submit', false); ?></div>
                 </div>
                 </div><!-- /ab-card-person -->
 
+                <!-- Related Articles Settings Card -->
+                <div class="ab-zone-card ab-card-rc-settings-card" style="margin-top:24px;">
+                    <div class="ab-zone-header" style="background:#0e7490;display:flex;align-items:center;justify-content:space-between;">
+                        <span>&#128279; Related Articles</span>
+                        <span style="display:flex;align-items:center;gap:8px;">
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-rc-settings-card', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
+                        <?php $this->explain_btn('rc_settings', '&#128279; Related Articles — Settings', [
+                            ['name'=>'Enable feature',       'rec'=>'ℹ️ Info',      'desc'=>'Enables or disables the Related Articles and You Might Also Like blocks on all posts. Disabling hides the blocks from the front end immediately without deleting any stored data.'],
+                            ['name'=>'Related Articles block','rec'=>'ℹ️ Info',     'desc'=>'The block that appears near the top of each post, directly after the AI summary box. Shows the closest conceptual matches based on shared categories, tags, and keyword overlap. Requires at least 2 links to display.'],
+                            ['name'=>'You Might Also Like',  'rec'=>'ℹ️ Info',      'desc'=>'The block that appears at the bottom of each post before the comments section. Draws from a broader pool of related posts to extend session depth. Requires at least 3 links to display.'],
+                            ['name'=>'Decreasing count',     'rec'=>'✅ Instant',   'desc'=>'If you reduce the number of links to show, the change takes effect immediately on the front end without any regeneration. The extra stored links are simply not displayed.'],
+                            ['name'=>'Increasing count',     'rec'=>'⚠️ Regenerate','desc'=>'If you increase the number of links to show, existing posts may not have enough stored links to fill the new count. Run Refresh Stale in the Related Articles Post Status table below to regenerate all posts with the new count.'],
+                            ['name'=>'Candidate pool size',  'rec'=>'ℹ️ Info',      'desc'=>'Controls how many candidate posts are evaluated per source when scoring. A larger pool improves accuracy but takes slightly longer to process. The default of 20 is suitable for most sites.'],
+                            ['name'=>'Scoring signals',      'rec'=>'ℹ️ Info',      'desc'=>'The signals used to score candidate posts. Categories and tags provide structural signals. AI summary overlap uses the generated summary text to find semantic connections. At least one signal must be enabled.'],
+                            ['name'=>'Exclude categories',   'rec'=>'ℹ️ Info',      'desc'=>'Posts in excluded categories will not appear as related link suggestions on any post. Use this to prevent utility categories, news, or announcements from appearing as related content.'],
+                        ]); ?>
+                        </span>
+                    </div>
+                    <div class="ab-zone-body ab-card-rc-settings" style="padding:20px 24px;display:none;">
+                        <p style="color:#555;margin:0 0 16px;">Controls where and how Related Articles and You Might Also Like link blocks appear on your posts. Links are generated using local signals only &mdash; no AI calls, no timeouts.</p>
+                        <table class="form-table" style="margin:0;">
+                            <tr>
+                                <th style="width:220px;padding:12px 0;">Enable feature</th>
+                                <td style="padding:12px 0;">
+                                    <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[rc_enable]" value="1" <?php checked((int)($o['rc_enable'] ?? 1), 1); ?>> Enable Related Articles and You Might Also Like on posts</label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th style="padding:12px 0;">Related Articles block</th>
+                                <td style="padding:12px 0;">
+                                    <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[rc_top_enabled]" value="1" <?php checked((int)($o['rc_top_enabled'] ?? 1), 1); ?>> Show &ldquo;Related Articles&rdquo; block at the top (after AI summary)</label><br>
+                                    <span style="display:inline-flex;align-items:center;gap:8px;margin-top:6px;">
+                                        Links to show:
+                                        <input type="number" id="rc_top_count_input" name="<?php echo esc_attr(self::OPT); ?>[rc_top_count]" value="<?php echo esc_attr((int)($o['rc_top_count'] ?? 3)); ?>" min="1" max="5" style="width:60px;" data-saved="<?php echo esc_attr((int)($o['rc_top_count'] ?? 3)); ?>" onchange="rcCheckCountWarning(this,'rc-top-warn')">
+                                        <span style="color:#888;font-size:12px;">(min 2, max 5)</span>
+                                    </span>
+                                    <p id="rc-top-warn" style="display:none;margin:6px 0 0;padding:8px 12px;background:#fffbeb;border-left:3px solid #f59e0b;color:#92400e;font-size:12px;">&#9888; You have increased the link count. Existing posts will only show the new amount after you run <strong>Refresh Stale</strong> in the Related Articles table below.</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th style="padding:12px 0;">You Might Also Like block</th>
+                                <td style="padding:12px 0;">
+                                    <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[rc_bottom_enabled]" value="1" <?php checked((int)($o['rc_bottom_enabled'] ?? 1), 1); ?>> Show &ldquo;You Might Also Like&rdquo; block at the bottom (before comments)</label><br>
+                                    <span style="display:inline-flex;align-items:center;gap:8px;margin-top:6px;">
+                                        Links to show:
+                                        <input type="number" id="rc_bottom_count_input" name="<?php echo esc_attr(self::OPT); ?>[rc_bottom_count]" value="<?php echo esc_attr((int)($o['rc_bottom_count'] ?? 5)); ?>" min="1" max="10" style="width:60px;" data-saved="<?php echo esc_attr((int)($o['rc_bottom_count'] ?? 5)); ?>" onchange="rcCheckCountWarning(this,'rc-bottom-warn')">
+                                        <span style="color:#888;font-size:12px;">(min 3, max 10)</span>
+                                    </span>
+                                    <p id="rc-bottom-warn" style="display:none;margin:6px 0 0;padding:8px 12px;background:#fffbeb;border-left:3px solid #f59e0b;color:#92400e;font-size:12px;">&#9888; You have increased the link count. Existing posts will only show the new amount after you run <strong>Refresh Stale</strong> in the Related Articles table below.</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th style="padding:12px 0;">Candidate pool size</th>
+                                <td style="padding:12px 0;">
+                                    <input type="number" name="<?php echo esc_attr(self::OPT); ?>[rc_pool_size]" value="<?php echo esc_attr((int)($o['rc_pool_size'] ?? 20)); ?>" min="10" max="50" style="width:70px;">
+                                    <span style="color:#888;font-size:12px;margin-left:6px;">posts evaluated per source (10&ndash;50)</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th style="padding:12px 0;">Scoring signals</th>
+                                <td style="padding:12px 0;">
+                                    <label style="margin-right:16px;"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[rc_use_categories]" value="1" <?php checked((int)($o['rc_use_categories'] ?? 1), 1); ?>> Categories</label>
+                                    <label style="margin-right:16px;"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[rc_use_tags]" value="1" <?php checked((int)($o['rc_use_tags'] ?? 1), 1); ?>> Tags</label>
+                                    <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[rc_use_summary]" value="1" <?php checked((int)($o['rc_use_summary'] ?? 1), 1); ?>> AI summary overlap</label>
+                                    <p class="description" style="margin-top:4px;">These signals are combined to score candidate posts. At least one must be enabled.</p>
+                                </td>
+                            </tr>
+                            <?php
+                            $all_cats      = get_categories(['hide_empty' => false]);
+                            $excluded_cats = (array)($o['rc_exclude_cats'] ?? []);
+                            if (!empty($all_cats)) : ?>
+                            <tr>
+                                <th style="padding:12px 0;">Exclude categories</th>
+                                <td style="padding:12px 0;">
+                                    <div style="display:flex;flex-wrap:wrap;gap:6px 16px;">
+                                    <?php foreach ($all_cats as $cat) : ?>
+                                        <label style="white-space:nowrap;">
+                                            <input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[rc_exclude_cats][]" value="<?php echo esc_attr($cat->term_id); ?>" <?php checked(in_array((int)$cat->term_id, array_map('intval', $excluded_cats))); ?>>
+                                            <?php echo esc_html($cat->name); ?>
+                                        </label>
+                                    <?php endforeach; ?>
+                                    </div>
+                                    <p class="description" style="margin-top:4px;">Posts in these categories will not appear as related link suggestions.</p>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
+                        </table>
+                        <div style="margin-top:16px;"><?php submit_button('Save SEO Settings', 'primary', 'submit', false); ?></div>
+                    </div>
+                </div><!-- /ab-card-rc-settings -->
+
                 <?php submit_button('Save SEO Settings'); ?>
             </form>
+
+            <?php /* ── Related Articles Generation Table ── */ ?>
+            <div class="ab-zone-card ab-card-rc-table" style="margin-top:24px;">
+                <div class="ab-zone-header" style="background:linear-gradient(120deg,#4338ca 0%,#6366f1 60%,#818cf8 100%);display:flex;align-items:center;justify-content:space-between;">
+                    <span>&#128279; Related Articles — Post Status</span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-rc-table', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
+                        <?php $this->explain_btn('rc_table', '&#128279; Related Articles — How it works', [
+                            ['name'=>'What it does',       'rec'=>'ℹ️ Info',      'desc'=>'For every published post, Related Articles finds and ranks other posts on your site that are topically related. It surfaces two blocks on the front end: a &ldquo;Related Articles&rdquo; block near the top of the article (closest conceptual matches) and a &ldquo;You Might Also Like&rdquo; block at the bottom (broader related posts).'],
+                            ['name'=>'No AI required',     'rec'=>'✅ Free',       'desc'=>'Generation uses only signals already on your site — shared categories, shared tags, title keyword overlap, and your existing AI summary text. There are zero API calls and no cost. It scores every candidate post locally in PHP and ranks by relevance.'],
+                            ['name'=>'Generate Missing',   'rec'=>'✅ Recommended','desc'=>'Processes all posts that have not yet been generated. Run this once after installing the plugin to populate your full post library. Each post takes under a second and the batch runs with a small delay between posts to avoid overloading the server.'],
+                            ['name'=>'Refresh Stale',      'rec'=>'⬜ Optional',   'desc'=>'Re-runs generation for all posts regardless of status. Use this after making significant changes to your category or tag structure, or after adding AI summaries to posts that previously lacked them.'],
+                            ['name'=>'Retry Failed',       'rec'=>'⬜ Optional',   'desc'=>'Re-runs only posts that errored during a previous batch. Useful if a batch was interrupted or a post had missing data.'],
+                            ['name'=>'Reset All',          'rec'=>'⚠️ Caution',   'desc'=>'Deletes all Related Articles data for every post. The front-end blocks will disappear from all posts immediately. You will need to run Generate Missing again to rebuild. Use this only if you want to start fresh after major structural changes.'],
+                            ['name'=>'Per-row Run button', 'rec'=>'ℹ️ Info',      'desc'=>'Runs the full generation pipeline for a single post. Updates the row in place without reloading the page. Use this to regenerate a specific post after editing its categories, tags, or AI summary.'],
+                        ]); ?>
+                    </span>
+                </div>
+                <div class="ab-zone-body ab-card-rc-table-body" style="padding:20px 24px;display:none;">
+
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
+                        <span style="font-weight:600;color:#1d2327;font-size:13px;">Filter:</span>
+                        <button type="button" class="button rc-filter-btn rc-filter-active" data-filter="all"     onclick="rcSetFilter('all',this)">All Posts</button>
+                        <button type="button" class="button rc-filter-btn"                  data-filter="pending"  onclick="rcSetFilter('pending',this)">&#9711; Pending</button>
+                        <button type="button" class="button rc-filter-btn"                  data-filter="complete" onclick="rcSetFilter('complete',this)">&#9989; Complete</button>
+                        <button type="button" class="button rc-filter-btn"                  data-filter="error"    onclick="rcSetFilter('error',this)">&#10060; Error</button>
+                        <span style="flex:1;"></span>
+                        <button type="button" class="button button-primary" id="rc-btn-generate-missing" onclick="rcBatch('missing')">&#9654; Generate Missing</button>
+                        <button type="button" class="button"               id="rc-btn-refresh-stale"    onclick="rcBatch('stale')">&#8635; Refresh Stale</button>
+                        <button type="button" class="button"               id="rc-btn-retry-failed"     onclick="rcBatch('failed')">&#128257; Retry Failed</button>
+                        <button type="button" class="button"               id="rc-btn-reset-all"        onclick="rcResetAll()" style="color:#b91c1c;border-color:#b91c1c;">&#128465; Reset All</button>
+                    </div>
+
+                    <div id="rc-batch-bar" style="display:none;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:8px;padding:12px 16px;margin-bottom:16px;">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <div style="flex:1;background:#e2e8f0;border-radius:4px;height:8px;overflow:hidden;">
+                                <div id="rc-batch-progress-bar" style="height:100%;background:#6366f1;border-radius:4px;width:0%;transition:width 0.3s;"></div>
+                            </div>
+                            <span id="rc-batch-label" style="font-size:12px;color:#4338ca;font-weight:600;white-space:nowrap;">0 / 0</span>
+                            <button type="button" class="button" id="rc-btn-stop" onclick="rcStopBatch()" style="color:#b91c1c;border-color:#b91c1c;">&#9646;&#9646; Stop</button>
+                        </div>
+                    </div>
+
+                    <div id="rc-table-wrap" style="overflow-x:auto;">
+                        <table class="widefat fixed striped" id="rc-posts-table" style="min-width:680px;">
+                            <thead>
+                                <tr>
+                                    <th style="width:40%;">Post</th>
+                                    <th style="width:14%;text-align:center;">Status</th>
+                                    <th style="width:9%;text-align:center;">Top</th>
+                                    <th style="width:9%;text-align:center;">Bottom</th>
+                                    <th style="width:14%;text-align:center;">Generated</th>
+                                    <th style="width:14%;text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rc-posts-tbody">
+                                <tr><td colspan="6" style="text-align:center;padding:24px;color:#999;">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="rc-pagination" style="display:flex;gap:8px;align-items:center;margin-top:12px;"></div>
+
+                </div>
+            </div><!-- /ab-card-rc-table -->
 
             <hr class="ab-zone-divider">
 
@@ -4926,15 +6156,18 @@ JSCODE;
                 <div class="ab-zone-card ab-card-ai">
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">✦</span> AI Meta Writer — Anthropic Claude</span>
-                    <?php $this->explain_btn('ai', '✦ AI Meta Writer — What each setting does', [
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-ai', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
+                        <?php $this->explain_btn('ai', '✦ AI Meta Writer — What each setting does', [
                         ['rec'=>'✅ Recommended','name'=>'Anthropic API key','desc'=>'Your secret key from console.anthropic.com. Required to call the Claude AI to generate meta descriptions. Keep this private — anyone with this key can use your Anthropic account. The key is stored securely in your WordPress database.'],
                         ['rec'=>'ℹ️ Info','name'=>'Claude model','desc'=>'Which version of Claude to use for generation. Claude Haiku is fast and cheap — ideal for bulk processing hundreds of posts. Claude Sonnet is slower and costs more but produces higher quality, more nuanced descriptions. For a blog with 100+ posts, Haiku is usually the right choice.'],
                         ['rec'=>'⬜ Optional','name'=>'Overwrite existing','desc'=>'When enabled, the AI will regenerate descriptions for posts that already have one. Leave OFF to only fill in missing descriptions — this protects any manually written descriptions you\'ve already crafted.'],
                         ['rec'=>'⬜ Optional','name'=>'Min / Max characters','desc'=>'Target character range for generated descriptions. Google typically shows 140–160 characters in search results before truncating. Descriptions shorter than 120 characters look thin; longer than 165 get cut off with an ellipsis.'],
                         ['rec'=>'⬜ Optional','name'=>'Custom prompt','desc'=>'Advanced: override the default instructions sent to Claude. The default prompt is tuned for technical blog posts. Only change this if you want a different tone, language, or specific instructions about what to include or exclude in descriptions.'],
                     ]); ?>
+                    </span>
                 </div>
-                <div class="ab-zone-body ab-zone-ai">
+                <div class="ab-zone-body ab-zone-ai" style="display:none;">
                 <table class="form-table" role="presentation">
                     <tr>
                         <th>AI Provider:</th>
@@ -5035,6 +6268,7 @@ JSCODE;
                         </td>
                     </tr>
                 </table>
+                <div style="margin-top:16px;"><?php submit_button('Save AI Settings', 'primary', 'submit', false); ?></div>
                 </div><!-- /ab-zone-body -->
                 </div><!-- /ab-card-ai -->
                 <?php submit_button('Save AI Settings'); ?>
@@ -5046,6 +6280,7 @@ JSCODE;
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">✦</span> Update Posts with AI Descriptions</span>
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-update-posts', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
                         <button class="button" id="ab-posts-hide-hdr" onclick="abTogglePosts(document.getElementById('ab-posts-hide-hdr'))" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↑ Hide Posts</button>
                         <button class="button" id="ab-reload-hdr" onclick="abLoadPosts()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <?php $this->explain_btn('updateposts', '✦ Update Posts — How this works', [
@@ -5065,7 +6300,7 @@ JSCODE;
                     ]); ?>
                     </span>
                 </div>
-                <div class="ab-zone-body" style="padding:20px 24px 24px">
+                <div class="ab-zone-body" style="padding:20px 24px 24px;display:none;">
 
                 <?php /* ── API key warning banner ── */ ?>
                 <div class="ab-api-key-warning" id="ab-api-warn">
@@ -5128,7 +6363,7 @@ JSCODE;
                 </div>
 
                 <?php /* ── Post table ── */ ?>
-                <div id="ab-posts-wrap"></div>
+                <div id="ab-posts-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
                 <div class="ab-pager" id="ab-pager" style="display:none">
                     <button class="button" id="ab-prev" onclick="abPage(-1)">← Prev</button>
                     <span id="ab-page-info" style="font-size:12px;color:#50575e;"></span>
@@ -5142,6 +6377,7 @@ JSCODE;
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">🖼</span> AI Image ALT Text Generator</span>
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-alt', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
                         <button class="button" id="ab-alt-hide-hdr" onclick="altTogglePosts(document.getElementById('ab-alt-hide-hdr'))" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↑ Hide Posts</button>
                         <button class="button" id="ab-alt-reload-hdr" onclick="altLoad()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <?php $this->explain_btn('alttext', '🖼 ALT Text — How this works', [
@@ -5155,7 +6391,7 @@ JSCODE;
                     ]); ?>
                     </span>
                 </div>
-                <div class="ab-zone-body" style="padding:20px 24px 24px">
+                <div class="ab-zone-body" style="padding:20px 24px 24px;display:none;">
 
                 <div class="ab-api-key-warning" id="ab-alt-api-warn" style="<?php
                     $provider = $this->ai_opts['ai_provider'] ?? 'anthropic';
@@ -5208,7 +6444,7 @@ JSCODE;
                     </div>
                     <div id="ab-alt-log"></div>
                 </div>
-                <div id="ab-alt-posts-wrap"></div>
+                <div id="ab-alt-posts-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
 
                 </div><!-- /ab-zone-body -->
             </div><!-- /ab-card-alt -->
@@ -5217,6 +6453,7 @@ JSCODE;
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">📋</span> AI Summary Box Generator</span>
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-summary', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
                         <button class="button" id="ab-sum-hide-hdr" onclick="sumTogglePosts(document.getElementById('ab-sum-hide-hdr'))" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↑ Hide Posts</button>
                         <button class="button" id="ab-sum-reload-hdr" onclick="sumLoad()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <?php $this->explain_btn('summary', '📋 AI Summary Box — How this works', [
@@ -5227,7 +6464,7 @@ JSCODE;
                     ]); ?>
                     </span>
                 </div>
-                <div class="ab-zone-body" style="padding:20px 24px 24px">
+                <div class="ab-zone-body" style="padding:20px 24px 24px;display:none;">
 
                 <div class="ab-api-key-warning" id="ab-sum-api-warn" style="<?php echo $alt_has_key ? 'display:none' : ''; ?>">
                     <div class="ab-warn-icon">⚠️</div>
@@ -5266,7 +6503,7 @@ JSCODE;
                     <div class="ab-progress-fill" id="ab-sum-progress-fill"></div>
                 </div>
                 <div class="ab-stats" id="ab-sum-prog-label"></div>
-                <div id="ab-sum-posts-wrap" style="margin-top:12px"></div>
+                <div id="ab-sum-posts-wrap" style="margin-top:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
 
                 <div id="ab-sum-log-wrap" style="display:none">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
@@ -5293,7 +6530,9 @@ JSCODE;
                 <div class="ab-zone-card ab-card-features">
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">⚙</span> Features &amp; Robots</span>
-                    <?php $this->explain_btn('features', '⚙ Features & Robots — What each option does', [
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-features', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <?php $this->explain_btn('features', '⚙ Features & Robots — What each option does', [
                         ['rec'=>'✅ Recommended','name'=>'OpenGraph + Twitter Cards','desc'=>'Adds structured metadata so your posts display with a title, description and image when shared on LinkedIn, Twitter/X, WhatsApp or any other platform. Without this, shared links look blank or use random images.'],
                         ['rec'=>'✅ Recommended','name'=>'WebSite JSON-LD (front page)','desc'=>'Tells Google the name and URL of your site in structured data format. Helps Google display your site name correctly in search results and can unlock sitelinks beneath your homepage listing.'],
                         ['rec'=>'✅ Recommended','name'=>'Person JSON-LD schema','desc'=>'Embeds your name, job title, photo, and social profiles into your site so Google can connect your content to you as an individual. Important for personal brand and author authority signals.'],
@@ -5307,6 +6546,7 @@ JSCODE;
                         ['rec'=>'✅ Recommended','name'=>'noindex author archives','desc'=>'On a single-author blog, your author archive page (/author/yourname/) is essentially a duplicate of your homepage. Blocking it prevents a duplicate content penalty.'],
                         ['rec'=>'✅ Recommended','name'=>'noindex tag archives','desc'=>'Tag archive pages (/tag/aws/) often duplicate post content and can dilute your rankings. Unless your tag pages have unique introductory text and real editorial value, block them.'],
                     ]); ?>
+                    </span>
                 </div>
                 <div class="ab-zone-body" style="padding:16px 20px">
                 <div class="ab-checkbox-grid">
@@ -5324,6 +6564,7 @@ JSCODE;
                     <label class="ab-rec"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[noindex_author_archives]" value="1" <?php checked((int)($o['noindex_author_archives'] ?? 0), 1); ?>> noindex author archives</label>
                     <label class="ab-rec"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[noindex_tag_archives]" value="1" <?php checked((int)($o['noindex_tag_archives'] ?? 0), 1); ?>> noindex tag archives</label>
                 </div>
+                <div style="margin-top:16px;"><?php submit_button('Save Features &amp; Robots Settings', 'primary', 'submit', false); ?></div>
                 </div>
                 </div><!-- /ab-card-features -->
 
@@ -5332,13 +6573,16 @@ JSCODE;
                 <div class="ab-zone-card ab-card-sitemap-settings">
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">⚙</span> Sitemap Settings</span>
-                    <?php $this->explain_btn('sitemap', '⚙ Sitemap Settings — What each option does', [
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-sitemap-settings', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <?php $this->explain_btn('sitemap', '⚙ Sitemap Settings — What each option does', [
                         ['rec'=>'✅ Recommended','name'=>'Enable /sitemap.xml','desc'=>'Generates a sitemap at yoursite.com/sitemap.xml listing all your published content. Submit this URL to Google Search Console so Google knows exactly what pages to crawl. Also automatically appends the sitemap URL to your robots.txt.'],
                         ['rec'=>'✅ Recommended','name'=>'Include Posts','desc'=>'Adds all your published blog posts to the sitemap. This should always be on — posts are your primary content and the main thing you want Google to discover and index.'],
                         ['rec'=>'✅ Recommended','name'=>'Include Pages','desc'=>'Adds your WordPress pages (About, Contact etc.) to the sitemap. Keep this on — pages like your About and Contact pages should be indexed.'],
                         ['rec'=>'⬜ Optional','name'=>'Taxonomy archives','desc'=>'Includes category, tag, and custom taxonomy archive pages in the sitemap. Turn this on only if your archive pages have unique introductory content and genuine value for visitors. For most blogs, leave it off — archive pages often duplicate post content.'],
                         ['rec'=>'⬜ Optional','name'=>'Exclude URLs or IDs','desc'=>'Enter specific URLs or post IDs to omit from the sitemap — one per line. Use this for thank-you pages, landing pages, privacy policy pages, or any content you don\'t want Google to prioritise. Numeric IDs (e.g. 42) refer to the WordPress post/page ID shown in the edit URL.'],
                     ]); ?>
+                    </span>
                 </div>
                 <div class="ab-zone-body">
                 <table class="form-table" role="presentation">
@@ -5387,6 +6631,7 @@ JSCODE;
                         </td>
                     </tr>
                 </table>
+                <div style="margin-top:16px;"><?php submit_button('Save Sitemap Settings', 'primary', 'submit', false); ?></div>
                 </div>
                 </div><!-- /ab-card-sitemap-settings -->
 
@@ -5401,7 +6646,9 @@ JSCODE;
                 <div class="ab-zone-card ab-card-robots">
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">🤖</span> Robots.txt</span>
-                    <?php $this->explain_btn('robots', '🤖 Robots.txt — What this all means', [
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-robots', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <?php $this->explain_btn('robots', '🤖 Robots.txt — What this all means', [
                         ['rec'=>'ℹ️ Info','name'=>'What is robots.txt?','desc'=>'A plain text file at yoursite.com/robots.txt that tells search engine crawlers which pages they are and aren\'t allowed to visit. It doesn\'t prevent indexing — it prevents crawling. Google respects it; malicious bots ignore it entirely.'],
                         ['rec'=>'ℹ️ Info','name'=>'Physical file warning','desc'=>'If a robots.txt file exists on disk, the web server serves it directly — bypassing WordPress and this plugin completely. You must rename or delete it to let the plugin take control. The plugin offers a one-click rename to robots.txt.bak.'],
                         ['rec'=>'⬜ Optional','name'=>'Block AI training bots','desc'=>'Adds Disallow: / rules for GPTBot, CCBot, Claude-Web, anthropic-ai and other AI training crawlers. Turn this ON if you don\'t want AI companies training their models on your content. Leave OFF if you want AI assistants to surface your content when users ask relevant questions.'],
@@ -5410,6 +6657,7 @@ JSCODE;
                         ['rec'=>'ℹ️ Info','name'=>'User-agent: *','desc'=>'Rules that apply to all other crawlers not specifically named above. This is the catch-all for Bing, DuckDuckGo, and any other well-behaved search engine crawler.'],
                         ['rec'=>'ℹ️ Info','name'=>'Live preview','desc'=>'Shows exactly what search engines see when they fetch yoursite.com/robots.txt right now. If the sitemap URL appears at the bottom, everything is working correctly.'],
                     ]); ?>
+                    </span>
                 </div>
                 <div class="ab-zone-body">
 
@@ -5515,6 +6763,7 @@ JSCODE;
                         </td>
                     </tr>
                 </table>
+                <div style="margin-top:16px;"><?php submit_button('Save Robots Settings', 'primary', 'submit', false); ?></div>
                 </div>
                 </div><!-- /ab-card-robots -->
 
@@ -5556,12 +6805,15 @@ JSCODE;
             <div class="ab-zone-card ab-card-llms">
             <div class="ab-zone-header" style="justify-content:space-between">
                 <span><span class="ab-zone-icon">🤖</span> llms.txt — LLM Crawler Guidance</span>
-                <?php $this->explain_btn('llms', '🤖 llms.txt — What this does', [
+                <span style="display:flex;align-items:center;gap:8px;">
+                    <button type="button" class="button" onclick="abToggleCard('ab-card-llms', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                    <?php $this->explain_btn('llms', '🤖 llms.txt — What this does', [
                     ['rec'=>'✅ Recommended','name'=>'What is llms.txt','desc'=>'llms.txt is an emerging standard (proposed 2024) that helps large language model crawlers like ChatGPT, Claude, and Perplexity understand your site\'s content structure. It\'s a plain-text markdown file served at yoursite.com/llms.txt listing your posts, pages, and descriptions — similar to what sitemap.xml does for traditional search engines, but optimised for AI indexing.'],
                     ['rec'=>'✅ Recommended','name'=>'Enable /llms.txt','desc'=>'Serves a dynamically generated llms.txt at yoursite.com/llms.txt. The file is built from your published posts and pages, using your AI-generated meta descriptions as the per-post summaries. Enable this if you want AI assistants and LLM-powered search engines to have an accurate, structured view of your site content.'],
                     ['rec'=>'ℹ️ Info','name'=>'What it contains','desc'=>'The file includes your site name, site description, author name and title, and a structured list of all published posts and pages with their URLs and meta descriptions. Posts with no meta description are listed without a summary — another reason to run Generate Missing first.'],
                     ['rec'=>'ℹ️ Info','name'=>'Preview','desc'=>'Click Load Preview to see exactly what the file currently contains. The preview reflects live data — if you generate new meta descriptions, reload the preview to see the updated content.'],
                 ]); ?>
+                    </span>
             </div>
             <div class="ab-zone-body" style="padding:20px 24px 24px">
                 <form method="post" action="options.php">
@@ -5724,8 +6976,9 @@ JSCODE;
 
             <?php /* ── HTTPS Fix Card ── */ ?>
             <div class="ab-zone-card ab-card-https">
-            <div class="ab-zone-header">
+            <div class="ab-zone-header" style="justify-content:space-between">
                 <span><span class="ab-zone-icon">🔒</span> Mixed Content Fix — HTTP → HTTPS</span>
+                <button type="button" class="button" onclick="abToggleCard('ab-card-https', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
             </div>
             <div class="ab-zone-body" style="padding:20px 24px 24px">
                 <p style="color:#50575e;font-size:13px;margin:0 0 16px">Scans your database for assets and links still using <code>http://</code> and replaces them with <code>https://</code>. Fixes posts, pages, metadata, options, and comments in one operation.</p>
@@ -6052,7 +7305,9 @@ JSCODE;
             <div class="ab-zone-card ab-card-fonts" style="margin-top:0">
                 <div class="ab-zone-header" style="background:#0066cc;justify-content:space-between">
                     <span><span class="ab-zone-icon">🔤</span> Font-Display Optimization</span>
-                    <?php $this->explain_btn('perf', '⚡ Performance Tab — What each feature does', [
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-fonts', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <?php $this->explain_btn('perf', '⚡ Performance Tab — What each feature does', [
                         ['rec'=>'✅ Recommended','name'=>'Font-Display: Swap','desc'=>'Adds font-display: swap to your @font-face rules. This tells browsers to show text immediately using a fallback font, then swap in the custom font once loaded. Eliminates the "Flash of Invisible Text" (FOIT) and dramatically improves Largest Contentful Paint (LCP) scores. Typical savings: 500ms–2s.'],
                         ['rec'=>'✅ Recommended','name'=>'Font Metric Overrides','desc'=>'Adds size-adjust, ascent-override, and descent-override properties to match your web font metrics to the fallback font. This prevents layout shift (CLS) when the custom font loads. Without this, text may jump or reflow as fonts swap.'],
                         ['rec'=>'⬜ Optional','name'=>'Defer Font CSS Loading','desc'=>'Changes font stylesheets to load with media="print" and swap to media="all" after page load. This prevents font CSS from blocking initial render. Enable this for maximum LCP improvement, but test thoroughly — some themes may show a brief flash of unstyled text.'],
@@ -6061,6 +7316,7 @@ JSCODE;
                         ['rec'=>'⬜ Optional','name'=>'HTML/CSS/JS Minification','desc'=>'Removes whitespace, comments, and unnecessary characters from your HTML output. Reduces page size by 5–15% with zero visual change. Safe and conservative — protects pre-formatted content, JSON-LD, and textareas.'],
                         ['rec'=>'✅ Recommended','name'=>'HTTPS Mixed Content Scanner','desc'=>'Scans your database for http:// references to your own domain that should be https://. Mixed content triggers browser warnings and hurts SEO. One-click fix replaces all instances across posts, pages, meta, options, and comments.'],
                     ]); ?>
+                    </span>
                 </div>
                 <div class="ab-zone-body">
                     <p style="padding:0 20px; margin-top:12px; font-size:13px; color:#555; line-height:1.6;">
@@ -6105,8 +7361,9 @@ JSCODE;
                 <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[defer_js]" value="0">
                 <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[minify_html]" value="0">
                 <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[defer_fonts]" value="0">
-                <div class="ab-zone-header" style="background:#7c3aed">
+                <div class="ab-zone-header" style="background:#7c3aed;justify-content:space-between">
                     <span><span class="ab-zone-icon">🚀</span> Render &amp; Minification</span>
+                    <button type="button" class="button" onclick="abToggleCard('ab-card-render', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                 </div>
                 <div class="ab-zone-body" style="padding:16px 20px">
 
@@ -6171,13 +7428,16 @@ JSCODE;
                 <div class="ab-zone-card ab-card-schedule">
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">⏱</span> Scheduled Batch Generation</span>
-                    <?php $this->explain_btn('schedule', '⏱ Scheduled Batch — How this works', [
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-schedule', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <?php $this->explain_btn('schedule', '⏱ Scheduled Batch — How this works', [
                         ['rec'=>'ℹ️ Info','name'=>'What this does','desc'=>'Automatically runs the AI meta description generator on a schedule — no need to manually click Generate Missing. The batch only processes posts that don\'t yet have a description, so it never overwrites existing ones.'],
                         ['rec'=>'⬜ Optional','name'=>'Enable schedule','desc'=>'Turns the scheduled batch on or off. When enabled, the batch runs automatically at midnight (server time) on the days you select. When disabled, no automatic generation happens — you can still run it manually from the Optimise SEO tab.'],
                         ['rec'=>'⬜ Optional','name'=>'Days of the week','desc'=>'Choose which days the batch runs. For a high-volume blog that publishes daily, tick every day. For a weekly blog, once or twice a week is sufficient. The batch only does work if there are unprocessed posts — if everything is up to date, it completes instantly.'],
                         ['rec'=>'ℹ️ Info','name'=>'Midnight server time','desc'=>'The batch runs at midnight based on your server\'s timezone, not your local time. Check your WordPress timezone setting under Settings → General if the timing seems off.'],
                         ['rec'=>'ℹ️ Info','name'=>'API costs','desc'=>'Each description generated makes one API call to Anthropic Claude. At typical blog post lengths, Claude Haiku costs roughly $0.001–$0.003 per post. A full run across 100 unprocessed posts costs around $0.10–$0.30.'],
                     ]); ?>
+                    </span>
                 </div>
                 <div class="ab-zone-body">
                 <p style="padding:12px 20px 0;color:#50575e;margin:0">The batch runs automatically on selected days at midnight (server time). <strong style="color:#6b3fa0">It only processes posts that do not yet have a meta description</strong> — it never overwrites existing ones.</p>
@@ -6248,6 +7508,7 @@ JSCODE;
                         </td>
                     </tr>
                 </table>
+                <div style="margin-top:16px;"><?php submit_button('Save Schedule Settings', 'primary', 'submit', false); ?></div>
                 </div><!-- /ab-zone-body -->
                 </div><!-- /ab-card-schedule -->
                 <?php submit_button('Save Schedule Settings'); ?>
@@ -6258,13 +7519,16 @@ JSCODE;
             <div class="ab-zone-card ab-card-lastrun">
             <div class="ab-zone-header" style="justify-content:space-between">
                 <span><span class="ab-zone-icon">📋</span> Batch Run History (28 days)</span>
-                <?php $this->explain_btn('lastrun', '📋 Batch Run History — Reading the results', [
+                <span style="display:flex;align-items:center;gap:8px;">
+                    <button type="button" class="button" onclick="abToggleCard('ab-card-lastrun', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                    <?php $this->explain_btn('lastrun', '📋 Batch Run History — Reading the results', [
                     ['rec'=>'ℹ️ Info','name'=>'Run history','desc'=>'Shows all batch runs from the last 28 days, newest first. Each entry shows when the batch ran, how many posts were processed, and any errors. Entries older than 28 days are automatically pruned.'],
                     ['rec'=>'ℹ️ Info','name'=>'Processed','desc'=>'How many posts the batch attempted to generate descriptions for in each run. Posts that already had descriptions are skipped and not counted here.'],
                     ['rec'=>'ℹ️ Info','name'=>'Succeeded','desc'=>'Posts that were successfully updated with a new AI-generated description. These posts now have meta descriptions and will be skipped in future batch runs.'],
                     ['rec'=>'ℹ️ Info','name'=>'Errors','desc'=>'Posts where generation failed — usually due to an API error, rate limit, or the post having no readable content. The batch will retry these on the next scheduled run. Check your API key if errors are consistently high.'],
                     ['rec'=>'ℹ️ Info','name'=>'Next scheduled run','desc'=>'When the batch will next execute automatically. If this shows "Not scheduled" but the schedule is enabled, try saving your schedule settings again — this re-registers the WordPress cron event.'],
                 ]); ?>
+                    </span>
             </div>
             <div class="ab-zone-body">
             <?php
@@ -6325,6 +7589,8 @@ JSCODE;
                     <span>🏷 Category Fixer</span>
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button class="button" id="cf-reload-hdr" onclick="cfLoad()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#8635; Reload</button>
+                        <button class="button" id="cf-hideposts-hdr" onclick="cfTogglePosts()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#128065; Hide Posts</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-catfix', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('catfix', 'Category Fixer', [
                             ['name'=>'How it works','rec'=>'Info','desc'=>'Scans all posts using local keyword matching against your category list. No AI calls are made.'],
                             ['name'=>'Scoring','rec'=>'Info','desc'=>'Compares post title (4pts), AI summary (3pts), tags (3pts), and slug (2pts) against each category name. Existing categories get a continuity bonus.'],
@@ -6360,8 +7626,8 @@ JSCODE;
                         <span style="display:inline-block;background:#787c82;color:#fff;border-radius:10px;padding:1px 10px;">Kept</span>
                     </div>
 
-                    <div id="cf-posts-wrap">
-                        <table id="cf-table" style="display:none;width:100%;border-collapse:collapse;font-size:13px;">
+                    <div id="cf-posts-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+                        <table id="cf-table" style="display:none;width:100%;min-width:700px;border-collapse:collapse;font-size:13px;">
                             <thead>
                                 <tr style="background:#f0f0f0;">
                                     <th style="padding:8px 10px;text-align:left;width:24px;"><input type="checkbox" id="cf-check-all" onchange="cfToggleAll(this)"></th>
@@ -6379,6 +7645,79 @@ JSCODE;
 
                 </div><!-- /ab-zone-body -->
             </div><!-- /ab-card-catfix -->
+
+            <div class="ab-zone-card ab-card-cathealth" style="margin-top:24px;">
+                <div class="ab-zone-header" style="display:flex;align-items:center;justify-content:space-between;background:#0e5a6e;">
+                    <span>&#128202; Category Health</span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button class="button" id="ch-reload-hdr" onclick="chLoad()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#8635; Reload</button>
+                        <button class="button" id="ch-hideposts-hdr" onclick="chToggleAllPosts()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#128065; Hide Posts</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-cathealth', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <?php $this->explain_btn('cathealth', 'Category Health Dashboard', [
+                            ['name'=>'Strong','rec'=>'✅ Recommended','desc'=>'10 or more published posts. This category is well established and should remain.'],
+                            ['name'=>'Moderate','rec'=>'⬜ Optional','desc'=>'4 to 9 posts. Healthy but could grow further.'],
+                            ['name'=>'New','rec'=>'⬜ Optional','desc'=>'1 to 3 posts published within the last 180 days. This category is growing and should not be treated as weak yet.'],
+                            ['name'=>'Weak','rec'=>'⬜ Optional','desc'=>'2 to 3 posts, none recent. Consider whether this topic needs its own category or should be merged.'],
+                            ['name'=>'Empty','rec'=>'ℹ️ Info','desc'=>'0 to 1 posts. This category adds no value to your taxonomy. Consider deleting it.'],
+                            ['name'=>'Uncategorized','rec'=>'ℹ️ Info','desc'=>'WordPress default fallback. Posts here were never assigned a real category.'],
+                        ]); ?>
+                    </span>
+                </div>
+                <div class="ab-zone-body" style="padding:20px 24px;">
+
+                    <div id="ch-cta" style="text-align:center;padding:32px 0;">
+                        <p style="color:#555;margin:0 0 16px;">Analyse all categories and show post counts, health grades, and per-category post lists.</p>
+                        <button class="button button-primary button-hero" onclick="chLoad()">&#128202; Analyse Categories</button>
+                    </div>
+
+                    <div id="ch-stats" style="display:none;margin-bottom:16px;gap:10px;flex-wrap:wrap;"></div>
+
+                    <div id="ch-legend" style="display:none;margin-bottom:12px;font-size:12px;color:#555;">
+                        <span style="margin-right:12px;font-weight:600;">Health grades:</span>
+                        <span style="display:inline-block;background:#1a7a34;color:#fff;border-radius:10px;padding:1px 10px;margin-right:6px;">&#9679; Strong</span>
+                        <span style="display:inline-block;background:#e67e00;color:#fff;border-radius:10px;padding:1px 10px;margin-right:6px;">&#9679; Moderate</span>
+                        <span style="display:inline-block;background:#2271b1;color:#fff;border-radius:10px;padding:1px 10px;margin-right:6px;">&#9679; New</span>
+                        <span style="display:inline-block;background:#b8a200;color:#fff;border-radius:10px;padding:1px 10px;margin-right:6px;">&#9679; Weak</span>
+                        <span style="display:inline-block;background:#d63638;color:#fff;border-radius:10px;padding:1px 10px;margin-right:6px;">&#9679; Empty</span>
+                        <span style="display:inline-block;background:#787c82;color:#fff;border-radius:10px;padding:1px 10px;">&#9679; Uncategorized</span>
+                    </div>
+
+                    <div id="ch-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
+
+                </div>
+            </div><!-- /ab-card-cathealth -->
+
+            <div class="ab-zone-card ab-card-catdrift" style="margin-top:24px;">
+                <div class="ab-zone-header" style="display:flex;align-items:center;justify-content:space-between;background:#6b3fa0;">
+                    <span>&#9889; Category Drift</span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button class="button" id="cd-reload-hdr" onclick="cdLoad()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#129302; Re-run Analysis</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-catdrift', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <?php $this->explain_btn('catdrift', 'Category Drift Detection', [
+                            ['name'=>'How it works','rec'=>'ℹ️ Info','desc'=>'AI analyses the post titles in each category to determine whether the category covers a coherent topic or is being used as a catch-all for unrelated subjects. It uses semantic understanding, not pattern counting, so it can tell the difference between a legitimately broad category and a genuinely overloaded one.'],
+                            ['name'=>'Catch-all','rec'=>'ℹ️ Info','desc'=>'The category contains posts on clearly unrelated topics with no coherent theme. These are the most actionable findings and are listed first.'],
+                            ['name'=>'Drifting','rec'=>'ℹ️ Info','desc'=>'The category has a recognisable core theme but also includes posts that do not belong. The AI is less certain these are problems, so check the reasoning before acting.'],
+                            ['name'=>'Confidence','rec'=>'ℹ️ Info','desc'=>'High confidence means the AI saw clear evidence in the titles. Medium or low confidence means the sample was ambiguous. Always review the example titles and reasoning before making changes.'],
+                            ['name'=>'What to do','rec'=>'⬜ Optional','desc'=>'Each flagged category shows a specific suggestion from the AI. Common actions are: split into two more specific categories, rename to better reflect the actual content, merge into an existing category, or delete if the topic is already covered elsewhere.'],
+                        ]); ?>
+                    </span>
+                </div>
+                <div class="ab-zone-body" style="padding:20px 24px;">
+
+                    <div id="cd-cta" style="text-align:center;padding:32px 0;">
+                        <p style="color:#555;margin:0 0 16px;">Detect categories being used inconsistently across posts.</p>
+                        <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
+                            <button class="button" id="cd-btn-cache" onclick="cdLoadFromCache()" style="background:#2d6a4f;color:#fff;border-color:#2d6a4f;padding:6px 16px;">&#128336; Load Cached Results</button>
+                            <button class="button button-primary" id="cd-btn-fresh" onclick="cdLoad()">&#9889; Run Fresh AI Analysis</button>
+                        </div>
+                        <p id="cd-cta-msg" style="color:#888;font-size:12px;margin:12px 0 0;">Load cached results instantly, or run a fresh AI analysis.</p>
+                    </div>
+
+                    <div id="cd-summary" style="display:none;margin-bottom:16px;"></div>
+                    <div id="cd-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
+
+                </div>
+            </div><!-- /ab-card-catdrift -->
 
         </div><!-- /ab-pane-catfix -->
 
@@ -6652,12 +7991,27 @@ JSCODE;
 
         <script>
         // ── Tab switching ────────────────────────────────────────────────────
+        function abToggleCard(cardClass, btn) {
+            const card = document.querySelector('.' + cardClass);
+            if (!card) return;
+            const body = card.querySelector('.ab-zone-body');
+            if (!body) return;
+            const isHidden = body.style.display === 'none';
+            body.style.display = isHidden ? '' : 'none';
+            btn.innerHTML = isHidden ? '&#9660; Hide Details' : '&#9658; Show Details';
+        }
+
         function abTab(id, btn) {
             document.querySelectorAll('.ab-pane').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.ab-tab').forEach(b  => b.classList.remove('active'));
             document.getElementById('ab-pane-' + id).classList.add('active');
             btn.classList.add('active');
             if (id === 'sitemap') abRefreshRobotsPreview();
+            // If drift has already been run this session, re-render without a new API call
+            if (id === 'catfix') {
+                // If data is already in memory, re-render it. Otherwise show the CTA quietly.
+                if (cdDrift && cdDrift.length > 0) cdRender(cdTotalPosts);
+            }
         }
 
         // ── State ────────────────────────────────────────────────────────────
@@ -7319,7 +8673,7 @@ JSCODE;
                 '</tr>';
             }).join('');
 
-            wrap.innerHTML = '<table class="ab-posts">' +
+            wrap.innerHTML = '<table class="ab-posts" style="min-width:700px">' +
                 '<thead><tr>' +
                 '<th style="width:32%">Post</th>' +
                 '<th style="width:38%">Description</th>' +
@@ -7891,7 +9245,7 @@ JSCODE;
             }
 
             wrap.innerHTML =
-                '<table class="ab-posts" style="width:100%">' +
+                '<table class="ab-posts" style="width:100%;min-width:560px">' +
                 '<thead><tr><th style="width:45%">Post</th><th style="width:20%">Status</th><th style="width:35%">Actions</th></tr></thead>' +
                 '<tbody>' + rows + '</tbody></table>' + altPager;
         }
@@ -8256,11 +9610,16 @@ JSCODE;
                         p.unchanged_names.map(n => `<span style="display:inline-block;background:#787c82;color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;margin:2px 2px;white-space:nowrap;">${n}</span>`).join(''),
                       ].join('')
                     : cfPills(p.proposed_names, '#2d6a4f');
+                const effectivelyMatched = !p.changed || (p.add_names.length === 0 && p.remove_names.length === 0);
                 const actions = (p.status === 'applied' || p.status === 'skipped')
                     ? cfStatusBadge(p.status)
-                    : `<button class="button button-small" style="background:#2d6a4f;color:#fff;border-color:#2d6a4f;" onclick="cfApplyOne(${p.post_id})">Apply</button>
-                       <button class="button button-small" onclick="cfSkipOne(${p.post_id})">Skip</button>
-                       <button class="button button-small" title="${p.reason}" onclick="cfReanalyse(${p.post_id})">&#8635;</button>`;
+                    : effectivelyMatched
+                        ? `<span style="display:inline-block;background:#d0f0d0;color:#1a7a34;border:1px solid #a8d5a8;border-radius:10px;padding:2px 10px;font-size:11px;font-weight:600;">✓ Matched</span>
+                           <button class="button button-small" onclick="cfSkipOne(${p.post_id})">Skip</button>
+                           <button class="button button-small" title="${p.reason}" onclick="cfReanalyse(${p.post_id})">&#8635;</button>`
+                        : `<button class="button button-small" style="background:#2d6a4f;color:#fff;border-color:#2d6a4f;" onclick="cfApplyOne(${p.post_id})">Apply</button>
+                           <button class="button button-small" onclick="cfSkipOne(${p.post_id})">Skip</button>
+                           <button class="button button-small" title="${p.reason}" onclick="cfReanalyse(${p.post_id})">&#8635;</button>`;
                 return `<tr data-pid="${p.post_id}" data-changed="${p.changed?1:0}" data-conf="${p.confidence}" data-status="${p.status}" style="border-bottom:1px solid #f0f0f0;${rowStyle}">
                     <td style="padding:8px 10px;"><input type="checkbox" class="cf-chk" data-pid="${p.post_id}"></td>
                     <td style="padding:8px 10px;"><a href="/wp-admin/post.php?post=${p.post_id}&action=edit" target="_blank">${p.title}</a></td>
@@ -8302,6 +9661,13 @@ JSCODE;
 
             document.getElementById('cf-status').textContent =
                 `${cfFiltered.length} posts shown (${changed} changed, ${applied} applied)`;
+
+            // Re-apply post column visibility if hidden
+            if (!cfPostsVisible) {
+                document.getElementById('cf-table').querySelectorAll('tr').forEach(row => {
+                    if (row.children[1]) row.children[1].style.display = 'none';
+                });
+            }
         }
 
         function cfStatPill(label, val, colour) {
@@ -8336,6 +9702,7 @@ JSCODE;
             document.getElementById('cf-stats').style.display = 'none';
             document.getElementById('cf-table').style.display = 'none';
             document.getElementById('cf-reload-hdr').style.display = '';
+            document.getElementById('cf-hideposts-hdr').style.display = '';
 
             const fd = new FormData();
             fd.append('action', 'cs_catfix_load');
@@ -8348,7 +9715,7 @@ JSCODE;
             cfPage = 1;
             document.getElementById('cf-table').style.display = 'table';
             document.getElementById('cf-legend').style.display = 'block';
-            cfFilter('changed'); // default to changed-only view after scan
+            cfFilter('all'); // default to all posts view after scan
         }
 
         async function cfApplyOne(postId) {
@@ -8460,6 +9827,700 @@ JSCODE;
                 cfRender();
             }
         }
+
+        // ── Category Health ───────────────────────────────────────────────────
+        const chNonce = '<?php echo esc_js(wp_create_nonce('cs_seo_nonce')); ?>';
+        let chData = [];
+
+        async function chLoad() {
+            const cta    = document.getElementById('ch-cta');
+            const wrap   = document.getElementById('ch-wrap');
+            const stats  = document.getElementById('ch-stats');
+            const legend = document.getElementById('ch-legend');
+            const reload    = document.getElementById('ch-reload-hdr');
+            const hideBtn   = document.getElementById('ch-hideposts-hdr');
+            cta.style.display = 'none';
+            wrap.innerHTML = '<p style="color:#555;font-size:13px;padding:12px 0;">&#9203; Loading categories...</p>';
+            const fd = new FormData();
+            fd.append('action', 'cs_catfix_health');
+            fd.append('nonce', chNonce);
+            const r = await fetch(ajaxurl, {method:'POST', body:fd});
+            const d = await r.json();
+            if (!d.success) { wrap.innerHTML = '<p style="color:#c3372b;">Error loading health data.</p>'; return; }
+            chData = d.categories;
+            reload.style.display   = '';
+            hideBtn.style.display  = '';
+            stats.style.display    = 'flex';
+            legend.style.display = 'block';
+            chRenderStats();
+            chRenderTable();
+        }
+
+        function chGradeBadge(grade) {
+            const map = {
+                strong:        {bg:'#1a7a34', label:'Strong'},
+                moderate:      {bg:'#e67e00', label:'Moderate'},
+                new:           {bg:'#2271b1', label:'New'},
+                weak:          {bg:'#b8a200', label:'Weak'},
+                empty:         {bg:'#d63638', label:'Empty'},
+                uncategorized: {bg:'#787c82', label:'Uncategorized'},
+            };
+            const g = map[grade] || {bg:'#555', label:grade};
+            return `<span style="display:inline-block;background:${g.bg};color:#fff;border-radius:10px;padding:2px 10px;font-size:11px;font-weight:600;white-space:nowrap;">${g.label}</span>`;
+        }
+
+        function chRenderStats() {
+            const counts = {strong:0, moderate:0, new:0, weak:0, empty:0, uncategorized:0};
+            chData.forEach(c => { if (counts[c.grade] !== undefined) counts[c.grade]++; });
+            const colors = {strong:'#1a7a34', moderate:'#e67e00', new:'#2271b1', weak:'#b8a200', empty:'#d63638', uncategorized:'#787c82'};
+            const labels = {strong:'Strong', moderate:'Moderate', new:'New', weak:'Weak', empty:'Empty', uncategorized:'Uncategorized'};
+            document.getElementById('ch-stats').innerHTML = Object.entries(counts).map(([g, n]) =>
+                `<span style="display:inline-flex;align-items:center;gap:6px;background:#f6f7f7;border:1px solid #ddd;border-radius:8px;padding:4px 12px;font-size:12px;">
+                    <span style="width:10px;height:10px;border-radius:50%;background:${colors[g]};display:inline-block;"></span>
+                    <strong>${labels[g]}</strong>: ${n}
+                </span>`
+            ).join('');
+        }
+
+        function chRenderTable() {
+            const wrap = document.getElementById('ch-wrap');
+            if (!chData.length) { wrap.innerHTML = '<p style="color:#555;">No categories found.</p>'; return; }
+            const rows = chData.map(c => {
+                const postRows = c.posts.length
+                    ? c.posts.map(p =>
+                        `<li style="margin:2px 0;"><a href="/wp-admin/post.php?post=${p.id}&action=edit" target="_blank" style="color:#2271b1;font-size:12px;">${p.title}</a></li>`
+                      ).join('')
+                    : '<li style="color:#888;font-size:12px;">No published posts</li>';
+                const expandId = `ch-posts-${c.id}`;
+                const postToggle = `<button class="button button-small" onclick="chToggle(${c.id})" id="ch-btn-${c.id}" style="font-size:11px;">&#9660; Show posts</button>`;
+                const editLink   = `<a href="${c.edit_url}" target="_blank" class="button button-small" style="font-size:11px;">Edit</a>`;
+                const rowBg = c.grade === 'uncategorized' ? '#fff8e1' : (c.grade === 'empty' ? '#fff5f5' : '#fff');
+                return `<tr style="border-bottom:1px solid #f0f0f0;background:${rowBg};">
+                    <td style="padding:10px 12px;font-weight:600;font-size:13px;">${c.name}</td>
+                    <td style="padding:10px 12px;text-align:center;font-size:13px;">${c.count}</td>
+                    <td style="padding:10px 12px;">${chGradeBadge(c.grade)}</td>
+                    <td style="padding:10px 12px;white-space:nowrap;">${postToggle} ${editLink}</td>
+                </tr>
+                <tr id="${expandId}" style="display:none;background:#fafafa;">
+                    <td colspan="4" style="padding:8px 24px 12px;">
+                        <ul style="margin:0;padding:0;list-style:none;columns:2;gap:16px;">${postRows}</ul>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            wrap.innerHTML = `<table style="width:100%;min-width:500px;border-collapse:collapse;font-size:13px;">
+                <thead><tr style="background:#f0f0f0;">
+                    <th style="padding:8px 12px;text-align:left;">Category</th>
+                    <th style="padding:8px 12px;text-align:center;width:80px;">Posts</th>
+                    <th style="padding:8px 12px;text-align:left;width:130px;">Health</th>
+                    <th style="padding:8px 12px;text-align:left;width:160px;">Actions</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+        }
+
+        function chToggle(catId) {
+            const row = document.getElementById('ch-posts-' + catId);
+            const btn = document.getElementById('ch-btn-' + catId);
+            if (!row) return;
+            const visible = row.style.display !== 'none';
+            row.style.display = visible ? 'none' : 'table-row';
+            btn.innerHTML = visible ? '&#9660; Show posts' : '&#9650; Hide posts';
+        }
+
+        let chPostsVisible = true;
+        function chToggleAllPosts() {
+            chPostsVisible = !chPostsVisible;
+            document.querySelectorAll('[id^="ch-posts-"]').forEach(row => {
+                row.style.display = chPostsVisible ? 'table-row' : 'none';
+            });
+            document.querySelectorAll('[id^="ch-btn-"]').forEach(btn => {
+                btn.innerHTML = chPostsVisible ? '&#9650; Hide posts' : '&#9660; Show posts';
+            });
+            const hdr = document.getElementById('ch-hideposts-hdr');
+            if (hdr) hdr.innerHTML = chPostsVisible ? '&#128065; Hide Posts' : '&#128065; Show Posts';
+        }
+
+        let cfPostsVisible = true;
+        function cfTogglePosts() {
+            cfPostsVisible = !cfPostsVisible;
+            // Toggle the Post title column (col index 1 in cf-table)
+            const table = document.getElementById('cf-table');
+            if (!table) return;
+            table.querySelectorAll('tr').forEach(row => {
+                const cells = row.children;
+                if (cells[1]) cells[1].style.display = cfPostsVisible ? '' : 'none';
+            });
+            const hdr = document.getElementById('cf-hideposts-hdr');
+            if (hdr) hdr.innerHTML = cfPostsVisible ? '&#128065; Hide Posts' : '&#128065; Show Posts';
+        }
+
+        // ── Category Drift ───────────────────────────────────────────────
+        const cdNonce = '<?php echo esc_js(wp_create_nonce('cs_seo_nonce')); ?>';
+        let cdDrift      = [];
+        let cdTotalPosts = 0;
+
+        // cdRender: display already-fetched drift data without any API call
+        function cdRender(totalPosts, cachedAt) {
+            const cta     = document.getElementById('cd-cta');
+            const wrap    = document.getElementById('cd-wrap');
+            const summary = document.getElementById('cd-summary');
+            const reload  = document.getElementById('cd-reload-hdr');
+            cta.style.display     = 'none';
+            reload.style.display  = '';
+            summary.style.display = 'block';
+            if (!cdDrift.length) {
+                summary.innerHTML = '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;color:#1a7a34;font-size:13px;">&#10003; AI found no category drift across ' + totalPosts + ' posts. Your taxonomy looks semantically consistent.</div>';
+                wrap.innerHTML = '';
+                return;
+            }
+            const catchAll = cdDrift.filter(c => c.verdict === 'catch-all').length;
+            const drifting = cdDrift.filter(c => c.verdict === 'drifting').length;
+            let parts = [];
+            if (catchAll) parts.push(`<strong>${catchAll}</strong> catch-all ${catchAll === 1 ? 'category' : 'categories'}`);
+            if (drifting) parts.push(`<strong>${drifting}</strong> drifting ${drifting === 1 ? 'category' : 'categories'}`);
+            const cacheNote = cachedAt ? ` <span style="font-size:11px;opacity:0.75;">(cached &mdash; ${cachedAt})</span>` : '';
+            summary.innerHTML = '<div style="background:#fef9ec;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;color:#92400e;font-size:13px;">'
+                + '&#129302; AI identified ' + parts.join(' and ') + ' across ' + totalPosts + ' posts.' + cacheNote + '</div>';
+            cdRenderDrift();
+        }
+
+        // cdLoadFromCache: called by the Load Cached Results button
+        async function cdLoadFromCache() {
+            const cta     = document.getElementById('cd-cta');
+            const wrap    = document.getElementById('cd-wrap');
+            const reload  = document.getElementById('cd-reload-hdr');
+            const cacheBtn = document.getElementById('cd-btn-cache');
+            const ctaMsg  = document.getElementById('cd-cta-msg');
+
+            // Already have data in memory from this session — just re-render, no AJAX needed
+            if (cdDrift && cdDrift.length > 0) {
+                cta.style.display = 'none';
+                if (reload) reload.style.display = 'inline-block';
+                cdRender(cdTotalPosts);
+                return;
+            }
+
+            // Show loading state on the button only
+            if (cacheBtn) { cacheBtn.disabled = true; cacheBtn.innerHTML = '&#128336; Checking cache…'; }
+
+            const fd = new FormData();
+            fd.append('action', 'cs_catfix_drift_cache_get');
+            fd.append('nonce', cdNonce);
+            const r = await fetch(ajaxurl, {method:'POST', body:fd});
+            const d = await r.json();
+
+            if (d.success) {
+                cta.style.display = 'none';
+                cdDrift      = d.drift;
+                cdTotalPosts = d.total_posts;
+                if (reload) reload.style.display = 'inline-block';
+                cdRender(cdTotalPosts, d.cached_at);
+            } else if (d.stale) {
+                // Taxonomy has changed but data is still useful — just load it silently
+                cta.style.display = 'none';
+                cdDrift      = d.drift;
+                cdTotalPosts = d.total_posts;
+                if (reload) reload.style.display = 'inline-block';
+                cdRender(cdTotalPosts, d.cached_at);
+            } else {
+                // No cache at all
+                if (cacheBtn) { cacheBtn.disabled = false; cacheBtn.innerHTML = '&#128336; Load Cached Results'; }
+                if (ctaMsg) { ctaMsg.innerHTML = '&#9888; No cached results found. Run a fresh AI analysis below.'; ctaMsg.style.color = '#b8860b'; }
+            }
+        }
+
+        // cdLoad: always makes a fresh API call — called by Re-run Analysis button
+        async function cdLoad() {
+            const cta     = document.getElementById('cd-cta');
+            const wrap    = document.getElementById('cd-wrap');
+            const summary = document.getElementById('cd-summary');
+            const reload  = document.getElementById('cd-reload-hdr');
+            cta.style.display     = 'none';
+            summary.style.display = 'none';
+            wrap.innerHTML = '<p style="color:#555;font-size:13px;padding:12px 0;">&#129302; Asking AI to analyse your taxonomy&hellip; this may take a few seconds.</p>';
+            const fd = new FormData();
+            fd.append('action', 'cs_catfix_drift');
+            fd.append('nonce', cdNonce);
+            const r = await fetch(ajaxurl, {method:'POST', body:fd});
+            const d = await r.json();
+            if (!d.success) {
+                wrap.innerHTML = `<p style="color:#c3372b;font-size:13px;">&#9888; ${d.error || 'Error running drift analysis.'}</p>`;
+                cta.style.display = 'block';
+                return;
+            }
+            cdDrift      = d.drift;
+            cdTotalPosts = d.total_posts;
+            if (reload) reload.style.display = 'inline-block';
+            cdRender(cdTotalPosts);
+        }
+
+        // cdAnalyseRemaining: analyses unassigned posts for one category and merges moves
+        async function cdAnalyseRemaining(btn, catIdx) {
+            const c = cdDrift[catIdx];
+            if (!c) return;
+            const assignedTitles = (c.moves || []).flatMap(m => m.titles || []);
+            const allPosts = c.posts || [];
+
+            // Keep button in place showing loading state — do NOT re-render the table
+            btn.disabled = true;
+            btn.innerHTML = '&#129302; Analysing…';
+
+            const fd = new FormData();
+            fd.append('action',          'cs_catfix_drift_analyse_remaining');
+            fd.append('nonce',           cdNonce);
+            fd.append('cat_id',          c.cat_id);
+            fd.append('cat_name',        c.cat_name);
+            fd.append('assigned_titles', JSON.stringify(assignedTitles));
+            const r = await fetch(ajaxurl, {method:'POST', body:fd});
+            const d = await r.json();
+
+            if (!d.success) {
+                btn.disabled = false;
+                btn.innerHTML = '&#9888; ' + (d.error || 'Error');
+                return;
+            }
+
+            const newMoves = d.moves || [];
+
+            if (!newMoves.length) {
+                btn.innerHTML = '&#10003; All posts already in correct categories';
+                btn.style.background = '#1a7a34';
+                return;
+            }
+
+            // Merge into cdDrift state
+            cdDrift[catIdx].moves = [...(cdDrift[catIdx].moves || []), ...newMoves];
+
+            // Find the moves column for this row and inject new groups without re-rendering
+            const movesCell = document.querySelector(`#cd-move-cell-${catIdx}`);
+            if (movesCell) {
+                const newAssignedIds = new Set();
+                newMoves.forEach((m, midx) => {
+                    const globalMidx = (c.moves.length - newMoves.length) + midx;
+                    const groupId = `cd-move-${catIdx}-${globalMidx}`;
+                    const matchedPosts = (m.titles || []).map(t => cdMatchPost(t, allPosts)).filter(Boolean);
+                    matchedPosts.forEach(p => newAssignedIds.add(p.id));
+                    const postItems = matchedPosts.map(p =>
+                        `<li style="padding:4px 0;border-bottom:1px solid #f0eaff;"><a href="/wp-admin/post.php?post=${p.id}&action=edit" target="_blank" style="color:#2271b1;font-size:12px;">${p.title}</a></li>`
+                    ).join('');
+                    const postCount = matchedPosts.length;
+                    const toggleBtn = postCount > 0
+                        ? `<button class="button button-small" onclick="cdTogglePosts('${groupId}', this)" style="font-size:11px;margin:4px 0 0;">&#9660; ${postCount} post${postCount !== 1 ? 's' : ''}</button>`
+                        : `<span style="font-size:11px;color:#aaa;">No matched posts</span>`;
+                    const postList = postCount > 0
+                        ? `<div id="${groupId}" style="display:none;margin-top:6px;"><ul style="margin:0;padding:0;list-style:none;">${postItems}</ul></div>`
+                        : '';
+                    const div = document.createElement('div');
+                    div.style.cssText = 'margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed #d8c8f0;';
+                    div.innerHTML = `<div style="font-weight:600;font-size:12px;color:#fff;background:#6b3fa0;border-radius:4px;padding:3px 8px;display:inline-block;margin-bottom:3px;">&#8594; ${m.to}</div>
+                        <div style="font-size:11px;color:#666;font-style:italic;margin-bottom:4px;">${m.because || ''}</div>
+                        ${toggleBtn}${postList}`;
+                    movesCell.appendChild(div);
+                });
+            }
+
+            // Update the analyse button to reflect remaining unanalysed count
+            const allAssignedTitles = cdDrift[catIdx].moves.flatMap(m => m.titles || []);
+            const stillUnassigned = allPosts.filter(p => !allAssignedTitles.some(t => {
+                const n = t.toLowerCase().trim(), h = p.title.toLowerCase().trim();
+                return h.includes(n) || n.includes(h);
+            }));
+            if (stillUnassigned.length > 0) {
+                btn.disabled = false;
+                btn.innerHTML = `&#129302; Analyse ${stillUnassigned.length} remaining`;
+            } else {
+                btn.innerHTML = '&#10003; All posts classified';
+                btn.style.background = '#1a7a34';
+                btn.style.borderColor = '#1a7a34';
+                btn.disabled = true;
+            }
+        }
+
+        function cdVerdictBadge(verdict, confidence) {
+            const vMap = {
+                'catch-all': {bg:'#d63638', label:'Catch-all'},
+                'drifting':  {bg:'#e67e00', label:'Drifting'},
+            };
+            const cMap = {high:'High', medium:'Medium', low:'Low'};
+            const v = vMap[verdict] || {bg:'#787c82', label: verdict};
+            const cLabel = cMap[confidence] || confidence;
+            return `<span style="display:inline-block;background:${v.bg};color:#fff;border-radius:10px;padding:2px 10px;font-size:11px;font-weight:600;white-space:nowrap;margin-bottom:4px;">${v.label}</span>`
+                 + `<br><span style="font-size:11px;color:#888;">${cLabel} confidence</span>`;
+        }
+
+        function cdRenderDrift() {
+            const wrap = document.getElementById('cd-wrap');
+            // Match an AI title string to a real post object (fuzzy: substring match both ways)
+            function cdMatchPost(titleStr, posts) {
+                const needle = titleStr.toLowerCase().trim();
+                return posts.find(p => {
+                    const hay = p.title.toLowerCase().trim();
+                    return hay.includes(needle) || needle.includes(hay);
+                }) || null;
+            }
+
+            const rows = cdDrift.map((c, idx) => {
+                const allPosts = c.posts || [];
+                const totalCount = c.post_count || 0;
+                const moves = c.moves || [];
+
+                // Track which post IDs have been assigned to a move group
+                const assignedIds = new Set();
+
+                // Render each move group with its own collapsible post list
+                const movesHtml = moves.length
+                    ? moves.map((m, midx) => {
+                        const groupId = `cd-move-${idx}-${midx}`;
+                        const matchedPosts = (m.titles || []).map(t => cdMatchPost(t, allPosts)).filter(Boolean);
+                        matchedPosts.forEach(p => assignedIds.add(p.id));
+
+                        const postItems = matchedPosts.map(p =>
+                            `<li style="padding:4px 0;border-bottom:1px solid #f0eaff;"><a href="/wp-admin/post.php?post=${p.id}&action=edit" target="_blank" style="color:#2271b1;font-size:12px;">${p.title}</a></li>`
+                        ).join('');
+                        const postCount = matchedPosts.length;
+                        const toggleBtn = postCount > 0
+                            ? `<button class="button button-small" onclick="cdTogglePosts('${groupId}', this)" style="font-size:11px;margin:4px 0 0;">&#9660; ${postCount} post${postCount !== 1 ? 's' : ''}</button>`
+                            : `<span style="font-size:11px;color:#aaa;">No matched posts</span>`;
+                        const postList = postCount > 0
+                            ? `<div id="${groupId}" style="display:none;margin-top:6px;"><ul style="margin:0;padding:0;list-style:none;">${postItems}</ul></div>`
+                            : '';
+
+                        return `<div style="margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed #d8c8f0;">
+                            <div style="font-weight:600;font-size:12px;color:#fff;background:#6b3fa0;border-radius:4px;padding:3px 8px;display:inline-block;margin-bottom:3px;">&#8594; ${m.to}</div>
+                            <div style="font-size:11px;color:#666;font-style:italic;margin-bottom:4px;">${m.because || ''}</div>
+                            ${toggleBtn}${postList}
+                        </div>`;
+                    }).join('')
+                    : `<span style="color:#888;font-size:11px;">No structured moves returned</span>`;
+
+                // Unanalysed posts (those not matched to any move group)
+                const unassigned = allPosts.filter(p => !assignedIds.has(p.id));
+                const unassignedId = `cd-posts-${idx}`;
+                const unassignedHtml = (() => {
+                    if (!allPosts.length) return '';
+                    const listSrc = unassigned.length ? unassigned : allPosts;
+                    const uCount  = listSrc.length;
+                    const label   = unassigned.length
+                        ? `&#9660; ${uCount} unanalysed post${uCount !== 1 ? 's' : ''}`
+                        : `&#9660; All ${uCount} posts analysed`;
+                    const items = listSrc.map(p =>
+                        `<li style="padding:5px 0;border-bottom:1px solid #ede8f5;"><a href="/wp-admin/post.php?post=${p.id}&action=edit" target="_blank" style="color:#2271b1;font-size:12px;">${p.title}</a></li>`
+                    ).join('');
+                    const analyseBtn = unassigned.length
+                        ? `<div style="margin-top:8px;"><button class="button button-small" onclick="cdAnalyseRemaining(this, ${idx})" style="font-size:11px;background:#6b3fa0;border-color:#6b3fa0;color:#fff;">&#129302; Analyse ${uCount} remaining</button></div>`
+                        : '';
+                    return `<button class="button button-small" onclick="cdTogglePosts('${unassignedId}', this)" style="font-size:11px;">${label}</button>
+                        <div id="${unassignedId}" style="display:none;margin-top:6px;"><ul style="margin:0;padding:0;list-style:none;border-top:1px solid #ede8f5;">${items}</ul></div>
+                        ${analyseBtn}`;
+                })();
+
+                // Action badge
+                const actionStr = (c.action || '').toLowerCase();
+                const actionColor = actionStr.startsWith('delete') ? '#d63638' : actionStr === 'rename' ? '#e67e00' : '#1a7a34';
+                const actionHtml = c.action
+                    ? `<div style="margin-top:8px;"><span style="font-size:11px;font-weight:600;background:${actionColor};color:#fff;border-radius:4px;padding:2px 8px;">${c.action}</span></div>`
+                    : '';
+
+                const rowBg = c.verdict === 'catch-all' ? '#fff5f5' : '#fffbf0';
+                return `<tr style="border-bottom:2px solid #e0d0f0;vertical-align:top;background:${rowBg};">
+                    <td style="padding:12px;font-weight:600;font-size:13px;min-width:130px;">
+                        ${c.cat_name}
+                        <div style="font-size:11px;font-weight:400;color:#888;margin-top:2px;">${totalCount} posts total</div>
+                        ${actionHtml}
+                    </td>
+                    <td style="padding:12px;min-width:110px;">${cdVerdictBadge(c.verdict, c.confidence)}</td>
+                    <td style="padding:12px;min-width:200px;font-size:12px;color:#3c434a;line-height:1.5;">${c.reason || ''}</td>
+                    <td id="cd-move-cell-${idx}" style="padding:12px;min-width:260px;">${movesHtml}</td>
+                    <td style="padding:12px;min-width:160px;">${unassignedHtml}</td>
+                </tr>`;
+            }).join('');
+
+            wrap.innerHTML = `<table style="width:100%;min-width:800px;border-collapse:collapse;font-size:13px;">
+                <thead><tr style="background:#f0f0f0;">
+                    <th style="padding:8px 12px;text-align:left;">Category</th>
+                    <th style="padding:8px 12px;text-align:left;width:110px;">Verdict</th>
+                    <th style="padding:8px 12px;text-align:left;width:200px;">AI Reasoning</th>
+                    <th style="padding:8px 12px;text-align:left;">Where to move posts</th>
+                    <th style="padding:8px 12px;text-align:left;width:160px;">Remaining posts</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+        }
+
+        function cdTogglePosts(id, btn) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const open = el.style.display !== 'none';
+            el.style.display = open ? 'none' : 'block';
+            btn.innerHTML = open ? btn.innerHTML.replace('&#9650;', '&#9660;').replace('Hide', 'Show') : btn.innerHTML.replace('&#9660;', '&#9650;').replace('Show', 'Hide');
+        }
+
+        // =====================================================================
+        // Related Articles — admin UI
+        // =====================================================================
+
+        function rcCheckCountWarning(input, warnId) {
+            const saved = parseInt(input.dataset.saved, 10) || 0;
+            const now   = parseInt(input.value, 10) || 0;
+            const warn  = document.getElementById(warnId);
+            if (warn) warn.style.display = (now > saved) ? 'block' : 'none';
+        }
+
+        let rcCurrentFilter = 'all';
+        let rcCurrentPage   = 1;
+        let rcTotalPages    = 1;
+        let rcBatchQueue    = [];
+        let rcBatchRunning  = false;
+        let rcBatchStop     = false;
+        let rcBatchDone     = 0;
+        let rcBatchTotal    = 0;
+
+        const rcNonce = '<?php echo esc_js(wp_create_nonce("cs_seo_nonce")); ?>';
+
+        // ── Status badge helper
+        function rcBadge(status, step) {
+            const map = {
+                pending:    '<span style="background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">Pending</span>',
+                processing: '<span style="background:#eff6ff;color:#2563eb;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">Processing</span>',
+                complete:   '<span style="background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">&#9989; Complete</span>',
+                error:      '<span style="background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">&#10060; Error</span>',
+                skipped:    '<span style="background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">&#9745; Skipped</span>',
+            };
+            return map[status] || '<span style="background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">' + status + '</span>';
+        }
+
+        // ── Load posts into table
+        async function rcLoadTable(page, filter) {
+            page   = page   || rcCurrentPage;
+            filter = filter || rcCurrentFilter;
+            rcCurrentPage   = page;
+            rcCurrentFilter = filter;
+
+            const tbody = document.getElementById('rc-posts-tbody');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#999;">Loading…</td></tr>';
+
+            const fd = new FormData();
+            fd.append('action', 'cs_rc_get_posts');
+            fd.append('nonce',  rcNonce);
+            fd.append('page',   page);
+            fd.append('filter', filter);
+
+            try {
+                const r = await fetch(ajaxurl, { method: 'POST', body: fd });
+                const d = await r.json();
+                if (!d.success) { tbody.innerHTML = '<tr><td colspan="6" style="color:#b91c1c;padding:24px;text-align:center;">Error: ' + (d.data?.message || 'Unknown') + '</td></tr>'; return; }
+
+                rcTotalPages = d.data.total_pages || 1;
+                const posts  = d.data.posts || [];
+
+                if (!posts.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#999;">No posts found.</td></tr>';
+                    rcRenderPagination();
+                    return;
+                }
+
+                tbody.innerHTML = posts.map(p => {
+                    const err = p.error ? '<br><small style="color:#b91c1c;">' + p.error.substring(0, 80) + '</small>' : '';
+                    return '<tr id="rc-row-' + p.id + '">' +
+                        '<td><a href="?post=' + p.id + '&action=edit" target="_blank" style="font-weight:500;">' + p.title + '</a></td>' +
+                        '<td style="text-align:center;">' + rcBadge(p.status, p.last_step) + err + '</td>' +
+                        '<td style="text-align:center;color:#6366f1;font-weight:600;">' + (p.top_count || '—') + '</td>' +
+                        '<td style="text-align:center;color:#0e7490;font-weight:600;">' + (p.bot_count || '—') + '</td>' +
+                        '<td style="text-align:center;color:#6b7280;font-size:12px;">' + (p.generated || '—') + '</td>' +
+                        '<td style="text-align:center;">' +
+                            '<button class="button" onclick="rcRunOne(' + p.id + ')" style="font-size:11px;padding:2px 8px;">&#9654; Run</button> ' +
+                            '<button class="button" onclick="rcResetOne(' + p.id + ')" style="font-size:11px;padding:2px 8px;color:#b91c1c;border-color:#b91c1c;">&#128465;</button>' +
+                        '</td>' +
+                    '</tr>';
+                }).join('');
+
+                rcRenderPagination();
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="6" style="color:#b91c1c;padding:24px;text-align:center;">Network error: ' + e.message + '</td></tr>';
+            }
+        }
+
+        function rcRenderPagination() {
+            const el = document.getElementById('rc-pagination');
+            if (rcTotalPages <= 1) { el.innerHTML = ''; return; }
+            let html = '<span style="font-size:13px;color:#1d2327;">Page</span>';
+            for (let i = 1; i <= rcTotalPages; i++) {
+                const active = i === rcCurrentPage ? 'button-primary' : '';
+                html += '<button type="button" class="button ' + active + '" onclick="rcLoadTable(' + i + ')" style="min-width:32px;">' + i + '</button>';
+            }
+            el.innerHTML = html;
+        }
+
+        function rcSetFilter(filter, btn) {
+            rcCurrentFilter = filter;
+            rcCurrentPage   = 1;
+            document.querySelectorAll('.rc-filter-btn').forEach(b => b.classList.remove('rc-filter-active'));
+            if (btn) btn.classList.add('rc-filter-active');
+            rcLoadTable(1, filter);
+        }
+
+        // ── Run all 8 steps for one post, polling until done
+        // Updates a single table row in-place without reloading the full table or scrolling.
+        function rcUpdateRow(postId, status, topCount, botCount, generated, errorMsg) {
+            const row = document.getElementById('rc-row-' + postId);
+            if (!row) return;
+            row.querySelector('td:nth-child(2)').innerHTML = rcBadge(status) + (errorMsg ? '<br><small style="color:#b91c1c;">' + errorMsg.substring(0, 80) + '</small>' : '');
+            row.querySelector('td:nth-child(3)').textContent = topCount || '\u2014';
+            row.querySelector('td:nth-child(3)').style.color = topCount ? '#6366f1' : '';
+            row.querySelector('td:nth-child(3)').style.fontWeight = topCount ? '600' : '';
+            row.querySelector('td:nth-child(4)').textContent = botCount || '\u2014';
+            row.querySelector('td:nth-child(4)').style.color = botCount ? '#0e7490' : '';
+            row.querySelector('td:nth-child(4)').style.fontWeight = botCount ? '600' : '';
+            row.querySelector('td:nth-child(5)').textContent = generated || '\u2014';
+        }
+
+        async function rcRunOne(postId) {
+            const row = document.getElementById('rc-row-' + postId);
+            if (row) {
+                row.querySelector('td:nth-child(2)').innerHTML = '<span style="background:#eff6ff;color:#2563eb;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">Running\u2026</span>';
+            }
+
+            let done = false;
+            while (!done) {
+                const fd = new FormData();
+                fd.append('action',  'cs_rc_step');
+                fd.append('nonce',   rcNonce);
+                fd.append('post_id', postId);
+
+                const r = await fetch(ajaxurl, { method: 'POST', body: fd });
+                const d = await r.json();
+
+                if (!d.success) {
+                    rcUpdateRow(postId, 'error', 0, 0, '', d.data?.message || d.error || 'Failed');
+                    return;
+                }
+
+                done = d.data.done;
+            }
+
+            // Fetch final state for this post to update counts — search current page first, then page 1
+            for (const pg of [rcCurrentPage, 1]) {
+                const fd2 = new FormData();
+                fd2.append('action', 'cs_rc_get_posts');
+                fd2.append('nonce',  rcNonce);
+                fd2.append('page',   pg);
+                fd2.append('filter', 'all');
+                const r2 = await fetch(ajaxurl, { method: 'POST', body: fd2 });
+                const d2 = await r2.json();
+                if (d2.success) {
+                    const p = (d2.data.posts || []).find(x => x.id === postId);
+                    if (p) { rcUpdateRow(postId, p.status, p.top_count, p.bot_count, p.generated, p.error); break; }
+                }
+            }
+        }
+
+        // ── Reset one post
+        async function rcResetOne(postId) {
+            if (!confirm('Reset Related Articles data for this post?')) return;
+            const fd = new FormData();
+            fd.append('action',  'cs_rc_reset');
+            fd.append('nonce',   rcNonce);
+            fd.append('post_id', postId);
+            fd.append('mode',    'one');
+            await fetch(ajaxurl, { method: 'POST', body: fd });
+            rcUpdateRow(postId, 'pending', 0, 0, '', '');
+        }
+
+        // ── Reset all posts
+        async function rcResetAll() {
+            if (!confirm('This will delete all Related Articles data for ALL posts. Are you sure?')) return;
+            const fd = new FormData();
+            fd.append('action', 'cs_rc_reset');
+            fd.append('nonce',  rcNonce);
+            fd.append('mode',   'all');
+            await fetch(ajaxurl, { method: 'POST', body: fd });
+            await rcLoadTable(1, 'all');
+        }
+
+        // ── Batch generation
+        async function rcBatch(mode) {
+            if (rcBatchRunning) return;
+
+            // Build queue based on mode
+            // Fetch all posts matching the mode filter, then queue their IDs
+            const filterMap = { missing: 'pending', stale: 'all', failed: 'error' };
+            const filter    = filterMap[mode] || 'pending';
+
+            // Load up to 200 posts to batch-process
+            const fd = new FormData();
+            fd.append('action', 'cs_rc_get_posts');
+            fd.append('nonce',  rcNonce);
+            fd.append('page',   1);
+            fd.append('filter', filter);
+            const r  = await fetch(ajaxurl, { method: 'POST', body: fd });
+            const d  = await r.json();
+            if (!d.success) { alert('Could not load posts: ' + (d.data?.message || 'error')); return; }
+
+            let ids = (d.data.posts || []).map(p => p.id);
+            if (mode === 'missing') ids = ids.filter(id => { const row = document.getElementById('rc-row-' + id); return !row || row.querySelector('td:nth-child(2)')?.textContent?.trim() === 'Pending'; });
+
+            if (!ids.length) { alert('No posts to process for this mode.'); return; }
+
+            rcBatchQueue   = ids;
+            rcBatchRunning = true;
+            rcBatchStop    = false;
+            rcBatchDone    = 0;
+            rcBatchTotal   = ids.length;
+
+            document.getElementById('rc-batch-bar').style.display = 'block';
+            rcUpdateBatchProgress();
+
+            for (const postId of rcBatchQueue) {
+                if (rcBatchStop) break;
+                await rcRunOne(postId);
+                rcBatchDone++;
+                rcUpdateBatchProgress();
+                await new Promise(res => setTimeout(res, 300));
+            }
+
+            rcBatchRunning = false;
+            document.getElementById('rc-batch-bar').style.display = 'none';
+            await rcLoadTable(rcCurrentPage, rcCurrentFilter);
+        }
+
+        function rcStopBatch() {
+            rcBatchStop = true;
+            rcBatchRunning = false;
+            document.getElementById('rc-batch-bar').style.display = 'none';
+        }
+
+        function rcUpdateBatchProgress() {
+            const pct = rcBatchTotal ? Math.round((rcBatchDone / rcBatchTotal) * 100) : 0;
+            document.getElementById('rc-batch-progress-bar').style.width = pct + '%';
+            document.getElementById('rc-batch-label').textContent = rcBatchDone + ' / ' + rcBatchTotal;
+        }
+
+        // ── Auto-load table when SEO tab is opened
+        (function() {
+            const origAbTab = typeof window.abTab === 'function' ? window.abTab : null;
+            window.__rcTabLoaded = false;
+            // Hook into tab switching via MutationObserver on the seo panel
+            const seoPane = document.getElementById('ab-pane-seo');
+            if (seoPane) {
+                const obs = new MutationObserver(() => {
+                    if (seoPane.classList.contains('active') && !window.__rcTabLoaded) {
+                        window.__rcTabLoaded = true;
+                        rcLoadTable(1, 'all');
+                    }
+                    if (!seoPane.classList.contains('active')) {
+                        window.__rcTabLoaded = false;
+                    }
+                });
+                obs.observe(seoPane, { attributes: true, attributeFilter: ['class'] });
+                // If already on SEO tab on load
+                if (seoPane.classList.contains('active')) {
+                    window.__rcTabLoaded = true;
+                    rcLoadTable(1, 'all');
+                }
+            }
+        })();
+
         </script>
         </div><!-- /wrap -->
         <?php
