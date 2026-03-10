@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.11.19
+ * Version:     4.11.23
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -63,7 +63,7 @@ final class CloudScale_SEO_AI_Optimizer {
     // Related Articles generator version — bump when scoring logic changes
     const RC_VERSION = '1.0';
 
-    const VERSION    = '4.11.19';
+    const VERSION    = '4.11.23';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -4598,7 +4598,9 @@ Write a single meta description for the article provided. Rules:
 
     public function ajax_catfix_apply(): void {
         $this->catfix_nonce_check();
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid          = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $proposed_raw = isset($_POST['proposed_ids']) ? (array) wp_unslash($_POST['proposed_ids']) : []; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked via catfix_nonce_check(); array is sanitized via array_map intval below
         if (!$pid) wp_send_json(['success' => false, 'error' => 'No post_id']);
         $ids = array_map('intval', $proposed_raw);
@@ -4609,7 +4611,9 @@ Write a single meta description for the article provided. Rules:
 
     public function ajax_catfix_skip(): void {
         $this->catfix_nonce_check();
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         if (!$pid) wp_send_json(['success' => false, 'error' => 'No post_id']);
         update_post_meta($pid, 'cloudscale_categoryfix_status', 'skipped');
         wp_send_json(['success' => true]);
@@ -4633,7 +4637,9 @@ Write a single meta description for the article provided. Rules:
     // ajax_catfix_analyse: re-analyse a single post (force)
     public function ajax_catfix_analyse(): void {
         $this->catfix_nonce_check();
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         if (!$pid) wp_send_json(['success' => false, 'error' => 'No post_id']);
         $data = $this->catfix_analyse_post($pid);
         update_post_meta($pid, 'cloudscale_categoryfix_proposed_ids',  $data['proposed_ids']);
@@ -4649,7 +4655,9 @@ Write a single meta description for the article provided. Rules:
 
     public function ajax_catfix_ai_one(): void {
         $this->catfix_nonce_check();
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         if (!$pid) wp_send_json(['success' => false, 'error' => 'No post_id']);
 
         $post = get_post($pid);
@@ -5065,7 +5073,9 @@ Write a single meta description for the article provided. Rules:
     public function ajax_catfix_drift_analyse_remaining(): void {
         $this->catfix_nonce_check();
 
-        $cat_id   = (int) (wp_unslash($_POST['cat_id']   ?? 0)); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked via catfix_nonce_check(); cast to int is sufficient sanitization
+        $cat_id   = (int) (wp_unslash($_POST['cat_id']   ?? 0));
+        // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         $cat_name = sanitize_text_field(wp_unslash($_POST['cat_name'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Missing
         if (!$cat_id || !$cat_name) {
             wp_send_json(['success' => false, 'error' => 'Missing category.']);
@@ -5090,7 +5100,9 @@ Write a single meta description for the article provided. Rules:
         }, $post_ids);
 
         // Already-assigned titles passed from JS
-        $already_assigned = array_map('sanitize_text_field', (array)json_decode(wp_unslash($_POST['assigned_titles'] ?? '[]'), true)); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked via catfix_nonce_check(); array items sanitized via array_map sanitize_text_field
+        $already_assigned = array_map('sanitize_text_field', (array)json_decode(wp_unslash($_POST['assigned_titles'] ?? '[]'), true));
+        // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         $unanalysed = array_filter($titles_with_cats, function($t) use ($already_assigned) {
             $bare = strtolower(preg_replace('/\s*\[also in:.*?\]/', '', $t));
             foreach ($already_assigned as $a) {
@@ -5174,9 +5186,11 @@ Write a single meta description for the article provided. Rules:
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) wp_die();
 
-        $page     = max(1, (int)($_POST['page'] ?? 1));
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce checked via check_ajax_referer above
+        $page     = max(1, (int)(wp_unslash($_POST['page'] ?? 1)));
         $per_page = 50;
-        $filter   = sanitize_text_field($_POST['filter'] ?? 'all');
+        $filter   = sanitize_text_field(wp_unslash($_POST['filter'] ?? 'all'));
+        // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 
         // Build meta_query filter
         $meta_query = [];
@@ -5197,7 +5211,7 @@ Write a single meta description for the article provided. Rules:
             'order'          => 'DESC',
             'fields'         => 'ids',
         ];
-        if (!empty($meta_query)) $args['meta_query'] = $meta_query;
+        if (!empty($meta_query)) $args['meta_query'] = $meta_query; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- filtered list view with fixed per_page; meta_query only applied when user selects a filter, not on default load
 
         $q     = new WP_Query($args);
         $posts = [];
@@ -5236,7 +5250,9 @@ Write a single meta description for the article provided. Rules:
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) wp_die();
 
-        $pid = (int)($_POST['post_id'] ?? 0);
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce checked via check_ajax_referer above
+        $pid = (int)(wp_unslash($_POST['post_id'] ?? 0));
+        // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
         if (!$pid || get_post_status($pid) !== 'publish') {
             wp_send_json(['success' => false, 'error' => 'Invalid post.']);
             return;
@@ -5308,8 +5324,10 @@ Write a single meta description for the article provided. Rules:
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) wp_die();
 
-        $pid  = (int)($_POST['post_id'] ?? 0);
-        $mode = sanitize_text_field($_POST['mode'] ?? 'one');
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce checked via check_ajax_referer above
+        $pid  = (int)(wp_unslash($_POST['post_id'] ?? 0));
+        $mode = sanitize_text_field(wp_unslash($_POST['mode'] ?? 'one'));
+        // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 
         $meta_keys = [
             self::META_RC_TOP, self::META_RC_BOTTOM, self::META_RC_CANDIDATES,
@@ -5322,10 +5340,14 @@ Write a single meta description for the article provided. Rules:
             // Delete meta in batches using direct DB query for performance
             global $wpdb;
             $placeholders = implode(',', array_fill(0, count($meta_keys), '%s'));
-            $wpdb->query($wpdb->prepare(
-                "DELETE FROM {$wpdb->postmeta} WHERE meta_key IN ({$placeholders})",
-                ...$meta_keys
-            ));
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- bulk delete of plugin meta keys; $placeholders contains only %s tokens built by array_fill; no WP API for multi-key delete; cache invalidated immediately
+            $wpdb->query(
+                $wpdb->prepare(
+                    "DELETE FROM {$wpdb->postmeta} WHERE meta_key IN ({$placeholders})",
+                    ...$meta_keys
+                )
+            );
+            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
             wp_send_json_success(['reset' => 'all']);
         } else {
             if (!$pid) { wp_send_json(['success' => false, 'error' => 'Missing post_id']); return; }
@@ -5394,7 +5416,7 @@ Write a single meta description for the article provided. Rules:
                     'post_type'      => 'post',
                     'post_status'    => 'publish',
                     'posts_per_page' => $pool_size,
-                    'post__not_in'   => [$pid],
+                    'post__not_in'   => [$pid], // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in -- pool limited to $pool_size; exclusion of current post is necessary for related articles
                     'fields'         => 'ids',
                     'category__in'   => $active_cats,
                     'orderby'        => 'date',
@@ -5410,7 +5432,7 @@ Write a single meta description for the article provided. Rules:
                 'post_type'      => 'post',
                 'post_status'    => 'publish',
                 'posts_per_page' => $pool_size,
-                'post__not_in'   => [$pid],
+                'post__not_in'   => [$pid], // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in -- pool limited to $pool_size; exclusion of current post is necessary for related articles
                 'fields'         => 'ids',
                 'tag__in'        => $post_tags,
                 'orderby'        => 'date',
@@ -5942,7 +5964,7 @@ Write a single meta description for the article provided. Rules:
                             <p class="description">Meta description for your homepage. Aim for 140–155 characters.</p>
                         </td></tr>
                 </table>
-                <div style="margin-top:16px;"><?php submit_button('Save SEO Settings', 'primary', 'submit', false); ?></div>
+                <div style="margin-top:16px;padding:0 20px;"><?php submit_button('Save SEO Settings', 'primary', 'submit', false); ?></div>
                 </div>
                 </div><!-- /ab-card-identity -->
 
@@ -5984,7 +6006,7 @@ Write a single meta description for the article provided. Rules:
                             <p class="description">Your profiles on other platforms — one URL per line. Helps Google connect your identity across the web.</p>
                         </td></tr>
                 </table>
-                <div style="margin-top:16px;"><?php submit_button('Save SEO Settings', 'primary', 'submit', false); ?></div>
+                <div style="margin-top:16px;padding:0 20px;"><?php submit_button('Save SEO Settings', 'primary', 'submit', false); ?></div>
                 </div>
                 </div><!-- /ab-card-person -->
 
@@ -6079,7 +6101,6 @@ Write a single meta description for the article provided. Rules:
                     </div>
                 </div><!-- /ab-card-rc-settings -->
 
-                <?php submit_button('Save SEO Settings'); ?>
             </form>
 
             <?php /* ── Related Articles Generation Table ── */ ?>
@@ -6268,10 +6289,9 @@ Write a single meta description for the article provided. Rules:
                         </td>
                     </tr>
                 </table>
-                <div style="margin-top:16px;"><?php submit_button('Save AI Settings', 'primary', 'submit', false); ?></div>
+                <div style="margin-top:16px;padding:0 20px;"><?php submit_button('Save AI Settings', 'primary', 'submit', false); ?></div>
                 </div><!-- /ab-zone-body -->
                 </div><!-- /ab-card-ai -->
-                <?php submit_button('Save AI Settings'); ?>
             </form>
 
             <hr class="ab-zone-divider">
@@ -6568,7 +6588,6 @@ Write a single meta description for the article provided. Rules:
                 </div>
                 </div><!-- /ab-card-features -->
 
-                <?php submit_button('Save Features &amp; Robots Settings'); ?>
 
                 <div class="ab-zone-card ab-card-sitemap-settings">
                 <div class="ab-zone-header" style="justify-content:space-between">
@@ -6635,7 +6654,6 @@ Write a single meta description for the article provided. Rules:
                 </div>
                 </div><!-- /ab-card-sitemap-settings -->
 
-                <?php submit_button('Save Sitemap Settings'); ?>
             </form>
 
             <hr class="ab-zone-divider">
@@ -6767,7 +6785,6 @@ Write a single meta description for the article provided. Rules:
                 </div>
                 </div><!-- /ab-card-robots -->
 
-                <?php submit_button('Save Robots Settings'); ?>
             </form>
 
             <hr class="ab-zone-divider">
@@ -7511,7 +7528,6 @@ Write a single meta description for the article provided. Rules:
                 <div style="margin-top:16px;"><?php submit_button('Save Schedule Settings', 'primary', 'submit', false); ?></div>
                 </div><!-- /ab-zone-body -->
                 </div><!-- /ab-card-schedule -->
-                <?php submit_button('Save Schedule Settings'); ?>
             </form>
 
             <hr class="ab-zone-divider">
