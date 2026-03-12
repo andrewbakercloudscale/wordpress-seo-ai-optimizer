@@ -2,6 +2,13 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 trait CS_SEO_Frontend_Head {
+    /**
+     * Filters the document title to use a custom SEO title when set.
+     *
+     * @since 4.0.0
+     * @param string $default The default title from WordPress.
+     * @return string Filtered title string.
+     */
     public function filter_title(string $default): string {
         if (is_admin()) return $default;
 
@@ -28,6 +35,12 @@ trait CS_SEO_Frontend_Head {
     // Head output
     // =========================================================================
 
+    /**
+     * Outputs the full SEO head block (canonical, meta, OG tags, schema) on wp_head.
+     *
+     * @since 4.0.0
+     * @return void
+     */
     public function render_head(): void {
         if (is_admin()) return;
         echo $this->build_seo_block(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- build_seo_block() returns pre-escaped HTML
@@ -42,6 +55,15 @@ trait CS_SEO_Frontend_Head {
      *   defer  — scripts execute after HTML parsing, in order. Safe for almost everything.
      *   async  — scripts execute as soon as downloaded, out of order. Breaks scripts that
      *            depend on each other (e.g. jQuery + plugins).
+     */
+    /**
+     * Adds the defer attribute to frontend script tags to eliminate render blocking.
+     *
+     * @since 4.9.3
+     * @param string $tag    The full `<script>` HTML tag.
+     * @param string $handle The registered script handle.
+     * @param string $src    The script source URL.
+     * @return string Modified script tag.
      */
     public function defer_script_tag(string $tag, string $handle, string $src): string {
         // Never touch admin or login pages.
@@ -214,6 +236,12 @@ trait CS_SEO_Frontend_Head {
      * Register a 1200×630 hard-cropped image size for OG tags.
      * This matches the aspect ratio required by WhatsApp, Facebook, and LinkedIn
      * for reliable thumbnail display in link previews.
+     */
+    /**
+     * Registers a 1200×630 hard-cropped image size for OG/social preview images.
+     *
+     * @since 4.10.34
+     * @return void
      */
     public function register_og_image_size(): void {
         add_image_size('cs_seo_og_image', 1200, 630, true);

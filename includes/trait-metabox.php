@@ -2,12 +2,25 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 trait CS_SEO_Metabox {
+    /**
+     * Registers the CloudScale Meta Boxes metabox for posts and pages.
+     *
+     * @since 4.0.0
+     * @return void
+     */
     public function add_metabox(): void {
         foreach (['post', 'page'] as $pt) {
             add_meta_box('cs_seo_adv', 'CloudScale Meta Boxes', [$this, 'render_metabox'], $pt, 'normal', 'high');
         }
     }
 
+    /**
+     * Renders the SEO metabox fields including title, description, OG image, and AI summary.
+     *
+     * @since 4.0.0
+     * @param WP_Post $post The post being edited.
+     * @return void
+     */
     public function render_metabox(WP_Post $post): void {
         wp_nonce_field('cs_seo_save', 'cs_seo_nonce');
         $noindex = (int) get_post_meta($post->ID, self::META_NOINDEX, true);
@@ -19,35 +32,35 @@ trait CS_SEO_Metabox {
         $sum_key  = (string) get_post_meta($post->ID, self::META_SUM_KEY,  true);
         $has_key = !empty($this->ai_opts['anthropic_key']) || !empty($this->ai_opts['gemini_key']);
         ?>
-        <p style="margin:0 0 12px;padding:8px 10px;background:<?php echo $noindex ? '#fff3cd' : '#f6f7f7'; ?>;border:1px solid <?php echo $noindex ? '#ffc107' : '#ddd'; ?>;border-radius:4px;display:flex;align-items:center;gap:8px">
+        <p style="margin:0 0 12px;padding:8px 10px;background:<?php echo esc_attr($noindex ? '#fff3cd' : '#f6f7f7'); ?>;border:1px solid <?php echo esc_attr($noindex ? '#ffc107' : '#ddd'); ?>;border-radius:4px;display:flex;align-items:center;gap:8px">
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;margin:0">
                 <input type="checkbox" name="cs_seo_noindex" value="1" <?php checked($noindex, 1); ?>>
-                <span style="color:<?php echo $noindex ? '#856404' : '#3c434a'; ?>">
-                    <?php echo $noindex ? '⛔ Noindex — hidden from search engines' : 'Noindex this post/page'; ?>
+                <span style="color:<?php echo esc_attr($noindex ? '#856404' : '#3c434a'); ?>">
+                    <?php echo $noindex ? esc_html__( '⛔ Noindex — hidden from search engines', 'cloudscale-seo-ai-optimizer' ) : esc_html__( 'Noindex this post/page', 'cloudscale-seo-ai-optimizer' ); ?>
                 </span>
             </label>
             <?php if (!$noindex): ?>
-            <span style="font-size:11px;color:#888;font-weight:400">— tick to exclude from search engines</span>
+            <span style="font-size:11px;color:#888;font-weight:400"><?php esc_html_e( '— tick to exclude from search engines', 'cloudscale-seo-ai-optimizer' ); ?></span>
             <?php endif; ?>
         </p>
-        <p><strong>Custom SEO title</strong> — leave blank to auto-generate<br>
+        <p><strong><?php esc_html_e( 'Custom SEO title', 'cloudscale-seo-ai-optimizer' ); ?></strong> — <?php esc_html_e( 'leave blank to auto-generate', 'cloudscale-seo-ai-optimizer' ); ?><br>
             <input class="widefat" name="cs_seo_title" value="<?php echo esc_attr($title); ?>"></p>
         <p>
-            <strong>Meta description</strong> — leave blank to use excerpt / post content<br>
+            <strong><?php esc_html_e( 'Meta description', 'cloudscale-seo-ai-optimizer' ); ?></strong> — <?php esc_html_e( 'leave blank to use excerpt / post content', 'cloudscale-seo-ai-optimizer' ); ?><br>
             <textarea class="widefat" rows="3" name="cs_seo_desc" id="cs_seo_desc_<?php echo (int) $post->ID; ?>"><?php echo esc_textarea($desc); ?></textarea>
             <span id="cs_seo_char_<?php echo (int) $post->ID; ?>" style="font-size:11px;color:#888;">
-                <?php echo $desc ? esc_html( (string) mb_strlen($desc) ) . ' chars' : 'No description set'; ?>
+                <?php echo $desc ? esc_html( (string) mb_strlen($desc) ) . ' ' . esc_html__( 'chars', 'cloudscale-seo-ai-optimizer' ) : esc_html__( 'No description set', 'cloudscale-seo-ai-optimizer' ); ?>
             </span>
         </p>
         <?php if ($has_key): ?>
         <p>
             <button type="button" class="button" id="cs_seo_gen_<?php echo (int) $post->ID; ?>"
                 onclick="csSeoGenOne(<?php echo (int) $post->ID; ?>)">
-                ✦ Generate with Claude
+                <?php esc_html_e( '✦ Generate with Claude', 'cloudscale-seo-ai-optimizer' ); ?>
             </button>
             <span id="cs_seo_gen_status_<?php echo (int) $post->ID; ?>" style="margin-left:8px;font-size:12px;color:#888;"></span>
         </p>
-        <script>
+        <?php ob_start(); ?>
         function csSeoGenOne(postId) {
             const btn    = document.getElementById('cs_seo_gen_' + postId);
             const status = document.getElementById('cs_seo_gen_status_' + postId);
@@ -62,7 +75,7 @@ trait CS_SEO_Metabox {
                 body: new URLSearchParams({
                     action: 'cs_seo_ai_generate_one',
                     post_id: postId,
-                    nonce: '<?php echo esc_js( wp_create_nonce('cs_seo_nonce') ); ?>'
+                    nonce: csSeoMetabox.nonce
                 })
             })
             .then(r => r.json())
@@ -84,9 +97,9 @@ trait CS_SEO_Metabox {
             })
             .finally(() => { btn.disabled = false; });
         }
-        </script>
+        <?php wp_add_inline_script('cs-seo-metabox-js', ob_get_clean()); ?>
         <?php else: ?>
-        <p style="color:#888;font-size:12px;"><em>Add an Anthropic API key in <a href="<?php echo esc_url( admin_url('options-general.php?page=cs-seo-optimizer#ai') ); ?>">SEO Settings → AI Meta Writer</a> to enable per-post generation.</em></p>
+        <p style="color:#888;font-size:12px;"><em><?php printf( esc_html__( 'Add an Anthropic API key in %s to enable per-post generation.', 'cloudscale-seo-ai-optimizer' ), '<a href="' . esc_url( admin_url( 'options-general.php?page=cs-seo-optimizer#ai' ) ) . '">' . esc_html__( 'SEO Settings → AI Meta Writer', 'cloudscale-seo-ai-optimizer' ) . '</a>' ); ?></em></p>
         <?php endif; ?>
         <?php
         $thumb_id  = get_post_thumbnail_id($post->ID);
@@ -94,7 +107,7 @@ trait CS_SEO_Metabox {
         $using_custom = !empty($ogimg);
         ?>
         <p>
-            <strong>OG image URL</strong> — leave blank to use featured image<br>
+            <strong><?php esc_html_e( 'OG image URL', 'cloudscale-seo-ai-optimizer' ); ?></strong> — <?php esc_html_e( 'leave blank to use featured image', 'cloudscale-seo-ai-optimizer' ); ?><br>
             <input class="widefat" name="cs_seo_ogimg" id="cs_seo_ogimg_<?php echo (int) $post->ID; ?>" value="<?php echo esc_attr($ogimg); ?>">
             <?php if ($using_custom): ?>
             <button type="button" class="button" style="margin-top:4px" onclick="
@@ -102,35 +115,35 @@ trait CS_SEO_Metabox {
                 this.parentNode.querySelector('.cs-og-status').textContent = '⚠ Cleared — save post to apply';
                 this.parentNode.querySelector('.cs-og-status').style.color = '#e67e00';
                 this.style.display = 'none';
-            ">✕ Clear (use featured image)</button>
-            <span class="cs-og-status" style="display:block;font-size:11px;color:#c3372b;margin-top:3px">⚠ Custom URL set — featured image changes will not appear until this is cleared</span>
+            "><?php esc_html_e( '✕ Clear (use featured image)', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <span class="cs-og-status" style="display:block;font-size:11px;color:#c3372b;margin-top:3px"><?php esc_html_e( '⚠ Custom URL set — featured image changes will not appear until this is cleared', 'cloudscale-seo-ai-optimizer' ); ?></span>
             <?php elseif ($thumb_src): ?>
-            <span class="cs-og-status" style="display:block;font-size:11px;color:#1a7a34;margin-top:3px">✓ Using featured image</span>
+            <span class="cs-og-status" style="display:block;font-size:11px;color:#1a7a34;margin-top:3px"><?php esc_html_e( '✓ Using featured image', 'cloudscale-seo-ai-optimizer' ); ?></span>
             <?php else: ?>
-            <span class="cs-og-status" style="display:block;font-size:11px;color:#888;margin-top:3px">No featured image set — using site default OG image</span>
+            <span class="cs-og-status" style="display:block;font-size:11px;color:#888;margin-top:3px"><?php esc_html_e( 'No featured image set — using site default OG image', 'cloudscale-seo-ai-optimizer' ); ?></span>
             <?php endif; ?>
         </p>
 
         <hr style="margin:16px 0;border:none;border-top:1px solid #ddd">
         <?php $hide_summary = (int) get_post_meta($post->ID, self::META_HIDE_SUMMARY, true); ?>
         <p style="margin:0 0 8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
-            <span><strong>AI Summary Box</strong> <span style="font-size:11px;font-weight:400;color:#888">— shown at the top of the post for readers and AI search engines</span></span>
+            <span><strong><?php esc_html_e( 'AI Summary Box', 'cloudscale-seo-ai-optimizer' ); ?></strong> <span style="font-size:11px;font-weight:400;color:#888"><?php esc_html_e( '— shown at the top of the post for readers and AI search engines', 'cloudscale-seo-ai-optimizer' ); ?></span></span>
             <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
                 <input type="checkbox" name="cs_seo_hide_summary" value="1" <?php checked($hide_summary, 1); ?>>
-                <span style="color:#c3372b;font-weight:600">Hide on this post</span>
+                <span style="color:#c3372b;font-weight:600"><?php esc_html_e( 'Hide on this post', 'cloudscale-seo-ai-optimizer' ); ?></span>
             </label>
         </p>
 
         <p style="margin:0 0 6px">
-            <label style="font-size:12px;font-weight:600;color:#555">What it is</label><br>
+            <label style="font-size:12px;font-weight:600;color:#555"><?php esc_html_e( 'What it is', 'cloudscale-seo-ai-optimizer' ); ?></label><br>
             <textarea class="widefat" rows="2" name="cs_seo_sum_what" id="cs_seo_sum_what_<?php echo (int) $post->ID; ?>" style="font-size:13px"><?php echo esc_textarea($sum_what); ?></textarea>
         </p>
         <p style="margin:0 0 6px">
-            <label style="font-size:12px;font-weight:600;color:#555">Why it matters</label><br>
+            <label style="font-size:12px;font-weight:600;color:#555"><?php esc_html_e( 'Why it matters', 'cloudscale-seo-ai-optimizer' ); ?></label><br>
             <textarea class="widefat" rows="2" name="cs_seo_sum_why" id="cs_seo_sum_why_<?php echo (int) $post->ID; ?>" style="font-size:13px"><?php echo esc_textarea($sum_why); ?></textarea>
         </p>
         <p style="margin:0 0 10px">
-            <label style="font-size:12px;font-weight:600;color:#555">Key takeaway</label><br>
+            <label style="font-size:12px;font-weight:600;color:#555"><?php esc_html_e( 'Key takeaway', 'cloudscale-seo-ai-optimizer' ); ?></label><br>
             <textarea class="widefat" rows="2" name="cs_seo_sum_key" id="cs_seo_sum_key_<?php echo (int) $post->ID; ?>" style="font-size:13px"><?php echo esc_textarea($sum_key); ?></textarea>
         </p>
 
@@ -138,15 +151,15 @@ trait CS_SEO_Metabox {
         <p style="margin:0">
             <button type="button" class="button" id="cs_seo_sum_gen_<?php echo (int) $post->ID; ?>"
                 onclick="csSeoSumGenOne(<?php echo (int) $post->ID; ?>)">
-                ✦ Generate Summary
+                <?php esc_html_e( '✦ Generate Summary', 'cloudscale-seo-ai-optimizer' ); ?>
             </button>
             <button type="button" class="button" style="margin-left:6px" id="cs_seo_sum_regen_<?php echo (int) $post->ID; ?>"
                 onclick="csSeoSumGenOne(<?php echo (int) $post->ID; ?>, true)">
-                ↺ Regenerate
+                <?php esc_html_e( '↺ Regenerate', 'cloudscale-seo-ai-optimizer' ); ?>
             </button>
             <span id="cs_seo_sum_status_<?php echo (int) $post->ID; ?>" style="margin-left:8px;font-size:12px;color:#888;"></span>
         </p>
-        <script>
+        <?php ob_start(); ?>
         function csSeoSumGenOne(postId, force) {
             const btn    = document.getElementById('cs_seo_sum_gen_' + postId);
             const regen  = document.getElementById('cs_seo_sum_regen_' + postId);
@@ -165,7 +178,7 @@ trait CS_SEO_Metabox {
                     action: 'cs_seo_summary_generate_one',
                     post_id: postId,
                     force: force ? 1 : 0,
-                    nonce: '<?php echo esc_js( wp_create_nonce('cs_seo_nonce') ); ?>'
+                    nonce: csSeoMetabox.nonce
                 })
             })
             .then(r => r.json())
@@ -192,12 +205,20 @@ trait CS_SEO_Metabox {
             })
             .finally(() => { btn.disabled = false; regen.disabled = false; });
         }
-        </script>
+        <?php wp_add_inline_script('cs-seo-metabox-js', ob_get_clean()); ?>
         <?php endif; ?>
 
         <?php
     }
 
+    /**
+     * Saves SEO metabox fields when a post is saved.
+     *
+     * @since 4.0.0
+     * @param int     $post_id The ID of the post being saved.
+     * @param WP_Post $post    The post object.
+     * @return void
+     */
     public function save_metabox(int $post_id, WP_Post $post): void {
         if (!isset($_POST['cs_seo_nonce'])) return;
         if (!wp_verify_nonce( sanitize_key( wp_unslash( $_POST['cs_seo_nonce'] ) ), 'cs_seo_save')) return;
@@ -215,6 +236,15 @@ trait CS_SEO_Metabox {
         $noindex ? update_post_meta($post_id, self::META_NOINDEX, 1) : delete_post_meta($post_id, self::META_NOINDEX);
     }
 
+    /**
+     * Updates or deletes a post meta field depending on whether the value is empty.
+     *
+     * @since 4.0.0
+     * @param int    $id  Post ID.
+     * @param string $key Meta key.
+     * @param string $val Meta value; empty string deletes the key.
+     * @return void
+     */
     private function set_meta(int $id, string $key, string $val): void {
         $val === '' ? delete_post_meta($id, $key) : update_post_meta($id, $key, $val);
     }

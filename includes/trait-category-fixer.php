@@ -129,6 +129,12 @@ trait CS_SEO_Category_Fixer {
         ];
     }
 
+    /**
+     * AJAX handler: loads all posts with their current and proposed category assignments.
+     *
+     * @since 4.10.59
+     * @return void
+     */
     public function ajax_catfix_load(): void {
         $this->catfix_nonce_check();
 
@@ -228,6 +234,12 @@ trait CS_SEO_Category_Fixer {
         wp_send_json(['success' => true, 'posts' => $results, 'cat_map' => $cat_map]);
     }
 
+    /**
+     * AJAX handler: applies the proposed category changes for a single post.
+     *
+     * @since 4.10.59
+     * @return void
+     */
     public function ajax_catfix_apply(): void {
         $this->catfix_nonce_check();
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
@@ -241,6 +253,12 @@ trait CS_SEO_Category_Fixer {
         wp_send_json(['success' => true]);
     }
 
+    /**
+     * AJAX handler: marks the proposed category change for a post as skipped.
+     *
+     * @since 4.10.59
+     * @return void
+     */
     public function ajax_catfix_skip(): void {
         $this->catfix_nonce_check();
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
@@ -251,6 +269,12 @@ trait CS_SEO_Category_Fixer {
         wp_send_json(['success' => true]);
     }
 
+    /**
+     * AJAX handler: applies proposed category changes for all selected posts in bulk.
+     *
+     * @since 4.10.59
+     * @return void
+     */
     public function ajax_catfix_bulk_apply(): void {
         $this->catfix_nonce_check();
         $items_raw = isset($_POST['items']) ? (array) wp_unslash($_POST['items']) : []; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked via catfix_nonce_check(); array items are sanitized in loop below
@@ -267,6 +291,12 @@ trait CS_SEO_Category_Fixer {
     }
 
     // ajax_catfix_analyse: re-analyse a single post (force)
+    /**
+     * AJAX handler: runs the local keyword scorer to propose categories for all posts.
+     *
+     * @since 4.10.59
+     * @return void
+     */
     public function ajax_catfix_analyse(): void {
         $this->catfix_nonce_check();
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
@@ -285,6 +315,12 @@ trait CS_SEO_Category_Fixer {
         wp_send_json(['success' => true, 'data' => $data]);
     }
 
+    /**
+     * AJAX handler: uses AI to propose category assignments for a single post.
+     *
+     * @since 4.10.65
+     * @return void
+     */
     public function ajax_catfix_ai_one(): void {
         $this->catfix_nonce_check();
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
@@ -397,6 +433,12 @@ trait CS_SEO_Category_Fixer {
     // Category Health
     // =========================================================================
 
+    /**
+     * AJAX handler: returns category health statistics (post counts per category).
+     *
+     * @since 4.10.65
+     * @return void
+     */
     public function ajax_catfix_health(): void {
         $this->catfix_nonce_check();
 
@@ -473,6 +515,12 @@ trait CS_SEO_Category_Fixer {
     // Category Drift Detection
     // =========================================================================
 
+    /**
+     * AJAX handler: runs AI taxonomy drift analysis and returns suggested category consolidations.
+     *
+     * @since 4.10.65
+     * @return void
+     */
     public function ajax_catfix_drift(): void {
         $this->catfix_nonce_check();
 
@@ -670,6 +718,12 @@ trait CS_SEO_Category_Fixer {
     }
 
     // ── Drift cache retrieval ─────────────────────────────────────────────────
+    /**
+     * AJAX handler: returns cached taxonomy drift analysis results.
+     *
+     * @since 4.10.65
+     * @return void
+     */
     public function ajax_catfix_drift_cache_get(): void {
         $this->catfix_nonce_check();
         $cache = get_option('cs_seo_drift_cache', null);
@@ -708,6 +762,12 @@ trait CS_SEO_Category_Fixer {
     }
 
     // ── Drift analyse remaining posts for one category ────────────────────────
+    /**
+     * AJAX handler: runs AI analysis on posts not yet assigned to any drift move group.
+     *
+     * @since 4.10.65
+     * @return void
+     */
     public function ajax_catfix_drift_analyse_remaining(): void {
         $this->catfix_nonce_check();
 

@@ -2,6 +2,12 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 trait CS_SEO_Robots_Txt {
+    /**
+     * AJAX handler: returns the current robots.txt content from file or dynamic filter.
+     *
+     * @since 4.0.0
+     * @return void
+     */
     public function ajax_fetch_robots(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) {
@@ -27,6 +33,12 @@ trait CS_SEO_Robots_Txt {
         }
     }
 
+    /**
+     * AJAX handler: renames a physical robots.txt file to robots.txt.bak in the WordPress root.
+     *
+     * @since 4.0.0
+     * @return void
+     */
     public function ajax_rename_robots(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) {
@@ -61,6 +73,14 @@ trait CS_SEO_Robots_Txt {
         }
     }
 
+    /**
+     * Filters the WordPress robots.txt output to add custom rules, AI bot blocking, and sitemap directive.
+     *
+     * @since 4.0.0
+     * @param string $output  The current robots.txt content.
+     * @param bool   $public  Whether the site is set to allow search indexing.
+     * @return string Modified robots.txt content.
+     */
     public function filter_robots_txt(string $output, bool $public): string {
         if (!$public) {
             return "User-agent: *\nDisallow: /\n";

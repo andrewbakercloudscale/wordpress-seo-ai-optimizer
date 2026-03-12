@@ -57,6 +57,12 @@ trait CS_SEO_AI_Summary {
     /**
      * AJAX: generate summary for a single post.
      */
+    /**
+     * AJAX handler: generates the three-field AI summary for a single post.
+     *
+     * @since 4.10.47
+     * @return void
+     */
     public function ajax_summary_generate_one(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('edit_posts')) wp_send_json_error('Forbidden', 403);
@@ -92,6 +98,12 @@ trait CS_SEO_AI_Summary {
 
     /**
      * AJAX: count posts with/without AI summaries for the bulk panel.
+     */
+    /**
+     * AJAX handler: returns all posts with their AI summary status for the bulk generator panel.
+     *
+     * @since 4.10.48
+     * @return void
      */
     public function ajax_summary_load(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');
@@ -139,6 +151,12 @@ trait CS_SEO_AI_Summary {
     /**
      * AJAX: generate summaries for all posts missing them (batch).
      * Processes one post per call — JS loops until done (same pattern as ALT batch).
+     */
+    /**
+     * AJAX handler: batch wrapper for ajax_summary_generate_one(), used by the bulk polling loop.
+     *
+     * @since 4.10.49
+     * @return void
      */
     public function ajax_summary_generate_all(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');

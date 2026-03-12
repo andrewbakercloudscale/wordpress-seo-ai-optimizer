@@ -2,6 +2,13 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 trait CS_SEO_Summary_Box {
+    /**
+     * Prepends the AI-generated summary box to singular post content.
+     *
+     * @since 4.10.46
+     * @param string $content The post content.
+     * @return string Content with summary box prepended, or original if conditions are not met.
+     */
     public function prepend_summary_box(string $content): string {
         if (!is_singular('post') || is_admin() || !(int)($this->opts['show_summary_box'] ?? 1)) {
             return $content;
@@ -28,14 +35,14 @@ trait CS_SEO_Summary_Box {
         $box .= '">';
         $box .= '<div style="background:linear-gradient(120deg,#4338ca 0%,#6366f1 60%,#818cf8 100%);padding:12px 24px;display:flex;align-items:center;gap:9px;">';
         $box .= '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>';
-        $box .= '<span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.95);">CloudScale SEO &mdash; AI Article Summary</span>';
+        $box .= '<span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.95);">' . esc_html__( 'CloudScale SEO — AI Article Summary', 'cloudscale-seo-ai-optimizer' ) . '</span>';
         $box .= '</div>';
         $box .= '<table style="width:100%;border-collapse:collapse;background:#ffffff;">';
-        $box .= '<tr style="' . $row_sep . '"><td style="' . $lbl . '">What it is</td><td style="' . $val . '">' . esc_html($sum_what) . '</td></tr>';
-        $box .= '<tr style="' . $row_sep . '"><td style="' . $lbl . '">Why it matters</td><td style="' . $val . '">' . esc_html($sum_why) . '</td></tr>';
+        $box .= '<tr style="' . $row_sep . '"><td style="' . $lbl . '">' . esc_html__( 'What it is', 'cloudscale-seo-ai-optimizer' ) . '</td><td style="' . $val . '">' . esc_html($sum_what) . '</td></tr>';
+        $box .= '<tr style="' . $row_sep . '"><td style="' . $lbl . '">' . esc_html__( 'Why it matters', 'cloudscale-seo-ai-optimizer' ) . '</td><td style="' . $val . '">' . esc_html($sum_why) . '</td></tr>';
         $last_lbl = str_replace('border-bottom:inherit', 'border-bottom:none!important', $lbl);
         $last_val = str_replace('border-bottom:inherit', 'border-bottom:none!important', $val);
-        $box .= '<tr><td style="' . $last_lbl . '">Key takeaway</td><td style="' . $last_val . '">' . esc_html($sum_key) . '</td></tr>';
+        $box .= '<tr><td style="' . $last_lbl . '">' . esc_html__( 'Key takeaway', 'cloudscale-seo-ai-optimizer' ) . '</td><td style="' . $last_val . '">' . esc_html($sum_key) . '</td></tr>';
         $box .= '</table>';
         $box .= '</div><!-- /cs-seo-summary-box -->';
 

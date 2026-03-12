@@ -55,6 +55,12 @@ trait CS_SEO_AI_Scoring {
     /**
      * AJAX: score a single post and store the result.
      */
+    /**
+     * AJAX handler: runs an AI SEO score for a single post and stores the result.
+     *
+     * @since 4.12.2
+     * @return void
+     */
     public function ajax_score_one(): void {
         $this->ajax_check();
         $post_id = (int) sanitize_key(wp_unslash($_POST['post_id'] ?? 0)); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()

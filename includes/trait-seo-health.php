@@ -40,6 +40,12 @@ trait CS_SEO_SEO_Health {
      *
      * @return array{total:int, seo:int, images:int, links:int, summaries:int, built_at:int}
      */
+    /**
+     * Rebuilds the SEO health cache by counting posts with complete SEO, ALT, links, and summaries.
+     *
+     * @since 4.11.26
+     * @return array Health cache array with keys: total, seo, images, links, summaries, built_at.
+     */
     public function rebuild_health_cache(): array {
         global $wpdb;
 
@@ -152,6 +158,12 @@ trait CS_SEO_SEO_Health {
     /**
      * AJAX handler: rebuild health cache and return result as JSON.
      * Nonce: cs_seo_nonce.
+     */
+    /**
+     * AJAX handler: rebuilds the SEO health cache and returns the updated stats.
+     *
+     * @since 4.11.26
+     * @return void
      */
     public function ajax_rebuild_health_cache(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');

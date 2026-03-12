@@ -9,7 +9,13 @@ trait CS_SEO_Font_Optimizer {
     private function scan_enqueued_css(): array {
         global $wp_styles;
         self::debug_log('[CloudScale SEO] Font Display Scan: Initializing CSS file scanner');
-        
+
+        global $wp_filesystem;
+        if (empty($wp_filesystem)) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+
         $results = [
             'total_files' => 0, 'total_fonts' => 0, 'missing_fonts' => 0,
             'files' => [], 'total_savings_ms' => 0,
@@ -45,7 +51,7 @@ trait CS_SEO_Font_Optimizer {
             
             self::debug_log('[CloudScale SEO] Font Display Scan: Processing file: ' . basename($file_path));
             
-            $css_content = @file_get_contents($file_path);
+            $css_content = $wp_filesystem ? $wp_filesystem->get_contents($file_path) : '';
             if (!$css_content) {
                 self::debug_log('[CloudScale SEO] Font Display Scan: Cannot read file: ' . $file_path);
                 continue;
@@ -138,8 +144,14 @@ trait CS_SEO_Font_Optimizer {
 
     private function fix_css_fonts(string $file_path, string $display_value = 'swap', bool $add_metrics = true): array {
         self::debug_log('[CloudScale SEO] Font Fix: Starting fix for ' . basename($file_path) . ' with display=' . $display_value . ', metrics=' . ($add_metrics ? 'yes' : 'no'));
-        
-        $original = @file_get_contents($file_path);
+
+        global $wp_filesystem;
+        if (empty($wp_filesystem)) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+
+        $original = $wp_filesystem ? $wp_filesystem->get_contents($file_path) : '';
         if (!$original) {
             self::debug_log('[CloudScale SEO] Font Fix ERROR: Cannot read file ' . $file_path);
             return ['success' => false, 'error' => 'Cannot read file'];
@@ -158,7 +170,7 @@ trait CS_SEO_Font_Optimizer {
             return ['success' => false, 'error' => 'No changes needed'];
         }
         
-        $written = @file_put_contents($file_path, $patched);
+        $written = $wp_filesystem ? $wp_filesystem->put_contents($file_path, $patched, FS_CHMOD_FILE) : false;
         if (!$written) {
             self::debug_log('[CloudScale SEO] Font Fix ERROR: Cannot write file ' . $file_path . ' (permission denied)');
             delete_option($backup_key);
@@ -212,17 +224,23 @@ trait CS_SEO_Font_Optimizer {
 
     private function undo_font_fixes(string $file_path): array {
         self::debug_log('[CloudScale SEO] Font Undo: Attempting to restore ' . basename($file_path));
-        
+
+        global $wp_filesystem;
+        if (empty($wp_filesystem)) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+
         $backup_key = 'cs_seo_font_backup_' . md5($file_path);
         $backup = get_option($backup_key);
         if (!$backup) {
             self::debug_log('[CloudScale SEO] Font Undo ERROR: No backup found for key ' . $backup_key);
             return ['success' => false, 'error' => 'No backup found'];
         }
-        
+
         self::debug_log('[CloudScale SEO] Font Undo: Found backup from ' . ($backup['date'] ?? 'unknown date'));
-        
-        $written = @file_put_contents($file_path, $backup['content']);
+
+        $written = $wp_filesystem ? $wp_filesystem->put_contents($file_path, $backup['content'], FS_CHMOD_FILE) : false;
         if (!$written) {
             self::debug_log('[CloudScale SEO] Font Undo ERROR: Cannot write file ' . $file_path . ' (permission denied)');
             return ['success' => false, 'error' => 'Cannot write file'];
@@ -279,11 +297,17 @@ trait CS_SEO_Font_Optimizer {
             $html
         );
         
-        // Add noscript fallback for users without JavaScript
+        // Add noscript fallback for users without JavaScript.
+        // Extract href before composing — concatenation has higher precedence than ternary,
+        // so inline use of preg_match() in a string-concat ternary always evaluates the
+        // non-empty left operand as truthy and returns $m[1] with no surrounding HTML.
+        $noscript_href = '';
+        preg_match( '/href=["\']([^"\']+)["\']/', $html, $noscript_m );
+        if ( ! empty( $noscript_m[1] ) ) {
+            $noscript_href = $noscript_m[1];
+        }
         // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- This is a noscript fallback for an already-enqueued style
-        $html .= '<noscript><link rel="stylesheet" href="' . 
-                 preg_match('/href=["\']([^"\']+)["\']/', $html, $m) ? $m[1] : '' . 
-                 '" /></noscript>';
+        $html .= '<noscript><link rel="stylesheet" href="' . esc_attr( $noscript_href ) . '" /></noscript>';
         
         return $html;
     }
@@ -366,7 +390,12 @@ trait CS_SEO_Font_Optimizer {
                     );
                     
                     // Write to local file
-                    if (file_put_contents($css_file, $optimized_css, LOCK_EX)) {
+                    global $wp_filesystem;
+                    if (empty($wp_filesystem)) {
+                        require_once ABSPATH . 'wp-admin/includes/file.php';
+                        WP_Filesystem();
+                    }
+                    if ($wp_filesystem && $wp_filesystem->put_contents($css_file, $optimized_css, FS_CHMOD_FILE)) {
                         self::debug_log('[CloudScale SEO] Font Download: Successfully saved ' . $css_file);
                         $messages[] = '✓ Downloaded: ' . basename($css_file);
                         $downloaded++;
@@ -397,6 +426,12 @@ trait CS_SEO_Font_Optimizer {
         }
     }
 
+    /**
+     * AJAX handler: scans enqueued CSS files for @font-face rules missing font-display.
+     *
+     * @since 4.10.0
+     * @return void
+     */
     public function ajax_font_scan(): void {
         self::debug_log('[CloudScale SEO] AJAX Handler: font_scan started');
         
@@ -483,6 +518,12 @@ trait CS_SEO_Font_Optimizer {
         wp_send_json(['success' => true, 'console' => $console_lines, 'findings' => $results]);
     }
 
+    /**
+     * AJAX handler: patches all CSS files with missing font-display and metric overrides.
+     *
+     * @since 4.10.0
+     * @return void
+     */
     public function ajax_font_fix(): void {
         self::debug_log('[CloudScale SEO] AJAX Handler: font_fix started');
         
@@ -544,6 +585,12 @@ trait CS_SEO_Font_Optimizer {
         wp_send_json(['success' => true, 'console' => $console_lines, 'fixed' => $fixed_count, 'failed' => $failed_count]);
     }
 
+    /**
+     * AJAX handler: restores a CSS file from its backup, undoing font-display patches.
+     *
+     * @since 4.10.0
+     * @return void
+     */
     public function ajax_font_undo(): void {
         self::debug_log('[CloudScale SEO] AJAX Handler: font_undo started');
         

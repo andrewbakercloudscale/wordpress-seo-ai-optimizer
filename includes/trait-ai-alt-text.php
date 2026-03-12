@@ -2,6 +2,12 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 trait CS_SEO_AI_Alt_Text {
+    /**
+     * AJAX handler: returns all published posts with their image and ALT text status.
+     *
+     * @since 4.9.4
+     * @return void
+     */
     public function ajax_alt_get_posts(): void {
         $this->ajax_check();
 
@@ -116,6 +122,12 @@ trait CS_SEO_AI_Alt_Text {
     /**
      * Generate ALT text for all images missing it in a single post.
      * Updates the attachment meta AND replaces alt="" in post content.
+     */
+    /**
+     * AJAX handler: generates AI ALT text for all images missing it in a single post.
+     *
+     * @since 4.9.5
+     * @return void
      */
     public function ajax_alt_generate_one(): void {
         $this->ajax_check();
@@ -294,6 +306,12 @@ trait CS_SEO_AI_Alt_Text {
 
     /**
      * Batch ALT — same as generate_one but designed for polling loop.
+     */
+    /**
+     * AJAX handler: batch wrapper for ajax_alt_generate_one(), used by the bulk polling loop.
+     *
+     * @since 4.10.17
+     * @return void
      */
     public function ajax_alt_generate_all(): void {
         $this->ajax_alt_generate_one();

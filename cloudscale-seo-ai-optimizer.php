@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.12.3
+ * Version:     4.13.2
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -44,6 +44,7 @@ require_once __DIR__ . '/includes/trait-gutenberg.php';
 require_once __DIR__ . '/includes/trait-font-optimizer.php';
 require_once __DIR__ . '/includes/trait-category-fixer.php';
 require_once __DIR__ . '/includes/trait-settings-page.php';
+require_once __DIR__ . '/includes/trait-settings-assets.php';
 require_once __DIR__ . '/includes/trait-robots-txt.php';
 require_once __DIR__ . '/includes/trait-https-fixer.php';
 require_once __DIR__ . '/includes/trait-sitemap.php';
@@ -71,6 +72,7 @@ final class CloudScale_SEO_AI_Optimizer {
     use CS_SEO_Font_Optimizer;
     use CS_SEO_Category_Fixer;
     use CS_SEO_Settings_Page;
+    use CS_SEO_Settings_Assets;
     use CS_SEO_Robots_Txt;
     use CS_SEO_HTTPS_Fixer;
     use CS_SEO_Sitemap;
@@ -121,7 +123,7 @@ final class CloudScale_SEO_AI_Optimizer {
     // Related Articles generator version — bump when scoring logic changes
     const RC_VERSION = '1.0';
 
-    const VERSION    = '4.12.3';
+    const VERSION    = '4.13.2';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -155,7 +157,6 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('admin_notices',  [$this, 'admin_notices']);
         add_action('admin_enqueue_scripts', [$this, 'admin_enqueue_assets']);
         add_action('enqueue_block_editor_assets', [$this, 'enqueue_block_editor_assets']);
-        add_action('wp_ajax_nopriv_cs_seo_download_fonts', [$this, 'ajax_download_fonts']);
         add_action('wp_ajax_cs_seo_download_fonts', [$this, 'ajax_download_fonts']);
 
         // Only defer font CSS loading if user has explicitly enabled it

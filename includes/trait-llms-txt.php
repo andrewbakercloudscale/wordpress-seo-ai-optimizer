@@ -6,6 +6,12 @@ trait CS_SEO_LLMS_Txt {
     // llms.txt
     // =========================================================================
 
+    /**
+     * Registers the llms.txt rewrite rule and render callback when llms.txt is enabled.
+     *
+     * @since 4.10.4
+     * @return void
+     */
     public function maybe_register_llms_txt(): void {
         if (!(int)($this->opts['enable_llms_txt'] ?? 0)) return;
         add_rewrite_rule('^llms\.txt$', 'index.php?cs_seo_llms=1', 'top');
@@ -13,6 +19,12 @@ trait CS_SEO_LLMS_Txt {
         add_action('template_redirect', [$this, 'maybe_render_llms_txt']);
     }
 
+    /**
+     * Outputs the llms.txt plain-text response when the rewrite URL is requested.
+     *
+     * @since 4.10.4
+     * @return void
+     */
     public function maybe_render_llms_txt(): void {
         if (!get_query_var('cs_seo_llms')) return;
         header('Content-Type: text/plain; charset=utf-8');
@@ -95,6 +107,12 @@ trait CS_SEO_LLMS_Txt {
         return $output;
     }
 
+    /**
+     * AJAX handler: returns the generated llms.txt content for the admin preview panel.
+     *
+     * @since 4.10.4
+     * @return void
+     */
     public function ajax_llms_preview(): void {
         $this->ajax_check();
         wp_send_json_success(['content' => $this->build_llms_txt()]);

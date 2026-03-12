@@ -2,6 +2,12 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 trait CS_SEO_Sitemap {
+    /**
+     * Registers sitemap rewrite rules and hooks the render callback when the sitemap is enabled.
+     *
+     * @since 4.10.3
+     * @return void
+     */
     public function maybe_register_sitemap(): void {
         if (!(int) $this->opts['enable_sitemap']) return;
         // /sitemap.xml          → sitemap index listing all child sitemaps
@@ -13,6 +19,12 @@ trait CS_SEO_Sitemap {
         add_action('template_redirect', [$this, 'maybe_render_sitemap']);
     }
 
+    /**
+     * Outputs the sitemap XML response when a sitemap URL is requested.
+     *
+     * @since 4.10.3
+     * @return void
+     */
     public function maybe_render_sitemap(): void {
         $mode = get_query_var('cs_seo_sitemap');
         if (!$mode) return;
@@ -145,6 +157,12 @@ trait CS_SEO_Sitemap {
     }
 
     // AJAX preview — returns paginated entries for the UI table
+    /**
+     * AJAX handler: returns a paginated list of sitemap entries for the admin preview table.
+     *
+     * @since 4.10.3
+     * @return void
+     */
     public function ajax_sitemap_preview(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) {

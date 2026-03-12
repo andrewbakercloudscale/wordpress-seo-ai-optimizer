@@ -2,6 +2,12 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 trait CS_SEO_Admin {
+    /**
+     * Displays an admin notice after the physical robots.txt has been renamed on activation.
+     *
+     * @since 4.10.0
+     * @return void
+     */
     public function admin_notices(): void {
         // Show post-rename confirmation if the backup flag is set
         $bak = get_option('cs_seo_robots_bak');
@@ -11,21 +17,50 @@ trait CS_SEO_Admin {
                 delete_option('cs_seo_robots_bak');
             } else {
                 echo '<div class="notice notice-success is-dismissible">';
-                echo '<p><strong>CloudScale SEO:</strong> The physical <code>robots.txt</code> file has been renamed to <code>robots.txt.bak</code>. ';
-                echo 'The plugin is now managing your robots.txt. Your original rules have been preserved — review the Robots.txt card and merge anything you want to keep.</p>';
-                echo '<p><a href="' . esc_url(wp_nonce_url(admin_url('tools.php?page=cs-seo-optimizer&_cs_dismiss_robotsbak=1'), 'cs_dismiss_robotsbak')) . '">Dismiss</a></p>';
+                echo '<p><strong>' . esc_html__( 'CloudScale SEO', 'cloudscale-seo-ai-optimizer' ) . ':</strong> ';
+                echo esc_html__( 'The physical robots.txt file has been renamed to robots.txt.bak. The plugin is now managing your robots.txt. Your original rules have been preserved — review the Robots.txt card and merge anything you want to keep.', 'cloudscale-seo-ai-optimizer' ) . '</p>';
+                echo '<p><a href="' . esc_url( wp_nonce_url( admin_url( 'tools.php?page=cs-seo-optimizer&_cs_dismiss_robotsbak=1' ), 'cs_dismiss_robotsbak' ) ) . '">' . esc_html__( 'Dismiss', 'cloudscale-seo-ai-optimizer' ) . '</a></p>';
                 echo '</div>';
             }
         }
     }
 
+    /**
+     * Enqueues styles and scripts for the settings page, dashboard widget, and post metabox.
+     *
+     * @since 4.10.22
+     * @return void
+     */
     public function admin_enqueue_assets(): void {
+        $screen = get_current_screen();
+
+        // Dashboard page — no-op handle for dashboard widget JS.
+        if ($screen && $screen->id === 'dashboard') {
+            wp_register_script('cs-seo-dashboard-js', false, [], self::VERSION, true);
+            wp_enqueue_script('cs-seo-dashboard-js');
+            wp_localize_script('cs-seo-dashboard-js', 'csSeoWidget', [
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce'   => wp_create_nonce('cs_seo_nonce'),
+            ]);
+        }
+
+        // Post/page edit screens — no-op handle for metabox JS.
+        if ($screen && in_array($screen->base, ['post', 'page'], true)) {
+            wp_register_script('cs-seo-metabox-js', false, [], self::VERSION, true);
+            wp_enqueue_script('cs-seo-metabox-js');
+            wp_localize_script('cs-seo-metabox-js', 'csSeoMetabox', [
+                'nonce' => wp_create_nonce('cs_seo_nonce'),
+            ]);
+        }
+
         if (!$this->is_our_page()) return;
 
         // Register a no-op handle so we can attach inline style and scripts to it.
         wp_register_style('cs-seo-admin', false, [], self::VERSION);
         wp_enqueue_style('cs-seo-admin');
         wp_add_inline_style('cs-seo-admin', '#wpfooter { display:none !important; } #wpcontent, #wpbody-content { padding-bottom:0 !important; }');
+        // Settings page CSS — moved from an echoed <style> block to comply with PCP.
+        wp_add_inline_style('cs-seo-admin', $this->admin_page_css());
 
         // Register a no-op script handle for inline scripts that have no external file.
         wp_register_script('cs-seo-admin-js', false, [], self::VERSION, true);
@@ -33,8 +68,18 @@ trait CS_SEO_Admin {
 
         // Pass PHP values needed by inline scripts as a JS object.
         wp_localize_script('cs-seo-admin-js', 'csSeoAdmin', [
-            'defaultPrompt' => self::default_prompt(),
+            'defaultPrompt'   => self::default_prompt(),
+            'ajaxUrl'         => admin_url('admin-ajax.php'),
+            'nonce'           => wp_create_nonce('cs_seo_nonce'),
+            'sitemapIndexUrl' => home_url('/sitemap.xml'),
+            'minChars'        => (int) ($this->ai_opts['min_chars'] ?? 140),
+            'maxChars'        => (int) ($this->ai_opts['max_chars'] ?? 160),
+            'hasApiKey'       => !empty(trim((string) ($this->ai_opts['anthropic_key'] ?? ''))),
         ]);
+
+        // Sitemap + llms.txt preview scripts — moved from echoed <script> blocks to comply with PCP.
+        wp_add_inline_script('cs-seo-admin-js', $this->llms_preview_js());
+        wp_add_inline_script('cs-seo-admin-js', $this->sitemap_preview_js());
 
         // Reset-prompt button (was inline at line 3540).
         wp_add_inline_script('cs-seo-admin-js',
@@ -71,6 +116,15 @@ trait CS_SEO_Admin {
         );
     }
 
+    /**
+     * Outputs an "Explain..." button and modal dialog describing a settings group.
+     *
+     * @since 4.0.0
+     * @param string $id    Unique suffix for button and modal element IDs.
+     * @param string $title Modal heading text.
+     * @param array  $items Array of items, each with 'name', 'desc', and 'rec' keys.
+     * @return void
+     */
     private function explain_btn(string $id, string $title, array $items): void {
         $btn_id   = 'ab-explain-btn-' . $id;
         $modal_id = 'ab-explain-modal-' . $id;
@@ -116,29 +170,61 @@ trait CS_SEO_Admin {
         <?php
     }
 
+    /**
+     * Clears the admin footer text on the plugin settings page.
+     *
+     * @since 4.0.0
+     * @param string $text Default footer text.
+     * @return string
+     */
     public function admin_footer_text($text): string {
         if (!$this->is_our_page()) return $text;
         return '';
     }
 
+    /**
+     * Clears the admin footer version string on the plugin settings page.
+     *
+     * @since 4.0.0
+     * @param string $text Default footer version text.
+     * @return string
+     */
     public function admin_footer_version($text): string {
         if (!$this->is_our_page()) return $text;
         return '';
     }
 
+    /**
+     * Returns true when the current admin page is the plugin settings page.
+     *
+     * @since 4.0.0
+     * @return bool
+     */
     private function is_our_page(): bool {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- not processing form data, only reading page slug for admin UI routing
         return isset($_GET['page']) && sanitize_key(wp_unslash($_GET['page'])) === 'cs-seo-optimizer';
     }
 
+    /**
+     * Registers the SEO health dashboard widget.
+     *
+     * @since 4.9.14
+     * @return void
+     */
     public function register_dashboard_widget(): void {
         wp_add_dashboard_widget(
             'cs_seo_dashboard_widget',
-            '🥷 AndrewBaker.Ninja AI SEO Optimizer <span style="font-size:11px;font-weight:400;color:#999;margin-left:6px">v' . self::VERSION . '</span>',
+            wp_kses_post( '🥷 AndrewBaker.Ninja AI SEO Optimizer <span style="font-size:11px;font-weight:400;color:#999;margin-left:6px">v' . esc_html( self::VERSION ) . '</span>' ),
             [$this, 'render_dashboard_widget']
         );
     }
 
+    /**
+     * Renders the SEO health dashboard widget content.
+     *
+     * @since 4.9.14
+     * @return void
+     */
     public function render_dashboard_widget(): void {
         // ── SEO Health cache ──────────────────────────────────────────────────
         $health       = get_option(self::OPT_HEALTH_CACHE, null);
@@ -163,7 +249,7 @@ trait CS_SEO_Admin {
             };
 
             $pills = [
-                ['label' => 'Posts',     'value' => $h_total,                    'color' => '#475569'], // always slate
+                ['label' => 'Posts',     'value' => $h_total,                    'color' => '#2271b1'], // blue baseline
                 ['label' => 'SEO',       'value' => (int) $health['seo'],        'color' => $pill_color((int) $health['seo'],        $h_total)],
                 ['label' => 'Images',    'value' => (int) $health['images'],     'color' => $pill_color((int) $health['images'],     $h_total)],
                 ['label' => 'Links',     'value' => (int) $health['links'],      'color' => $pill_color((int) $health['links'],      $h_total)],
@@ -223,16 +309,16 @@ trait CS_SEO_Admin {
                    onmouseout="this.style.textDecoration='none'">Refresh</a>
                 <span id="cs-health-refresh-status" style="margin-left:6px;color:#9ca3af"></span>
             </p>
-            <script>
+            <?php ob_start(); ?>
             document.getElementById('cs-health-refresh').addEventListener('click', function(e) {
                 e.preventDefault();
                 var status = document.getElementById('cs-health-refresh-status');
                 status.textContent = '⟳ Rebuilding…';
                 var params = new URLSearchParams({
                     action: 'cs_seo_rebuild_health',
-                    nonce:  '<?php echo esc_js($h_nonce); ?>'
+                    nonce:  csSeoWidget.nonce
                 });
-                fetch('<?php echo esc_js($h_ajax); ?>', {
+                fetch(csSeoWidget.ajaxUrl, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                     body: params
@@ -244,7 +330,7 @@ trait CS_SEO_Admin {
                 })
                 .catch(function() { status.textContent = '✗ Error'; });
             });
-            </script>
+            <?php wp_add_inline_script('cs-seo-dashboard-js', ob_get_clean()); ?>
             <?php else: ?>
             <p style="margin:0 0 10px">
                 <button type="button" id="cs-health-run"
@@ -254,7 +340,7 @@ trait CS_SEO_Admin {
                 </button>
                 <span id="cs-health-run-status" style="margin-left:8px;font-size:11px;color:#9ca3af"></span>
             </p>
-            <script>
+            <?php ob_start(); ?>
             document.getElementById('cs-health-run').addEventListener('click', function() {
                 var btn    = this;
                 var status = document.getElementById('cs-health-run-status');
@@ -262,9 +348,9 @@ trait CS_SEO_Admin {
                 status.textContent = '⟳ Building…';
                 var params = new URLSearchParams({
                     action: 'cs_seo_rebuild_health',
-                    nonce:  '<?php echo esc_js(wp_create_nonce('cs_seo_nonce')); ?>'
+                    nonce:  csSeoWidget.nonce
                 });
-                fetch('<?php echo esc_js(admin_url('admin-ajax.php')); ?>', {
+                fetch(csSeoWidget.ajaxUrl, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                     body: params
@@ -276,7 +362,7 @@ trait CS_SEO_Admin {
                 })
                 .catch(function() { status.textContent = '✗ Error'; btn.disabled = false; });
             });
-            </script>
+            <?php wp_add_inline_script('cs-seo-dashboard-js', ob_get_clean()); ?>
             <?php endif; ?>
             <div style="display:flex;flex-direction:column;gap:10px">
                 <a href="<?php echo esc_url(admin_url('tools.php?page=cs-seo-optimizer&tab=batch')); ?>"
@@ -315,6 +401,12 @@ trait CS_SEO_Admin {
         </div>
     <?php }
 
+    /**
+     * Adds the plugin page to the WordPress Tools menu.
+     *
+     * @since 4.0.0
+     * @return void
+     */
     public function admin_menu(): void {
         add_management_page(
             'CloudScale SEO AI Optimizer v' . self::VERSION,
@@ -325,6 +417,12 @@ trait CS_SEO_Admin {
         );
     }
 
+    /**
+     * Registers plugin option groups with the WordPress Settings API.
+     *
+     * @since 4.0.0
+     * @return void
+     */
     public function register_settings(): void {
         register_setting('cs_seo_group', self::OPT, [
             'type'              => 'array',
@@ -345,6 +443,13 @@ trait CS_SEO_Admin {
         }
     }
 
+    /**
+     * Sanitises and validates the main plugin options array for the Settings API.
+     *
+     * @since 4.0.0
+     * @param mixed $in Raw input from the Settings API.
+     * @return array Sanitised options array.
+     */
     public function sanitize_opts($in): array {
         $in  = is_array($in) ? $in : [];
         $d   = self::defaults();
@@ -414,6 +519,13 @@ trait CS_SEO_Admin {
         return $out;
     }
 
+    /**
+     * Sanitises and validates the AI configuration options array for the Settings API.
+     *
+     * @since 4.0.0
+     * @param mixed $in Raw input from the Settings API.
+     * @return array Sanitised AI options array.
+     */
     public function sanitize_ai_opts($in): array {
         $in      = is_array($in) ? $in : [];
         $d       = self::ai_defaults();

@@ -253,6 +253,12 @@ trait CS_SEO_Batch_Scheduler {
     /**
      * AJAX: return the last scheduled batch result for display in the UI.
      */
+    /**
+     * AJAX handler: returns the batch run history for display in the admin panel.
+     *
+     * @since 4.10.14
+     * @return void
+     */
     public function ajax_get_batch_log(): void {
         $this->ajax_check();
         $history = get_option('cs_seo_batch_history', []);

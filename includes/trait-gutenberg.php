@@ -6,6 +6,12 @@ trait CS_SEO_Gutenberg {
     // Gutenberg sidebar panel
     // =========================================================================
 
+    /**
+     * Enqueues the Gutenberg sidebar panel script and passes required data via wp_localize_script.
+     *
+     * @since 4.10.44
+     * @return void
+     */
     public function enqueue_block_editor_assets(): void {
         $screen = get_current_screen();
         if (!$screen || !in_array($screen->post_type, ['post', 'page'], true)) return;

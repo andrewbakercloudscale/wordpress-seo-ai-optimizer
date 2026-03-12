@@ -3,7 +3,7 @@ Contributors: andrewbaker007
 Tags: seo, meta description, ai, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.12.3
+Stable tag: 4.13.2
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -199,6 +199,50 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 8. Scheduled Batch configuration with day selector and last run status
 
 == Changelog ==
+
+= 4.13.2 =
+* Category Drift: cdLoad() now shows elapsed time counter and Stop button during analysis
+* Category Drift: cdAnalyseRemaining() now shows post count in loading label and Stop button
+* Both use AbortController so Stop cancels the in-flight fetch immediately
+
+= 4.13.1 =
+* Fixed PHP operator-precedence bug in defer_font_css() noscript href — preg_match result was being concatenated before the ternary, making href always empty
+* Added i18n (esc_html__/esc_html_e) to user-visible strings in admin notice, metabox labels/buttons, and frontend summary box
+* Extracted admin_page_css(), llms_preview_js(), sitemap_preview_js() to trait-settings-assets.php (reduces trait-settings-page.php by ~300 lines)
+
+= 4.13.0 =
+* Created CHANGELOG.md in Keep-a-Changelog format
+* Dashboard widget title now uses wp_kses_post() with esc_html() for the version span
+* Added @since, @param, @return DocBlocks to all public methods across all 23 trait files
+
+= 4.12.9 =
+* Security: removed wp_ajax_nopriv_ registration from ajax_download_fonts (admin-only handler)
+* Security: added esc_attr() to three unescaped ternary echo outputs in render_metabox()
+* Standards: replaced file_get_contents/file_put_contents with WP_Filesystem in all font optimizer operations
+
+= 4.12.8 =
+* Fix: SEO score not returned when title needed fixing — json_shape for title-needs-fix case was missing seo_score/seo_notes fields
+
+= 4.12.7 =
+* Dashboard widget: Posts pill colour changed from grey to blue
+
+= 4.12.6 =
+* PCP fix: dashboard widget health-refresh and health-run <script> blocks moved to wp_add_inline_script via ob_start capture
+* PCP fix: post editor metabox csSeoGenOne and csSeoSumGenOne <script> blocks moved to wp_add_inline_script via ob_start capture
+* Registered cs-seo-dashboard-js handle (dashboard page) and cs-seo-metabox-js handle (post edit screens) for inline script delivery
+* Added uninstall.php — cleans up all options, post meta, transients, and cron on plugin deletion
+
+= 4.12.5 =
+* PCP fix: HTTPS scanner script moved from echoed <script> block to wp_add_inline_script via ob_start capture
+* PCP fix: font optimizer script moved from echoed <script> block to wp_add_inline_script via ob_start capture
+* PCP fix: main settings page script (abTab, abState, category fixer, related articles) moved to wp_add_inline_script via ob_start capture
+* PHP values abNonce, abAjax, abMinChar, abMaxChar, abHasApiKey, cfNonce, chNonce, cdNonce, rcNonce now passed via csSeoAdmin (wp_localize_script)
+
+= 4.12.4 =
+* PCP fix: settings page CSS moved from echoed <style> block to wp_add_inline_style()
+* PCP fix: llms.txt preview JS moved from echoed <script> block to wp_add_inline_script()
+* PCP fix: sitemap preview JS moved from echoed <script> block to wp_add_inline_script()
+* PHP values (ajaxUrl, nonce, sitemapIndexUrl) now passed via wp_localize_script
 
 = 4.12.3 =
 * Refactored monolithic plugin into 23 trait files for maintainability
@@ -560,6 +604,15 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 * Per post generation from post editor metabox
 
 == Upgrade Notice ==
+
+= 4.12.6 =
+PCP compliance: all remaining echoed script blocks eliminated. uninstall.php added. Zero critical PCP violations remain.
+
+= 4.12.5 =
+PCP compliance: HTTPS scanner, font optimizer, and main settings page JS moved to wp_add_inline_script. No functional changes.
+
+= 4.12.4 =
+PCP compliance: settings page CSS and sitemap/llms.txt preview JS moved to wp_add_inline_style/script. No functional changes.
 
 = 4.12.3 =
 Major refactor: plugin split into 23 trait files. AI SEO scoring added per post. Recommended update for all users.

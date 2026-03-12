@@ -2,6 +2,12 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 trait CS_SEO_HTTPS_Fixer {
+    /**
+     * AJAX handler: scans the database for HTTP references and returns a domain-grouped summary.
+     *
+     * @since 4.10.0
+     * @return void
+     */
     public function ajax_https_scan(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) {
@@ -246,6 +252,12 @@ trait CS_SEO_HTTPS_Fixer {
         return $value;
     }
 
+    /**
+     * AJAX handler: replaces HTTP with HTTPS for the specified domains across the database.
+     *
+     * @since 4.10.0
+     * @return void
+     */
     public function ajax_https_fix(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) {
@@ -352,6 +364,12 @@ trait CS_SEO_HTTPS_Fixer {
      * For posts/postmeta/options: strips the bare http://domain... URL pattern from the
      * column value rather than deleting the whole row, since those rows contain real content.
      * GUIDs in wp_posts are set to empty string (WordPress re-generates them on save).
+     */
+    /**
+     * AJAX handler: removes all database rows containing HTTP references for the specified domains.
+     *
+     * @since 4.10.0
+     * @return void
      */
     public function ajax_https_delete(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');

@@ -55,7 +55,6 @@ trait CS_SEO_AI_Meta_Writer {
             $title_instruction = "\n\nSEO TITLE: The current title is {$title_direction} at {$title_len} chars: \"{$current_title}\". "
                 . "Rewrite it so it is between 50 and 60 characters. Keep the core topic and keywords. "
                 . "Do not add quotes or punctuation at start/end.";
-            $json_shape = '{"description": "...", "title": "..."}';
         } else {
             // Title is fine — still include it in the schema but echo it back unchanged.
             $title_instruction = "\n\nSEO TITLE: The current title is already a good length ({$title_len} chars): \"{$current_title}\". "
@@ -347,6 +346,12 @@ trait CS_SEO_AI_Meta_Writer {
         }
     }
 
+    /**
+     * AJAX handler: generates meta description, fixes title, writes ALT text, and scores a single post.
+     *
+     * @since 4.0.0
+     * @return void
+     */
     public function ajax_generate_one(): void {
         $this->ajax_check();
         $post_id = (int) sanitize_key( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
@@ -455,6 +460,12 @@ trait CS_SEO_AI_Meta_Writer {
         return $text;
     }
 
+    /**
+     * AJAX handler: rewrites an existing meta description that is outside the configured character range.
+     *
+     * @since 4.2.2
+     * @return void
+     */
     public function ajax_fix_desc(): void {
         $this->ajax_check();
         $post_id = (int) sanitize_key( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
@@ -501,6 +512,12 @@ trait CS_SEO_AI_Meta_Writer {
      * Fix a single post title that is outside the 50-60 character ideal range.
      * Saves the AI-generated title as the custom SEO title (META_TITLE), leaving
      * the original WordPress post title untouched.
+     */
+    /**
+     * AJAX handler: rewrites an existing SEO title that is outside the 50–60 character range.
+     *
+     * @since 4.10.24
+     * @return void
      */
     public function ajax_fix_title(): void {
         $this->ajax_check();
@@ -584,6 +601,12 @@ trait CS_SEO_AI_Meta_Writer {
      * Generate all — called once per post by the JS polling loop.
      * Returns result for a single post_id; JS calls this repeatedly.
      */
+    /**
+     * AJAX handler: bulk meta description generation polling endpoint for the admin panel.
+     *
+     * @since 4.0.0
+     * @return void
+     */
     public function ajax_generate_all(): void {
         $this->ajax_check();
         $post_id   = (int) sanitize_key( wp_unslash( $_POST['post_id'] ?? 0 ) );   // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
@@ -632,6 +655,12 @@ trait CS_SEO_AI_Meta_Writer {
             ]);
         }
     }
+    /**
+     * AJAX handler: regenerates the static admin JS/CSS assets and refreshes OPcache.
+     *
+     * @since 4.10.18
+     * @return void
+     */
     public function ajax_regen_static(): void {
         $this->ajax_check();
         $post_id = (int) sanitize_key( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
@@ -656,6 +685,12 @@ trait CS_SEO_AI_Meta_Writer {
 
     /**
      * Return paginated list of posts with their current SEO desc status.
+     */
+    /**
+     * AJAX handler: returns all published posts with their description status and SEO score.
+     *
+     * @since 4.0.0
+     * @return void
      */
     public function ajax_get_posts(): void {
         global $wpdb;
@@ -798,6 +833,12 @@ trait CS_SEO_AI_Meta_Writer {
 
     /**
      * Test the stored API key with a minimal API call — supports Anthropic and Gemini.
+     */
+    /**
+     * AJAX handler: tests the configured AI API key by sending a minimal request.
+     *
+     * @since 4.0.0
+     * @return void
      */
     public function ajax_test_key(): void {
         $this->ajax_check();

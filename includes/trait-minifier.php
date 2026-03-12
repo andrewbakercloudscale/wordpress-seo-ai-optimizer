@@ -2,14 +2,33 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 trait CS_SEO_Minifier {
+    /**
+     * Starts output buffering to capture the full HTML page for minification.
+     *
+     * @since 4.10.0
+     * @return void
+     */
     public function minify_start(): void {
         ob_start([$this, 'minify_html_output']);
     }
 
+    /**
+     * Flushes the output buffer, triggering minification of the buffered HTML.
+     *
+     * @since 4.10.0
+     * @return void
+     */
     public function minify_end(): void {
         if (ob_get_level() > 0) ob_end_flush();
     }
 
+    /**
+     * Minifies the full HTML page by collapsing whitespace and minifying inline JS/CSS.
+     *
+     * @since 4.10.0
+     * @param string $html The raw HTML page output.
+     * @return string Minified HTML.
+     */
     public function minify_html_output(string $html): string {
         if (trim($html) === '') return $html;
         if (stripos($html, '<html') === false) return $html;

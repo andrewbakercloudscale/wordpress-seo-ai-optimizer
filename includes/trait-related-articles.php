@@ -2,6 +2,13 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 trait CS_SEO_Related_Articles {
+    /**
+     * Injects Related Articles sections (top and bottom) into singular post content.
+     *
+     * @since 4.10.0
+     * @param string $content The post content.
+     * @return string Content with related article links injected, or original if not applicable.
+     */
     public function inject_related_links(string $content): string {
         if (!is_singular('post') || is_admin()) return $content;
         if (!in_the_loop() || !is_main_query()) return $content;
@@ -120,6 +127,12 @@ trait CS_SEO_Related_Articles {
 
         return $out;
     }
+    /**
+     * AJAX handler: returns posts with their Related Articles generation status for the admin panel.
+     *
+     * @since 4.10.0
+     * @return void
+     */
     public function ajax_rc_get_posts(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) wp_die();
@@ -183,6 +196,12 @@ trait CS_SEO_Related_Articles {
     /**
      * Executes exactly one step of the RC generation pipeline for one post.
      * Saves state after each step and returns the updated status.
+     */
+    /**
+     * AJAX handler: runs one step of the multi-step Related Articles generation pipeline for a post.
+     *
+     * @since 4.10.0
+     * @return void
      */
     public function ajax_rc_step(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');
@@ -257,6 +276,12 @@ trait CS_SEO_Related_Articles {
 
     /**
      * Resets RC meta for one or all posts so they can be regenerated.
+     */
+    /**
+     * AJAX handler: resets the Related Articles generation state for a post.
+     *
+     * @since 4.10.0
+     * @return void
      */
     public function ajax_rc_reset(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');
