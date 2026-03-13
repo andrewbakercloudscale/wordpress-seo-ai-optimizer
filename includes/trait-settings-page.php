@@ -1613,7 +1613,7 @@ trait CS_SEO_Settings_Page {
                                 <?php if ($entry['status'] === 'ok'): ?>
                                     <div style="color:#00d084">✓ <?php echo esc_html($entry['title']); ?> → <?php echo (int)$entry['chars']; ?> chars</div>
                                 <?php else: ?>
-                                    <div style="color:#ff6b6b">✗ <?php echo esc_html($entry['title']); ?>: <?php echo esc_html($entry['message']); ?></div>
+                                    <div style="color:#ff6b6b">✗ <?php echo esc_html($entry['title']); ?><?php if ( ! empty( $entry['message'] ) ) : ?>: <?php echo esc_html($entry['message']); ?><?php endif; ?></div>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                             </div>

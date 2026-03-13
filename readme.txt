@@ -3,7 +3,7 @@ Contributors: andrewbaker007
 Tags: seo, meta description, ai, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.15.2
+Stable tag: 4.15.3
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -199,6 +199,9 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 8. Scheduled Batch configuration with day selector and last run status
 
 == Changelog ==
+
+= 4.15.3 =
+* Fix: PHP Warning "Undefined array key message" in batch scheduler log display — timeout and sum_ok entries have no message key
 
 = 4.15.2 =
 * Scoring status bar now shows "(Post N of Total)" counter for both Calculate SEO Scores and Generate Missing phase 2
@@ -626,6 +629,9 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 * Per post generation from post editor metabox
 
 == Upgrade Notice ==
+
+= 4.15.3 =
+Bug fix: eliminates PHP warning from batch scheduler log display.
 
 = 4.15.2 =
 Scoring progress now shows post count (e.g. "Post 23 of 186") in the status bar.
