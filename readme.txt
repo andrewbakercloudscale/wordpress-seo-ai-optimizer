@@ -3,7 +3,7 @@ Contributors: andrewbaker007
 Tags: seo, meta description, ai, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.17.5
+Stable tag: 4.19.3
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -199,6 +199,72 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 8. Scheduled Batch configuration with day selector and last run status
 
 == Changelog ==
+
+= 4.19.3 =
+* PCP: moved phpcs:ignore for post__not_in to same line as violation in trait-auto-pipeline.php, trait-ai-meta-writer.php, and trait-sitemap.php — inline suppression is required for PHPCS to recognise it
+
+= 4.19.2 =
+* PCP fix: echoed <script> tag in auto-run metabox replaced with wp_add_inline_script()
+* Fix: button label '\u21ba' in single-quoted PHP string replaced with literal UTF-8 ↺
+* Fix: inline conditional colour echo in metabox log wrapped with esc_attr()
+* Fix: orphaned DocBlock on on_post_delete restored; duplicate consecutive DocBlock removed
+* Fix: render_rc_block() DocBlock missing @since and @return — added
+* CHANGELOG.md synced — all versions from 4.14.6 through 4.19.1 back-filled
+
+= 4.19.1 =
+* Added Explain buttons to Auto Pipeline, Mixed Content Fix, and Render & Minification cards
+* Updated Auto Pipeline description to reflect non-blocking HTTP approach (not cron)
+
+= 4.19.0 =
+* Auto pipeline: all AI steps (meta description, focus keyword, internal links, AI summary) now require a minimum of 50 words of post content before running — prevents meaningless output on stub/test posts
+
+= 4.18.9 =
+* AI auto pipeline now uses non-blocking wp_remote_post() instead of WP-Cron — fires immediately on publish with no cron dependency
+* HMAC token (120s TTL transient) authenticates the async pipeline request
+* Removed cs_seo_auto_run_pipeline cron hook; cleanup pipeline retains cron
+
+= 4.18.8 =
+* Related Articles now run synchronously on publish via transition_post_status — no cron dependency
+* AI pipeline now calls spawn_cron() on shutdown after scheduling to force immediate cron execution
+
+= 4.18.7 =
+* Reload button moved left of Show/Hide Details button and uses visibility:hidden so the layout never shifts when it appears
+
+= 4.18.6 =
+* Auto Pipeline card moved to AI Tools tab (top of panel) with its own Save button
+* Added "Re-run on update" toggle — re-runs full pipeline 5 seconds after any published post is saved
+* Auto Pipeline settings removed from Scheduled Batch card
+
+= 4.18.5 =
+* Removed duplicate Reload buttons from inside AI Meta Writer, ALT Text, and Summary Box toolbars — Reload only appears in the card header
+
+= 4.18.4 =
+* Fix: altLoad() and sumLoad() were crashing on removed button elements, preventing auto-load on card expand
+
+= 4.18.3 =
+* Removed all "Hide Posts" buttons from AI Meta Writer, ALT Text, Summary Box, Category Fixer, and Category Health cards
+
+= 4.18.2 =
+* Removed "Load Posts" and "Scan Posts" CTA buttons from AI Meta Writer, ALT Text, and Summary Box cards
+* Cards now auto-load their posts on first "Show Details" expand via abToggleCard
+
+= 4.18.1 =
+* Auto Pipeline: added "Auto Run on publish" toggle in Batch/Schedule settings — pipeline is disabled by default until explicitly enabled
+* Auto Pipeline: on_post_publish and on_post_delete now check the toggle before scheduling cron events
+
+= 4.18.0 =
+* Auto Pipeline: new trait-auto-pipeline.php — all AI operations run automatically via WP-Cron when a post is published
+* Auto Pipeline: steps — meta description + SEO score, focus keyword, ALT text for attached images, internal links (AI-suggested, block-safe injection), AI summary box, Related Articles generation
+* Auto Pipeline: Gutenberg-safe internal link injection using parse_blocks / serialize_blocks on core/paragraph and core/heading blocks; classic editor fallback via str_replace
+* Auto Pipeline: delete cleanup pipeline removes all _cs_ post meta and run log transients for permanently deleted posts
+* Auto Pipeline: "Re-run AI Automation" button in post edit screen metabox with live log display
+* Auto Pipeline: CSEO_ASYNC_ENABLED constant for synchronous debugging mode
+* Dashboard widget: "posts need AI auto run" and "pipeline jobs queued" metrics added
+* New meta keys: _cs_seo_auto_run_complete, _cs_seo_focus_keyword
+
+= 4.17.6 =
+* Related Articles Post Status: "All Posts" now uses a direct DB query instead of WP_Query, fixing the environment where WP_Query with no meta restriction returned 0 results (new posts were invisible)
+* Related Articles Post Status: "All Posts" is now the default filter so newly published articles appear immediately on table load
 
 = 4.17.5 =
 * File-level DocBlocks (@package, @since) added to all 20 remaining trait files

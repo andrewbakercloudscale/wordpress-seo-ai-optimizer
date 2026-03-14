@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.17.5
+ * Version:     4.19.3
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -59,6 +59,7 @@ require_once __DIR__ . '/includes/trait-https-fixer.php';
 require_once __DIR__ . '/includes/trait-sitemap.php';
 require_once __DIR__ . '/includes/trait-llms-txt.php';
 require_once __DIR__ . '/includes/trait-seo-health.php';
+require_once __DIR__ . '/includes/trait-auto-pipeline.php';
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 final class CloudScale_SEO_AI_Optimizer {
@@ -87,6 +88,7 @@ final class CloudScale_SEO_AI_Optimizer {
     use CS_SEO_Sitemap;
     use CS_SEO_LLMS_Txt;
     use CS_SEO_SEO_Health;
+    use CS_SEO_Auto_Pipeline;
 
     const OPT        = 'cs_seo_options';
     const META_TITLE    = '_cs_seo_title';
@@ -119,6 +121,10 @@ final class CloudScale_SEO_AI_Optimizer {
     const META_SEO_SCORE = '_cs_seo_score';
     const META_SEO_NOTES = '_cs_seo_score_notes';
 
+    // Auto pipeline
+    const META_AUTO_COMPLETE = '_cs_seo_auto_run_complete';
+    const META_FOCUS_KW      = '_cs_seo_focus_keyword';
+
     // Related Articles step constants
     const RC_STEP_LOAD         = 1;
     const RC_STEP_VALIDATE     = 2;
@@ -132,7 +138,7 @@ final class CloudScale_SEO_AI_Optimizer {
     // Related Articles generator version — bump when scoring logic changes
     const RC_VERSION = '1.0';
 
-    const VERSION    = '4.17.5';
+    const VERSION    = '4.19.3';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -210,6 +216,16 @@ final class CloudScale_SEO_AI_Optimizer {
         // WP Cron batch job for scheduled generation.
         add_action('cs_seo_daily_batch', [$this, 'run_scheduled_batch']);
 
+        // Auto pipeline — publish/update triggers (non-blocking HTTP, no cron dependency).
+        add_action('transition_post_status', [$this, 'on_post_publish'], 10, 3);
+        add_action('post_updated',           [$this, 'on_post_update'],  10, 3);
+        add_action('before_delete_post',     [$this, 'on_post_delete'],  10, 1);
+        add_action('cs_seo_cleanup_pipeline',            [$this, 'run_cleanup_pipeline']);
+        add_action('wp_ajax_cs_seo_pipeline_run',        [$this, 'ajax_pipeline_run']);
+        add_action('wp_ajax_nopriv_cs_seo_pipeline_run', [$this, 'ajax_pipeline_run']);
+        add_action('wp_ajax_cs_seo_auto_rerun',          [$this, 'ajax_auto_rerun']);
+        add_action('add_meta_boxes', [$this, 'add_auto_run_metabox']);
+
         // Defer JS to eliminate render-blocking scripts.
         if ((int)($this->opts['defer_js'] ?? 0)) {
             add_filter('script_loader_tag', [$this, 'defer_script_tag'], 10, 3);
@@ -260,7 +276,9 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('wp_ajax_cs_catfix_drift_cache_get',       [$this, 'ajax_catfix_drift_cache_get']);
         add_action('wp_ajax_cs_catfix_drift_analyse_remaining', [$this, 'ajax_catfix_drift_analyse_remaining']);
 
-        // Related Articles
+        // Related Articles — run pipeline synchronously on publish (no API, no cron dependency).
+        add_action('transition_post_status', [$this, 'rc_on_post_publish'], 20, 3);
+
         add_action('wp_ajax_cs_rc_get_posts',    [$this, 'ajax_rc_get_posts']);
         add_action('wp_ajax_cs_rc_sync_counts', [$this, 'ajax_rc_sync_counts']);
         add_action('wp_ajax_cs_rc_step',      [$this, 'ajax_rc_step']);

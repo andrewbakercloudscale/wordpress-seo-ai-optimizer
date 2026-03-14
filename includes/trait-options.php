@@ -88,6 +88,8 @@ trait CS_SEO_Options {
             'max_chars'        => 155,
             'alt_excerpt_chars'=> 600,
             'prompt'           => self::default_prompt(),
+            'auto_run_enabled'   => 0,
+            'auto_run_on_update' => 0,
             'schedule_enabled' => 0,
             'schedule_days'    => [],
         ];

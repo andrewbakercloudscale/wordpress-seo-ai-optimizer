@@ -84,8 +84,7 @@ trait CS_SEO_Sitemap {
                 'fields'              => 'ids',
             ];
             if (!empty($exclude_ids)) {
-                // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in -- required for user-defined URL exclusions
-                $sitemap_query_args['post__not_in'] = $exclude_ids;
+                $sitemap_query_args['post__not_in'] = $exclude_ids; // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in -- user-defined sitemap exclusion list; admin-only, runs once on sitemap build
             }
             $q = new WP_Query($sitemap_query_args);
             foreach ($q->posts as $pid) {

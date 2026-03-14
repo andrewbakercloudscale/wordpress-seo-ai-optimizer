@@ -232,6 +232,15 @@ trait CS_SEO_Admin {
      * @return void
      */
     public function render_dashboard_widget(): void {
+        // ── Auto pipeline metrics ─────────────────────────────────────────────
+        $missing_auto_run = $this->count_posts_missing_auto_run();
+        $cron_array       = _get_cron_array() ?: [];
+        $pending_pipeline = 0;
+        foreach ( $cron_array as $hooks ) {
+            if ( isset( $hooks['cs_seo_auto_run_pipeline'] ) ) $pending_pipeline += count( $hooks['cs_seo_auto_run_pipeline'] );
+            if ( isset( $hooks['cs_seo_cleanup_pipeline'] ) )  $pending_pipeline += count( $hooks['cs_seo_cleanup_pipeline'] );
+        }
+
         // ── SEO Health cache ──────────────────────────────────────────────────
         $health       = get_option(self::OPT_HEALTH_CACHE, null);
         $health_valid = is_array($health) && isset($health['total'], $health['seo'], $health['images'], $health['links'], $health['summaries'], $health['built_at']);
@@ -370,6 +379,19 @@ trait CS_SEO_Admin {
             });
             <?php wp_add_inline_script('cs-seo-dashboard-js', ob_get_clean()); ?>
             <?php endif; ?>
+            <p style="margin:0 0 10px;font-size:12px;color:#6b7280;">
+                <?php if ( $missing_auto_run > 0 ) : ?>
+                <span style="color:#dc2626;font-weight:700;"><?php echo esc_html( (string) $missing_auto_run ); ?></span>
+                <?php esc_html_e( 'posts need AI auto run', 'cloudscale-seo-ai-optimizer' ); ?>
+                <?php else : ?>
+                <span style="color:#16a34a;font-weight:700;"><?php esc_html_e( 'All posts have run AI auto run', 'cloudscale-seo-ai-optimizer' ); ?></span>
+                <?php endif; ?>
+                <?php if ( $pending_pipeline > 0 ) : ?>
+                &middot;
+                <span style="color:#d97706;font-weight:700;"><?php echo esc_html( (string) $pending_pipeline ); ?></span>
+                <?php esc_html_e( 'pipeline job(s) queued', 'cloudscale-seo-ai-optimizer' ); ?>
+                <?php endif; ?>
+            </p>
             <div style="display:flex;flex-direction:column;gap:10px">
                 <a href="<?php echo esc_url(admin_url('tools.php?page=cs-seo-optimizer&tab=batch')); ?>"
                    style="display:flex;align-items:center;justify-content:center;gap:8px;
@@ -566,6 +588,8 @@ trait CS_SEO_Admin {
             'max_chars'        => max(100, min(200, (int)($in['max_chars'] ?? $current['max_chars'] ?? $d['max_chars']))),
             'alt_excerpt_chars'=> max(100, min(2000, (int)($in['alt_excerpt_chars'] ?? $current['alt_excerpt_chars'] ?? $d['alt_excerpt_chars']))),
             'prompt'           => sanitize_textarea_field((string)($in['prompt'] ?? $current['prompt'] ?? $d['prompt'])),
+            'auto_run_enabled'   => array_key_exists('auto_run_enabled',   $in) ? (empty($in['auto_run_enabled'])   ? 0 : 1) : ($current['auto_run_enabled']   ?? 0),
+            'auto_run_on_update' => array_key_exists('auto_run_on_update', $in) ? (empty($in['auto_run_on_update']) ? 0 : 1) : ($current['auto_run_on_update'] ?? 0),
             'schedule_enabled' => $now_enabled,
             'schedule_days'    => array_values($days),
         ];

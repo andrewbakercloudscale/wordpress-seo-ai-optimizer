@@ -292,13 +292,60 @@ trait CS_SEO_Settings_Page {
         <?php /* ══════════════════ AI TOOLS PANE ══════════════════ */ ?>
         <div class="ab-pane" id="ab-pane-aitools">
 
+            <?php /* ── Auto Pipeline Card ── */ ?>
+            <form method="post" action="options.php" style="margin-bottom:24px;">
+                <?php settings_fields('cs_seo_ai_group'); ?>
+                <div class="ab-zone-card ab-card-auto-pipeline">
+                <div class="ab-zone-header" style="background:linear-gradient(120deg,#4338ca 0%,#6366f1 60%,#818cf8 100%);justify-content:space-between;">
+                    <span><span class="ab-zone-icon">⚡</span> <?php esc_html_e( 'Auto Pipeline', 'cloudscale-seo-ai-optimizer' ); ?></span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                    <?php $this->explain_btn('auto_pipeline', '⚡ Auto Pipeline — How it works', [
+                        ['rec'=>'ℹ️ Info',         'name'=>'What it does',          'desc'=>'Automatically runs every AI operation — meta description, focus keyword, ALT text for attached images, internal link suggestions, AI summary box, and Related Articles — immediately when a post is published or updated. Each step runs in a background HTTP request so publish is never blocked.'],
+                        ['rec'=>'✅ Recommended',  'name'=>'Run on first publish',  'desc'=>'Triggers once when a post goes from any status to Published. Will not re-run on subsequent saves unless "Re-run on update" is also enabled. Prevents duplicate API calls on minor edits.'],
+                        ['rec'=>'⬜ Optional',     'name'=>'Re-run on update',      'desc'=>'Re-triggers the full pipeline every time an already-published post is saved. Useful for keeping AI content fresh when you make major content changes. Each re-run replaces all previous AI-generated data for that post.'],
+                        ['rec'=>'ℹ️ Info',         'name'=>'Minimum content',       'desc'=>'All AI steps silently skip if the post has fewer than 50 words. This prevents generating meaningless output for stubs, drafts accidentally published, or test posts.'],
+                        ['rec'=>'ℹ️ Info',         'name'=>'Related Articles',      'desc'=>'Related Articles generation always runs synchronously on publish regardless of whether the Auto Pipeline toggle is enabled — it is purely local (no API calls) and fast enough to run inline.'],
+                    ]); ?>
+                    </span>
+                </div>
+                <div class="ab-zone-body" style="padding:20px 24px;">
+                    <p style="margin:0 0 16px;color:#50575e;"><?php esc_html_e( 'Automatically run all AI operations (meta description, ALT text, internal links, AI summary, Related Articles) in a background request immediately on publish. Requires an API key. Posts under 50 words are skipped.', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                    <table class="form-table" role="presentation">
+                        <tr>
+                            <th style="width:220px;"><?php esc_html_e( 'Run on first publish:', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                            <td>
+                                <label>
+                                    <input type="checkbox"
+                                        name="<?php echo esc_attr(self::AI_OPT); ?>[auto_run_enabled]"
+                                        value="1" <?php checked((int)($ai['auto_run_enabled'] ?? 0), 1); ?>>
+                                    <?php esc_html_e( 'Run all AI operations when a post is first published', 'cloudscale-seo-ai-optimizer' ); ?>
+                                </label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><?php esc_html_e( 'Re-run on update:', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                            <td>
+                                <label>
+                                    <input type="checkbox"
+                                        name="<?php echo esc_attr(self::AI_OPT); ?>[auto_run_on_update]"
+                                        value="1" <?php checked((int)($ai['auto_run_on_update'] ?? 0), 1); ?>>
+                                    <?php esc_html_e( 'Re-run all AI operations when an already-published post is updated', 'cloudscale-seo-ai-optimizer' ); ?>
+                                </label>
+                                <p class="description"><?php esc_html_e( 'Clears previous results and re-runs the full pipeline 5 seconds after each save.', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                            </td>
+                        </tr>
+                    </table>
+                    <div style="margin-top:16px;"><?php submit_button( __( 'Save Auto Pipeline Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
+                </div>
+                </div><!-- /ab-card-auto-pipeline -->
+            </form>
+
             <div class="ab-zone-card ab-card-update-posts">
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">✦</span> <?php esc_html_e( 'Update Posts with AI Descriptions', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
+                        <button class="button" id="ab-reload-hdr" onclick="abLoadPosts()" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <button type="button" class="button" onclick="abToggleCard('ab-card-update-posts', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
-                        <button class="button" id="ab-posts-hide-hdr" onclick="abTogglePosts(document.getElementById('ab-posts-hide-hdr'))" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↑ Hide Posts</button>
-                        <button class="button" id="ab-reload-hdr" onclick="abLoadPosts()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <?php $this->explain_btn('updateposts', '✦ Update Posts — How this works', [
                         ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Writes the short text snippet that appears under your page title in Google search results — using AI to craft a compelling 140–155 character summary for each post.'],
                         ['rec'=>'ℹ️ Info','name'=>'Total Posts','desc'=>'The total number of published posts and pages on your site that are eligible for meta description generation.'],
@@ -334,15 +381,6 @@ trait CS_SEO_Settings_Page {
                     </div>
                 </div>
 
-                <?php /* ── Load Posts CTA ── */ ?>
-                <div class="ab-load-cta" id="ab-load-cta">
-                    <div class="ab-load-cta-icon">⬇</div>
-                    <div class="ab-load-cta-text">
-                        <strong>Load your posts to get started</strong>
-                        <span>Fetch all published posts and pages so you can generate or fix their meta descriptions</span>
-                    </div>
-                    <button class="ab-load-btn" id="ab-load-posts" onclick="abLoadPosts()">Load Posts</button>
-                </div>
 
                 <?php /* ── Summary cards ── */ ?>
                 <div class="ab-summary-row" id="ab-summary" style="display:none">
@@ -361,8 +399,6 @@ trait CS_SEO_Settings_Page {
                     <button class="button ab-action-btn ab-static-btn" id="ab-ai-static" onclick="abRegenStatic()" disabled>🖼 Regenerate Static</button>
                     <button class="button ab-action-btn" id="ab-ai-score-all" onclick="abScoreAll()" disabled style="background:#0e6b6b;border-color:#0a5050;color:#fff;font-weight:600">📊 Calculate SEO Scores</button>
                     <span id="ab-toolbar-status" style="font-size:12px;color:#50575e;"></span>
-                    <button class="button" id="ab-load-posts-again" onclick="abLoadPosts()" style="margin-left:auto">↻ Reload</button>
-                    <button class="button" id="ab-posts-hide" onclick="abTogglePosts(this)">↑ Hide Posts</button>
                     <button class="button" id="ab-ai-stop" onclick="abStop()" style="display:none">◻ Stop</button>
                 </div>
 
@@ -395,9 +431,8 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">🖼</span> <?php esc_html_e( 'AI Image ALT Text Generator', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
+                        <button class="button" id="ab-alt-reload-hdr" onclick="altLoad()" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <button type="button" class="button" onclick="abToggleCard('ab-card-alt', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
-                        <button class="button" id="ab-alt-hide-hdr" onclick="altTogglePosts(document.getElementById('ab-alt-hide-hdr'))" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↑ Hide Posts</button>
-                        <button class="button" id="ab-alt-reload-hdr" onclick="altLoad()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <?php $this->explain_btn('alttext', '🖼 ALT Text — How this works', [
                         ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Adds descriptive labels to every image on your site — used by screen readers for accessibility and by Google to understand image content for search ranking.'],
                         ['rec'=>'✅ Recommended','name'=>'Why ALT text matters','desc'=>'ALT (alternative) text describes images to screen readers and search engines. Missing ALT text is an accessibility failure and an SEO missed opportunity — Google uses ALT text to understand image content and rank your images in Google Images search.'],
@@ -425,14 +460,6 @@ trait CS_SEO_Settings_Page {
                     </div>
                 </div>
 
-                <div class="ab-load-cta" id="ab-alt-load-cta">
-                    <div class="ab-load-cta-icon">🔍</div>
-                    <div class="ab-load-cta-text">
-                        <strong>Scan your posts for images missing ALT text</strong>
-                        <span>Finds all images in published posts and pages that have an empty ALT attribute</span>
-                    </div>
-                    <button class="ab-load-btn" id="ab-alt-load-btn" onclick="altLoad()">Scan Posts</button>
-                </div>
 
                 <div class="ab-summary-row" id="ab-alt-summary" style="display:none">
                     <div class="ab-summary-card"><div class="ab-summary-num" id="alt-sum-posts">0</div><div class="ab-summary-lbl">Posts with Missing ALT</div></div>
@@ -445,8 +472,6 @@ trait CS_SEO_Settings_Page {
                     <button class="button ab-action-btn" id="ab-alt-force-all" onclick="altGenAll(true)" style="background:#b45309;border-color:#92400e;color:#fff;font-weight:600" <?php echo ($alt_has_key ? '' : 'disabled'); ?>>🔄 Force Regenerate All</button>
                     <span id="ab-alt-status" style="font-size:12px;color:#50575e;"></span>
                     <button class="button" id="ab-alt-stop" onclick="altStop()" style="display:none">◻ Stop</button>
-                    <button class="button" id="ab-alt-reload" onclick="altLoad()" style="margin-left:auto">↻ Reload</button>
-                    <button class="button" id="ab-alt-hide" onclick="altTogglePosts(this)">↑ Hide Posts</button>
                     <label id="ab-alt-show-all-wrap" style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
                         <input type="checkbox" id="ab-alt-show-all" onchange="altState.showAll=this.checked;altRenderTable()"> Show all
                     </label>
@@ -471,9 +496,8 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">📋</span> <?php esc_html_e( 'AI Summary Box Generator', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
+                        <button class="button" id="ab-sum-reload-hdr" onclick="sumLoad()" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <button type="button" class="button" onclick="abToggleCard('ab-card-summary', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
-                        <button class="button" id="ab-sum-hide-hdr" onclick="sumTogglePosts(document.getElementById('ab-sum-hide-hdr'))" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↑ Hide Posts</button>
-                        <button class="button" id="ab-sum-reload-hdr" onclick="sumLoad()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <?php $this->explain_btn('summary', '📋 AI Summary Box — How this works', [
                         ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Generates the three-field AI Summary Box shown at the top of each post — What it is, Why it matters, and Key takeaway. These are displayed to readers and used by AI search engines to understand your content.'],
                         ['rec'=>'✅ Recommended','name'=>'Why it matters','desc'=>'AI-powered search engines like Perplexity and SearchGPT use structured summaries to decide whether to cite your content. A well-written summary box increases the chance your post appears as a source in AI-generated answers.'],
@@ -492,14 +516,6 @@ trait CS_SEO_Settings_Page {
                     </div>
                 </div>
 
-                <div class="ab-load-cta" id="ab-sum-load-cta">
-                    <div class="ab-load-cta-icon">📋</div>
-                    <div class="ab-load-cta-text">
-                        <strong>Load your posts to get started</strong>
-                        <span>Counts how many published posts are missing their AI Summary Box fields</span>
-                    </div>
-                    <button class="ab-load-btn" id="ab-sum-load-btn" onclick="sumLoad()">Load Posts</button>
-                </div>
 
                 <div class="ab-summary-row" id="ab-sum-summary" style="display:none">
                     <div class="ab-summary-card"><div class="ab-summary-num" id="sum-s-total">0</div><div class="ab-summary-lbl">Total Posts</div></div>
@@ -513,8 +529,6 @@ trait CS_SEO_Settings_Page {
                     <button class="button ab-action-btn" id="ab-sum-force-all" onclick="sumGenAll(true)" style="background:#b45309;border-color:#92400e;color:#fff;font-weight:600" <?php echo $alt_has_key ? '' : 'disabled'; ?>>🔄 Force Regenerate All</button>
                     <span id="ab-sum-status" style="font-size:12px;color:#50575e;"></span>
                     <button class="button" id="ab-sum-stop" onclick="sumStop()" style="display:none">◻ Stop</button>
-                    <button class="button" id="ab-sum-reload" onclick="sumLoad()" style="margin-left:auto">↻ Reload</button>
-                    <button class="button" id="ab-sum-hide" onclick="sumTogglePosts(this)">↑ Hide Posts</button>
                 </div>
 
                 <div class="ab-progress" id="ab-sum-progress">
@@ -1034,7 +1048,15 @@ trait CS_SEO_Settings_Page {
             <div class="ab-zone-card ab-card-https">
             <div class="ab-zone-header" style="justify-content:space-between">
                 <span><span class="ab-zone-icon">🔒</span> Mixed Content Fix — HTTP → HTTPS</span>
+                <span style="display:flex;align-items:center;gap:8px;">
+                <?php $this->explain_btn('https', '🔒 Mixed Content Fix — How it works', [
+                    ['rec'=>'ℹ️ Info',        'name'=>'What is mixed content?', 'desc'=>'Mixed content is when an HTTPS page loads resources (images, scripts, stylesheets) over HTTP. Browsers block or warn about these, causing broken images, console errors, and security warnings. It most commonly happens when a site migrates from HTTP to HTTPS but old URLs remain in the database.'],
+                    ['rec'=>'ℹ️ Info',        'name'=>'What Scan does',         'desc'=>'Counts http:// references across your posts, pages, metadata, options, and comments without changing anything. Run this first to understand the scope before committing to a fix.'],
+                    ['rec'=>'⚠️ Caution',     'name'=>'What Fix does',          'desc'=>'Replaces all found http:// references with https://. This is a bulk database update — take a backup before running. The operation is not reversible from within this tool. It covers post_content, post_excerpt, postmeta, options, and comments.'],
+                    ['rec'=>'ℹ️ Info',        'name'=>'External links',         'desc'=>'The fix also updates external URLs in your content from http to https where present. This is generally safe but worth reviewing if you link to sites that may not support HTTPS.'],
+                ]); ?>
                 <button type="button" class="button" onclick="abToggleCard('ab-card-https', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                </span>
             </div>
             <div class="ab-zone-body" style="padding:20px 24px 24px">
                 <p style="color:#50575e;font-size:13px;margin:0 0 16px">Scans your database for assets and links still using <code>http://</code> and replaces them with <code>https://</code>. Fixes posts, pages, metadata, options, and comments in one operation.</p>
@@ -1419,7 +1441,14 @@ trait CS_SEO_Settings_Page {
                 <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[defer_fonts]" value="0">
                 <div class="ab-zone-header" style="background:#7c3aed;justify-content:space-between">
                     <span><span class="ab-zone-icon">🚀</span> <?php esc_html_e( 'Render &amp; Minification', 'cloudscale-seo-ai-optimizer' ); ?></span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                    <?php $this->explain_btn('render', '🚀 Render & Minification — What each option does', [
+                        ['rec'=>'⬜ Optional',   'name'=>'Defer JavaScript',   'desc'=>'Adds defer to all script tags, preventing JavaScript from blocking page rendering. Text and images load first; scripts execute after. Safe for most themes and plugins. Disable if your site breaks — some scripts must run before content renders (e.g. anti-flicker scripts for A/B testing tools).'],
+                        ['rec'=>'⬜ Optional',   'name'=>'Minify HTML',        'desc'=>'Strips whitespace, comments, and redundant characters from HTML output. Typical savings of 5–15% page size. Purely cosmetic — does not change content or break functionality. The minified HTML is served directly; no files are written to disk.'],
+                        ['rec'=>'⬜ Optional',   'name'=>'Defer web fonts',    'desc'=>'Defers font stylesheet loading so text renders immediately using fallback fonts, then swaps once the font file arrives. Eliminates render-blocking from Google Fonts and similar CDN-hosted fonts. Works in combination with Font-Display: Swap in the Font Optimizer above.'],
+                    ]); ?>
                     <button type="button" class="button" onclick="abToggleCard('ab-card-render', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                    </span>
                 </div>
                 <div class="ab-zone-body" style="padding:16px 20px">
 
@@ -1480,6 +1509,7 @@ trait CS_SEO_Settings_Page {
         <div class="ab-pane" id="ab-pane-batch">
             <form method="post" action="options.php">
                 <?php settings_fields('cs_seo_ai_group'); ?>
+
 
                 <div class="ab-zone-card ab-card-schedule">
                 <div class="ab-zone-header" style="justify-content:space-between">
@@ -1644,7 +1674,6 @@ trait CS_SEO_Settings_Page {
                     <span>🏷 Category Fixer</span>
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button class="button" id="cf-reload-hdr" onclick="cfLoad()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#8635; Reload</button>
-                        <button class="button" id="cf-hideposts-hdr" onclick="cfTogglePosts()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#128065; Hide Posts</button>
                         <button type="button" class="button" onclick="abToggleCard('ab-card-catfix', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('catfix', 'Category Fixer', [
                             ['name'=>'How it works','rec'=>'Info','desc'=>'Scans all posts using local keyword matching against your category list. No AI calls are made.'],
@@ -1706,7 +1735,6 @@ trait CS_SEO_Settings_Page {
                     <span>&#128202; Category Health</span>
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button class="button" id="ch-reload-hdr" onclick="chLoad()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#8635; Reload</button>
-                        <button class="button" id="ch-hideposts-hdr" onclick="chToggleAllPosts()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#128065; Hide Posts</button>
                         <button type="button" class="button" onclick="abToggleCard('ab-card-cathealth', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('cathealth', 'Category Health Dashboard', [
                             ['name'=>'Strong','rec'=>'✅ Recommended','desc'=>'10 or more published posts. This category is well established and should remain.'],
@@ -2054,6 +2082,16 @@ trait CS_SEO_Settings_Page {
             const isHidden = body.style.display === 'none';
             body.style.display = isHidden ? '' : 'none';
             btn.innerHTML = isHidden ? '&#9660; Hide Details' : '&#9658; Show Details';
+            // Auto-load posts on first expand for cards that require it.
+            if (isHidden && !card.dataset.loaded) {
+                card.dataset.loaded = '1';
+                const autoLoaders = {
+                    'ab-card-update-posts': () => abLoadPosts(),
+                    'ab-card-alt':          () => typeof altLoad  === 'function' && altLoad(),
+                    'ab-card-summary':      () => typeof sumLoad  === 'function' && sumLoad(),
+                };
+                if (autoLoaders[cardClass]) autoLoaders[cardClass]();
+            }
         }
 
         function abTab(id, btn) {
@@ -2613,10 +2651,8 @@ trait CS_SEO_Settings_Page {
         function abLoadPosts(page) {
             page = page || 1;
             abState.page = page;
-            document.getElementById('ab-load-posts').disabled = true;
             abSetStatus('Loading posts...');
             abPost('cs_seo_ai_get_posts', {page}).then(data => {
-                document.getElementById('ab-load-posts').disabled = false;
                 if (!data.success) { abLog('Failed to load posts: ' + data.data, 'err'); return; }
                 abState.posts      = data.data.posts;
                 abState.total          = data.data.total;
@@ -2626,11 +2662,8 @@ trait CS_SEO_Settings_Page {
                 abUpdateSummary();
                 abRenderTable();
                 abSetStatus(data.data.total + ' posts loaded');
-                // Hide the load CTA, show the action toolbar
-                document.getElementById('ab-load-cta').style.display = 'none';
                 document.getElementById('ab-ai-toolbar').style.display = 'flex';
-                document.getElementById('ab-reload-hdr').style.display = '';
-                document.getElementById('ab-posts-hide-hdr').style.display = '';
+                document.getElementById('ab-reload-hdr').style.visibility = 'visible';
                 document.getElementById('ab-ai-gen-missing').disabled = false;
                 document.getElementById('ab-ai-gen-all').disabled = false;
                 document.getElementById('ab-ai-fix').disabled = false;
@@ -2645,7 +2678,6 @@ trait CS_SEO_Settings_Page {
                 document.getElementById('ab-prev').disabled = abState.page <= 1;
                 document.getElementById('ab-next').disabled = abState.page >= abState.totalPages;
             }).catch(e => {
-                document.getElementById('ab-load-posts').disabled = false;
                 abLog('Error: ' + e.message, 'err');
             });
         }
@@ -3586,10 +3618,8 @@ trait CS_SEO_Settings_Page {
         }
 
         function altLoad() {
-            document.getElementById('ab-alt-load-btn').disabled = true;
             altSetStatus('Scanning posts...');
             abPost('cs_seo_alt_get_posts', {}).then(data => {
-                document.getElementById('ab-alt-load-btn').disabled = false;
                 if (!data.success) { altLog('Failed to scan: ' + data.data, 'err'); return; }
                 altState.posts = data.data.posts;
                 // Auto-enable show-all when nothing is missing so the audit view is useful
@@ -3599,10 +3629,8 @@ trait CS_SEO_Settings_Page {
                 altUpdateSummary();
                 altRenderTable();
                 altState.page = 0;
-                document.getElementById('ab-alt-load-cta').style.display = 'none';
                 document.getElementById('ab-alt-toolbar').style.display  = 'flex';
-                document.getElementById('ab-alt-reload-hdr').style.display = '';
-                document.getElementById('ab-alt-hide-hdr').style.display = '';
+                document.getElementById('ab-alt-reload-hdr').style.visibility = 'visible';
                 document.getElementById('ab-alt-gen-all').disabled       = data.data.missing_alt === 0;
                 const total = data.data.missing_alt;
                 altSetStatus(total > 0
@@ -3612,7 +3640,6 @@ trait CS_SEO_Settings_Page {
                     altLog('✓ All images across all posts already have ALT text.', 'ok');
                 }
             }).catch(e => {
-                document.getElementById('ab-alt-load-btn').disabled = false;
                 altLog('Error: ' + e.message, 'err');
             });
         }
@@ -3754,13 +3781,9 @@ trait CS_SEO_Settings_Page {
         }
 
         async function sumLoad() {
-            const btn = document.getElementById('ab-sum-load-btn');
-            btn.disabled = true;
-            btn.textContent = 'Loading...';
             sumSetStatus('Loading...');
             const data = await abPost('cs_seo_summary_load', {});
-            btn.disabled = false;
-            if (!data.success) { btn.textContent = 'Load Posts'; sumSetStatus('Error: ' + (data.data || 'Unknown')); return; }
+            if (!data.success) { sumSetStatus('Error: ' + (data.data || 'Unknown')); return; }
             const d = data.data;
             sumState.page    = 0;
             sumState.total   = d.total;
@@ -3776,9 +3799,7 @@ trait CS_SEO_Settings_Page {
             // Store posts and render table
             sumState.posts = d.posts || [];
             sumRenderTable();
-            document.getElementById('ab-sum-load-cta').style.display = 'none';
-            document.getElementById('ab-sum-reload-hdr').style.display = '';
-            document.getElementById('ab-sum-hide-hdr').style.display = '';
+            document.getElementById('ab-sum-reload-hdr').style.visibility = 'visible';
         }
 
         function sumRenderTable() {
@@ -5033,7 +5054,7 @@ trait CS_SEO_Settings_Page {
                 const obs = new MutationObserver(() => {
                     if (rcPane.classList.contains('active') && !window.__rcTabLoaded) {
                         window.__rcTabLoaded = true;
-                        rcLoadTable(1, 'complete');
+                        rcLoadTable(1, 'all');
                     }
                     if (!rcPane.classList.contains('active')) {
                         window.__rcTabLoaded = false;
@@ -5043,7 +5064,7 @@ trait CS_SEO_Settings_Page {
                 // If already on AI Tools tab on load
                 if (rcPane.classList.contains('active')) {
                     window.__rcTabLoaded = true;
-                    rcLoadTable(1, 'complete');
+                    rcLoadTable(1, 'all');
                 }
             }
         })();

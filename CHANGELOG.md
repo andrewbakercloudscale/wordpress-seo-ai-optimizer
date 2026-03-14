@@ -3,6 +3,220 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.19.2] - 2026-03-14
+### Fixed
+- Critical: Echoed `<script>` tag in `render_auto_run_metabox()` replaced with `wp_add_inline_script('cs-seo-metabox-js', ...)` via `ob_start` capture
+- Medium: Orphaned DocBlock on `on_post_delete` restored; duplicate consecutive DocBlock removed
+- Medium: Button label `'\u21ba Re-run AI Automation'` used PHP single-quoted string — PHP does not expand `\u` escapes; replaced with literal UTF-8 character `↺`
+- Medium: Inline conditional colour echo in metabox log wrapped with `esc_attr()`
+- Medium: `render_rc_block()` DocBlock missing `@since` and `@return` — added
+### Changed
+- File-level DocBlock updated to reflect non-blocking HTTP approach (not WP-Cron)
+
+## [4.19.1] - 2026-03-14
+### Added
+- Explain buttons added to Auto Pipeline, Mixed Content Fix, and Render & Minification cards
+### Changed
+- Auto Pipeline card description updated to reflect non-blocking HTTP (not cron)
+
+## [4.19.0] - 2026-03-14
+### Added
+- Minimum 50-word content guard on all AI pipeline steps — stubs and test posts are silently skipped
+
+## [4.18.9] - 2026-03-14
+### Changed
+- AI auto pipeline replaced WP-Cron with non-blocking `wp_remote_post()` to `admin-ajax.php` — fires immediately on publish with no cron dependency
+- HMAC token (120 s TTL transient) authenticates the async pipeline request
+- `cs_seo_auto_run_pipeline` cron hook removed; cleanup pipeline retains cron
+
+## [4.18.8] - 2026-03-14
+### Added
+- Related Articles pipeline now runs synchronously via `transition_post_status` — no cron dependency
+### Changed
+- AI pipeline added `spawn_cron()` on shutdown as a cron-kick fallback (superseded by 4.18.9)
+
+## [4.18.7] - 2026-03-14
+### Fixed
+- Reload button moved to left of Show/Hide Details; uses `visibility:hidden` so layout never shifts on first load
+
+## [4.18.6] - 2026-03-14
+### Added
+- Auto Pipeline card moved to AI Tools tab with its own Save button
+- "Re-run on update" toggle — re-triggers full pipeline 5 s after any published post is saved
+### Changed
+- Auto Pipeline settings removed from Scheduled Batch card
+
+## [4.18.5] - 2026-03-14
+### Fixed
+- Duplicate Reload buttons removed from inside AI Meta Writer, ALT Text, and Summary Box toolbars
+
+## [4.18.4] - 2026-03-14
+### Fixed
+- `altLoad()` and `sumLoad()` crashed on removed button elements preventing auto-load on card expand
+
+## [4.18.3] - 2026-03-14
+### Changed
+- Removed all "Hide Posts" buttons from AI Meta Writer, ALT Text, Summary Box, Category Fixer, and Category Health cards
+
+## [4.18.2] - 2026-03-14
+### Changed
+- Removed "Load Posts" / "Scan Posts" CTA buttons; cards now auto-load on first "Show Details" expand
+
+## [4.18.1] - 2026-03-14
+### Added
+- "Auto Run on publish" toggle (disabled by default) gates the pipeline
+
+## [4.18.0] - 2026-03-14
+### Added
+- `trait-auto-pipeline.php` — full AI auto pipeline on publish: meta description, focus keyword, ALT text, internal links, AI summary, Related Articles
+- Gutenberg-safe internal link injection via `parse_blocks` / `serialize_blocks`
+- Delete cleanup pipeline removes all `_cs_*` post meta and run log transients
+- Post edit screen metabox "CloudScale SEO Auto Run" with status, last-run time, re-run button, and step log
+- `CSEO_ASYNC_ENABLED` constant for synchronous debug mode
+- Dashboard widget: posts missing auto run + queued pipeline jobs metrics
+- New meta keys: `_cs_seo_auto_run_complete`, `_cs_seo_focus_keyword`
+
+## [4.17.6] - 2026-03-14
+### Fixed
+- Related Articles "All Posts" filter uses direct DB query — bypasses WP_Query environment issue that returned 0 results
+- "All Posts" is now the default filter so new posts are immediately visible
+
+## [4.17.5] - 2026-03-14
+### Added
+- File-level DocBlocks (`@package`, `@since`) added to all 20 remaining trait files
+### Fixed
+- Settings page `<th>` labels and RC table labels wrapped in `esc_html_e()`
+- `ajax_rc_sync_counts` `@since` history corrected
+
+## [4.17.4] - 2026-03-14
+### Fixed
+- PCP: removed discouraged `load_plugin_textdomain()` call
+- PCP: added missing `translators` comment to `printf` in metabox
+- PCP: removed `set_time_limit()` call in `ajax_rc_sync_counts`
+- PCP: prefixed global variables in `uninstall.php`
+- PCP: added `phpcs:ignore` to Utils class declaration with explanation
+
+## [4.17.3] - 2026-03-13
+### Changed
+- Settings page restores the active tab after saving (stored in `localStorage`)
+
+## [4.17.2] - 2026-03-13
+### Fixed
+- Generate & Sync correctly decreases link counts when `_cs_rc_scores` was deleted
+- Button label showed `&amp;` literal after completion
+
+## [4.17.1] - 2026-03-13
+### Changed
+- Merged "Generate Missing" and "Sync Counts" into single "Generate & Sync" server-side pass
+
+## [4.17.0] - 2026-03-13
+### Changed
+- Related Articles Post Status table: post title links open the live post URL
+
+## [4.16.9] - 2026-03-13
+### Fixed
+- Post title links in Related Articles Post Status table now open the post editor (not category editor)
+
+## [4.16.8] - 2026-03-13
+### Fixed
+- Clicking Generate Missing when all posts are complete no longer shows "No posts found" — table restores to previous filter/page
+
+## [4.16.7] - 2026-03-13
+### Changed
+- Sync Counts now fills upward as well as trimming when count setting increases
+
+## [4.16.6] - 2026-03-13
+### Fixed
+- Related Articles settings (`rc_top_count`, `rc_bottom_count`, `rc_enable`) were silently discarded on save
+
+## [4.16.5] - 2026-03-13
+### Added
+- "Sync Counts" button — single server-side pass to trim stored links to current count settings
+
+## [4.16.4] - 2026-03-13
+### Fixed
+- Generate Missing now force-reloads with `filter=pending` before collecting IDs
+
+## [4.16.3] - 2026-03-13
+### Fixed
+- `rcRunOne` final state fetch uses `rcCurrentFilter` instead of hardcoded `filter=all`
+- Reset All reloads with current filter
+- Batch bar shows post count at start
+
+## [4.16.2] - 2026-03-13
+### Fixed
+- Related Articles table autoload uses `filter=complete` instead of `filter=all`
+
+## [4.16.1] - 2026-03-13
+### Fixed
+- `rcBatch` reads post IDs from visible DOM rows instead of pre-fetch API call
+
+## [4.16.0] - 2026-03-13
+### Fixed
+- Refresh Stale queries `filter=complete` — resolves "No posts to process" in some environments
+
+## [4.15.9] - 2026-03-13
+### Changed
+- `rcBatch` rewritten to use page-1 probe then process page-by-page
+
+## [4.15.8] - 2026-03-13
+### Fixed
+- Refresh Stale / Retry Failed now reset posts to pending before regenerating
+
+## [4.15.7] - 2026-03-13
+### Fixed
+- Related Articles batch now fetches all pages before building the queue
+
+## [4.15.6] - 2026-03-13
+### Added
+- AI Tools post table: inline ✏ Edit button to manually enter or edit meta descriptions
+
+## [4.15.5] - 2026-03-13
+### Added
+- Utils class `includes/class-cloudscale-seo-ai-optimizer-utils.php` with `log()`, `get_int()`, `get_text()`, `plain_text()` helpers
+### Fixed
+- `load_textdomain` moved from `plugins_loaded` to `init`
+- PHP version notice uses i18n with `translators` comment
+- DocBlocks completed on all methods in `trait-options.php` and key methods across engine and schema traits
+
+## [4.15.4] - 2026-03-12
+### Fixed
+- Critical: JSON-LD structured data output via `wp_print_inline_script_tag()` — removes the last echoed `<script>` string
+
+## [4.15.3] - 2026-03-12
+### Fixed
+- PHP Warning "Undefined array key message" in batch scheduler log display
+
+## [4.15.2] - 2026-03-12
+### Changed
+- Scoring status bar shows "(Post N of Total)" counter
+
+## [4.15.1] - 2026-03-12
+### Fixed
+- Generate Missing phase 2 scoring does its own fresh post fetch
+
+## [4.15.0] - 2026-03-12
+### Added
+- Generate Missing runs a second phase to score posts still missing an SEO score
+### Changed
+- "Score All" button renamed "Calculate SEO Scores"
+
+## [4.14.9] - 2026-03-12
+### Added
+- AI Tools post table: Description, Title, ALT, Date, SEO Score columns all sortable
+
+## [4.14.8] - 2026-03-12
+### Fixed
+- Homepage SEO score no longer disappears on reload
+
+## [4.14.7] - 2026-03-12
+### Added
+- AI Tools post table: Date column and sortable headers for Post, Date, SEO Score
+
+## [4.14.6] - 2026-03-12
+### Changed
+- Swapped Categories and Scheduled Batch tab order
+
 ## [4.14.5] - 2026-03-12
 ### Fixed
 - High: `load_plugin_textdomain()` was never called; text domain now registered on `plugins_loaded`

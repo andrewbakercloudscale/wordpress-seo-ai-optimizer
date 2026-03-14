@@ -81,9 +81,11 @@ trait CS_SEO_Related_Articles {
     /**
      * Renders a Related Articles or You Might Also Like link block.
      *
+     * @since 4.10.0
      * @param string $heading  Block heading text.
      * @param int[]  $post_ids Ordered list of post IDs to link.
      * @param string $position 'top' or 'bottom' — controls accent colour.
+     * @return string Rendered HTML block, or empty string if no valid links.
      */
     private function render_rc_block(string $heading, array $post_ids, string $position): string {
         $accent  = $position === 'top' ? '#4f46e5' : '#0e7490';
@@ -134,6 +136,40 @@ trait CS_SEO_Related_Articles {
         return $out;
     }
     /**
+     * Runs the Related Articles pipeline synchronously when a post is published or updated.
+     *
+     * RC generation is purely local (no API calls) and fast, so it runs inline on the
+     * publish request rather than via cron. rc_step_validate exits immediately if the
+     * post's fingerprint is unchanged and output is already valid, so re-saves are cheap.
+     *
+     * @since 4.18.8
+     * @param string  $new_status New post status.
+     * @param string  $old_status Previous post status.
+     * @param WP_Post $post       Post object.
+     * @return void
+     */
+    public function rc_on_post_publish( string $new_status, string $old_status, WP_Post $post ): void {
+        if ( $new_status !== 'publish' ) return;
+        if ( $post->post_type !== 'post' ) return;
+
+        try {
+            $this->rc_step_load( $post->ID );
+            if ( get_post_meta( $post->ID, self::META_RC_STATUS, true ) === 'complete' ) return;
+            $this->rc_step_validate( $post->ID );
+            if ( get_post_meta( $post->ID, self::META_RC_STATUS, true ) === 'complete' ) return;
+            $this->rc_step_candidates( $post->ID );
+            $this->rc_step_score( $post->ID );
+            $this->rc_step_top( $post->ID );
+            $this->rc_step_bottom( $post->ID );
+            $this->rc_step_validate_out( $post->ID );
+            $this->rc_step_complete( $post->ID );
+        } catch ( \Throwable $e ) {
+            update_post_meta( $post->ID, self::META_RC_STATUS, 'error' );
+            update_post_meta( $post->ID, self::META_RC_ERROR,  $e->getMessage() );
+        }
+    }
+
+    /**
      * AJAX handler: returns posts with their Related Articles generation status for the admin panel.
      *
      * @since 4.10.0
@@ -149,53 +185,97 @@ trait CS_SEO_Related_Articles {
         $filter   = sanitize_text_field(wp_unslash($_POST['filter'] ?? 'all'));
         // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 
-        // Build meta_query filter
-        $meta_query = [];
-        if ($filter === 'pending') {
-            $meta_query = [['key' => self::META_RC_STATUS, 'compare' => 'NOT EXISTS']];
-        } elseif ($filter === 'complete') {
-            $meta_query = [['key' => self::META_RC_STATUS, 'value' => 'complete']];
-        } elseif ($filter === 'error') {
-            $meta_query = [['key' => self::META_RC_STATUS, 'value' => 'error']];
-        }
+        $posts  = [];
+        $total  = 0;
+        $offset = ($page - 1) * $per_page;
 
-        $args = [
-            'post_type'      => 'post',
-            'post_status'    => 'publish',
-            'posts_per_page' => $per_page,
-            'paged'          => $page,
-            'orderby'        => 'date',
-            'order'          => 'DESC',
-            'fields'         => 'ids',
-        ];
-        if (!empty($meta_query)) $args['meta_query'] = $meta_query; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- filtered list view with fixed per_page; meta_query only applied when user selects a filter, not on default load
+        if ($filter === 'all') {
+            // WP_Query with no meta_query returns 0 in some environments — use direct DB query.
+            global $wpdb;
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- admin-only paginated list; no persistent cache needed
+            $total   = (int) $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_type = %s",
+                'post'
+            ) );
+            $raw_ids = $wpdb->get_col( $wpdb->prepare(
+                "SELECT ID FROM {$wpdb->posts}
+                  WHERE post_status = 'publish' AND post_type = %s
+                  ORDER BY post_date DESC
+                  LIMIT %d OFFSET %d",
+                'post', $per_page, $offset
+            ) );
+            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            foreach ( $raw_ids as $raw_pid ) {
+                $pid      = (int) $raw_pid;
+                $status   = get_post_meta($pid, self::META_RC_STATUS, true) ?: 'pending';
+                $gen_at   = (int) get_post_meta($pid, self::META_RC_GENERATED, true);
+                $last_step= (int) get_post_meta($pid, self::META_RC_LAST_STEP, true);
+                $error    = get_post_meta($pid, self::META_RC_ERROR, true);
+                $top_raw  = maybe_unserialize(get_post_meta($pid, self::META_RC_TOP, true));
+                $bot_raw  = maybe_unserialize(get_post_meta($pid, self::META_RC_BOTTOM, true));
+                $posts[]  = [
+                    'id'         => $pid,
+                    'title'      => get_the_title($pid),
+                    'status'     => $status,
+                    'last_step'  => $last_step,
+                    'top_count'  => is_array($top_raw) ? count($top_raw) : 0,
+                    'bot_count'  => is_array($bot_raw) ? count($bot_raw) : 0,
+                    'generated'  => $gen_at ? human_time_diff($gen_at) . ' ago' : '',
+                    'error'      => $error ?: '',
+                    'permalink'  => (string) get_permalink($pid),
+                ];
+            }
+            $total_pages = $total > 0 ? (int) ceil( $total / $per_page ) : 1;
+        } else {
+            // Build meta_query for status-based filters
+            $meta_query = [];
+            if ($filter === 'pending') {
+                $meta_query = [['key' => self::META_RC_STATUS, 'compare' => 'NOT EXISTS']];
+            } elseif ($filter === 'complete') {
+                $meta_query = [['key' => self::META_RC_STATUS, 'value' => 'complete']];
+            } elseif ($filter === 'error') {
+                $meta_query = [['key' => self::META_RC_STATUS, 'value' => 'error']];
+            }
 
-        $q     = new WP_Query($args);
-        $posts = [];
-        foreach ($q->posts as $pid) {
-            $status   = get_post_meta($pid, self::META_RC_STATUS, true) ?: 'pending';
-            $gen_at   = (int) get_post_meta($pid, self::META_RC_GENERATED, true);
-            $last_step= (int) get_post_meta($pid, self::META_RC_LAST_STEP, true);
-            $error    = get_post_meta($pid, self::META_RC_ERROR, true);
-            $top_raw  = maybe_unserialize(get_post_meta($pid, self::META_RC_TOP, true));
-            $bot_raw  = maybe_unserialize(get_post_meta($pid, self::META_RC_BOTTOM, true));
-            $posts[]  = [
-                'id'         => $pid,
-                'title'      => get_the_title($pid),
-                'status'     => $status,
-                'last_step'  => $last_step,
-                'top_count'  => is_array($top_raw) ? count($top_raw) : 0,
-                'bot_count'  => is_array($bot_raw) ? count($bot_raw) : 0,
-                'generated'  => $gen_at ? human_time_diff($gen_at) . ' ago' : '',
-                'error'      => $error ?: '',
-                'permalink'  => (string) get_permalink($pid),
+            $args = [
+                'post_type'      => 'post',
+                'post_status'    => 'publish',
+                'posts_per_page' => $per_page,
+                'paged'          => $page,
+                'orderby'        => 'date',
+                'order'          => 'DESC',
+                'fields'         => 'ids',
             ];
+            if (!empty($meta_query)) $args['meta_query'] = $meta_query; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- filtered list view with fixed per_page
+
+            $q     = new WP_Query($args);
+            $total = $q->found_posts;
+            $total_pages = $q->max_num_pages ?: 1;
+            foreach ($q->posts as $pid) {
+                $status   = get_post_meta($pid, self::META_RC_STATUS, true) ?: 'pending';
+                $gen_at   = (int) get_post_meta($pid, self::META_RC_GENERATED, true);
+                $last_step= (int) get_post_meta($pid, self::META_RC_LAST_STEP, true);
+                $error    = get_post_meta($pid, self::META_RC_ERROR, true);
+                $top_raw  = maybe_unserialize(get_post_meta($pid, self::META_RC_TOP, true));
+                $bot_raw  = maybe_unserialize(get_post_meta($pid, self::META_RC_BOTTOM, true));
+                $posts[]  = [
+                    'id'         => $pid,
+                    'title'      => get_the_title($pid),
+                    'status'     => $status,
+                    'last_step'  => $last_step,
+                    'top_count'  => is_array($top_raw) ? count($top_raw) : 0,
+                    'bot_count'  => is_array($bot_raw) ? count($bot_raw) : 0,
+                    'generated'  => $gen_at ? human_time_diff($gen_at) . ' ago' : '',
+                    'error'      => $error ?: '',
+                    'permalink'  => (string) get_permalink($pid),
+                ];
+            }
         }
 
         wp_send_json_success([
             'posts'       => $posts,
-            'total'       => $q->found_posts,
-            'total_pages' => $q->max_num_pages,
+            'total'       => $total,
+            'total_pages' => $total_pages,
             'page'        => $page,
         ]);
     }

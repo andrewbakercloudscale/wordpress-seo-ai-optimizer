@@ -783,8 +783,7 @@ trait CS_SEO_AI_Meta_Writer {
             'order'               => 'DESC',
             'ignore_sticky_posts' => true,
             // Exclude front page from main list — it's already pinned at top.
-            // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in -- excluding front page from sitemap batch is intentional and low-volume
-            'post__not_in'        => $front_page_id ? [$front_page_id] : [],
+            'post__not_in'        => $front_page_id ? [$front_page_id] : [], // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in -- excludes at most one ID (the static front page); low-volume admin-only query
             // Exclude posts marked as noindex — no value in generating SEO descriptions for them.
             'meta_query'          => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
                 [
