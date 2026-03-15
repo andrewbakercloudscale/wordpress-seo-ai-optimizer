@@ -60,54 +60,49 @@ trait CS_SEO_Metabox {
         </p>
         <?php if ($has_key): ?>
         <p>
-            <button type="button" class="button cs-seo-gen-btn" id="cs_seo_gen_<?php echo (int) $post->ID; ?>"
-                data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
+            <button type="button" class="button" id="cs_seo_gen_<?php echo (int) $post->ID; ?>"
+                onclick="csSeoGenOne(<?php echo (int) $post->ID; ?>)">
                 <?php esc_html_e( '✦ Generate with Claude', 'cloudscale-seo-ai-optimizer' ); ?>
             </button>
             <span id="cs_seo_gen_status_<?php echo (int) $post->ID; ?>" style="margin-left:8px;font-size:12px;color:#888;"></span>
         </p>
         <?php ob_start(); ?>
-        document.addEventListener('DOMContentLoaded', function() {
-            var genBtns = document.querySelectorAll('.cs-seo-gen-btn');
-            genBtns.forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    var postId = btn.getAttribute('data-post-id');
-                    var status = document.getElementById('cs_seo_gen_status_' + postId);
-                    var field  = document.getElementById('cs_seo_desc_' + postId);
-                    var chars  = document.getElementById('cs_seo_char_' + postId);
-                    btn.disabled = true;
-                    status.textContent = '⟳ Generating...';
-                    status.style.color = '#888';
-                    fetch(ajaxurl, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: new URLSearchParams({
-                            action: 'cs_seo_ai_generate_one',
-                            post_id: postId,
-                            nonce: csSeoMetabox.nonce
-                        })
-                    })
-                    .then(function(r) { return r.json(); })
-                    .then(function(data) {
-                        if (data.success) {
-                            field.value = data.data.description;
-                            chars.textContent = data.data.chars + ' chars';
-                            chars.style.color = data.data.chars >= 140 && data.data.chars <= 160 ? '#46b450' : '#dc3232';
-                            status.textContent = '✓ Done — save post to keep';
-                            status.style.color = '#46b450';
-                        } else {
-                            status.textContent = '✗ ' + (data.data || 'Error');
-                            status.style.color = '#dc3232';
-                        }
-                    })
-                    .catch(function(e) {
-                        status.textContent = '✗ ' + e.message;
-                        status.style.color = '#dc3232';
-                    })
-                    .finally(function() { btn.disabled = false; });
-                });
-            });
-        });
+        function csSeoGenOne(postId) {
+            const btn    = document.getElementById('cs_seo_gen_' + postId);
+            const status = document.getElementById('cs_seo_gen_status_' + postId);
+            const field  = document.getElementById('cs_seo_desc_' + postId);
+            const chars  = document.getElementById('cs_seo_char_' + postId);
+            btn.disabled = true;
+            status.textContent = '⟳ Generating...';
+            status.style.color = '#888';
+            fetch(ajaxurl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({
+                    action: 'cs_seo_ai_generate_one',
+                    post_id: postId,
+                    nonce: csSeoMetabox.nonce
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    field.value = data.data.description;
+                    chars.textContent = data.data.chars + ' chars';
+                    chars.style.color = data.data.chars >= 140 && data.data.chars <= 160 ? '#46b450' : '#dc3232';
+                    status.textContent = '✓ Done — save post to keep';
+                    status.style.color = '#46b450';
+                } else {
+                    status.textContent = '✗ ' + (data.data || 'Error');
+                    status.style.color = '#dc3232';
+                }
+            })
+            .catch(e => {
+                status.textContent = '✗ ' + e.message;
+                status.style.color = '#dc3232';
+            })
+            .finally(() => { btn.disabled = false; });
+        }
         <?php wp_add_inline_script('cs-seo-metabox-js', ob_get_clean()); ?>
         <?php else: ?>
         <p style="color:#888;font-size:12px;"><em><?php
@@ -124,10 +119,12 @@ trait CS_SEO_Metabox {
             <strong><?php esc_html_e( 'OG image URL', 'cloudscale-seo-ai-optimizer' ); ?></strong> — <?php esc_html_e( 'leave blank to use featured image', 'cloudscale-seo-ai-optimizer' ); ?><br>
             <input class="widefat" name="cs_seo_ogimg" id="cs_seo_ogimg_<?php echo (int) $post->ID; ?>" value="<?php echo esc_attr($ogimg); ?>">
             <?php if ($using_custom): ?>
-            <button type="button" class="button cs-og-clear-btn" style="margin-top:4px"
-                    data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
-                <?php esc_html_e( '✕ Clear (use featured image)', 'cloudscale-seo-ai-optimizer' ); ?>
-            </button>
+            <button type="button" class="button" style="margin-top:4px" onclick="
+                document.getElementById('cs_seo_ogimg_<?php echo (int) $post->ID; ?>').value = '';
+                this.parentNode.querySelector('.cs-og-status').textContent = '⚠ Cleared — save post to apply';
+                this.parentNode.querySelector('.cs-og-status').style.color = '#e67e00';
+                this.style.display = 'none';
+            "><?php esc_html_e( '✕ Clear (use featured image)', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <span class="cs-og-status" style="display:block;font-size:11px;color:#c3372b;margin-top:3px"><?php esc_html_e( '⚠ Custom URL set — featured image changes will not appear until this is cleared', 'cloudscale-seo-ai-optimizer' ); ?></span>
             <?php elseif ($thumb_src): ?>
             <span class="cs-og-status" style="display:block;font-size:11px;color:#1a7a34;margin-top:3px"><?php esc_html_e( '✓ Using featured image', 'cloudscale-seo-ai-optimizer' ); ?></span>
@@ -161,82 +158,62 @@ trait CS_SEO_Metabox {
 
         <?php if ($has_key): ?>
         <p style="margin:0">
-            <button type="button" class="button cs-sum-gen-btn" id="cs_seo_sum_gen_<?php echo (int) $post->ID; ?>"
-                data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>" data-force="0">
+            <button type="button" class="button" id="cs_seo_sum_gen_<?php echo (int) $post->ID; ?>"
+                onclick="csSeoSumGenOne(<?php echo (int) $post->ID; ?>)">
                 <?php esc_html_e( '✦ Generate Summary', 'cloudscale-seo-ai-optimizer' ); ?>
             </button>
-            <button type="button" class="button cs-sum-gen-btn" style="margin-left:6px" id="cs_seo_sum_regen_<?php echo (int) $post->ID; ?>"
-                data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>" data-force="1">
+            <button type="button" class="button" style="margin-left:6px" id="cs_seo_sum_regen_<?php echo (int) $post->ID; ?>"
+                onclick="csSeoSumGenOne(<?php echo (int) $post->ID; ?>, true)">
                 <?php esc_html_e( '↺ Regenerate', 'cloudscale-seo-ai-optimizer' ); ?>
             </button>
             <span id="cs_seo_sum_status_<?php echo (int) $post->ID; ?>" style="margin-left:8px;font-size:12px;color:#888;"></span>
         </p>
         <?php ob_start(); ?>
-        document.addEventListener('DOMContentLoaded', function() {
-            var clearBtns = document.querySelectorAll('.cs-og-clear-btn');
-            clearBtns.forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    var postId = btn.getAttribute('data-post-id');
-                    var field = document.getElementById('cs_seo_ogimg_' + postId);
-                    var status = btn.parentNode.querySelector('.cs-og-status');
-                    field.value = '';
-                    status.textContent = '⚠ Cleared — save post to apply';
-                    status.style.color = '#e67e00';
-                    btn.style.display = 'none';
-                });
-            });
-
-            var sumBtns = document.querySelectorAll('.cs-sum-gen-btn');
-            sumBtns.forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    var postId = btn.getAttribute('data-post-id');
-                    var force = btn.getAttribute('data-force');
-                    var genBtn = document.getElementById('cs_seo_sum_gen_' + postId);
-                    var regenBtn = document.getElementById('cs_seo_sum_regen_' + postId);
-                    var status = document.getElementById('cs_seo_sum_status_' + postId);
-                    var fWhat  = document.getElementById('cs_seo_sum_what_' + postId);
-                    var fWhy   = document.getElementById('cs_seo_sum_why_' + postId);
-                    var fKey   = document.getElementById('cs_seo_sum_key_' + postId);
-                    genBtn.disabled = true;
-                    regenBtn.disabled = true;
-                    status.textContent = '⟳ Generating...';
-                    status.style.color = '#888';
-                    fetch(ajaxurl, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: new URLSearchParams({
-                            action: 'cs_seo_summary_generate_one',
-                            post_id: postId,
-                            force: force,
-                            nonce: csSeoMetabox.nonce
-                        })
-                    })
-                    .then(function(r) { return r.json(); })
-                    .then(function(data) {
-                        if (data.success) {
-                            if (data.data.skipped) {
-                                status.textContent = '✓ Already generated — use Regenerate to overwrite';
-                                status.style.color = '#888';
-                            } else {
-                                fWhat.value = data.data.what;
-                                fWhy.value  = data.data.why;
-                                fKey.value  = data.data.takeaway;
-                                status.textContent = '✓ Done — save post to keep';
-                                status.style.color = '#46b450';
-                            }
-                        } else {
-                            status.textContent = '✗ ' + (data.data || 'Error');
-                            status.style.color = '#dc3232';
-                        }
-                    })
-                    .catch(function(e) {
-                        status.textContent = '✗ ' + e.message;
-                        status.style.color = '#dc3232';
-                    })
-                    .finally(function() { genBtn.disabled = false; regenBtn.disabled = false; });
-                });
-            });
-        });
+        function csSeoSumGenOne(postId, force) {
+            const btn    = document.getElementById('cs_seo_sum_gen_' + postId);
+            const regen  = document.getElementById('cs_seo_sum_regen_' + postId);
+            const status = document.getElementById('cs_seo_sum_status_' + postId);
+            const fWhat  = document.getElementById('cs_seo_sum_what_' + postId);
+            const fWhy   = document.getElementById('cs_seo_sum_why_' + postId);
+            const fKey   = document.getElementById('cs_seo_sum_key_' + postId);
+            btn.disabled = true;
+            regen.disabled = true;
+            status.textContent = '⟳ Generating...';
+            status.style.color = '#888';
+            fetch(ajaxurl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({
+                    action: 'cs_seo_summary_generate_one',
+                    post_id: postId,
+                    force: force ? 1 : 0,
+                    nonce: csSeoMetabox.nonce
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.data.skipped) {
+                        status.textContent = '✓ Already generated — use Regenerate to overwrite';
+                        status.style.color = '#888';
+                    } else {
+                        fWhat.value = data.data.what;
+                        fWhy.value  = data.data.why;
+                        fKey.value  = data.data.takeaway;
+                        status.textContent = '✓ Done — save post to keep';
+                        status.style.color = '#46b450';
+                    }
+                } else {
+                    status.textContent = '✗ ' + (data.data || 'Error');
+                    status.style.color = '#dc3232';
+                }
+            })
+            .catch(e => {
+                status.textContent = '✗ ' + e.message;
+                status.style.color = '#dc3232';
+            })
+            .finally(() => { btn.disabled = false; regen.disabled = false; });
+        }
         <?php wp_add_inline_script('cs-seo-metabox-js', ob_get_clean()); ?>
         <?php endif; ?>
 

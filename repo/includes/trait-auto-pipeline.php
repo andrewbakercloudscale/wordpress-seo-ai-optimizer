@@ -601,8 +601,7 @@ trait CS_SEO_Auto_Pipeline {
             <button type="button" id="cs-auto-rerun-btn"
                     class="button button-secondary"
                     style="width:100%;margin-bottom:10px;"
-                    data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"
-                    data-nonce="<?php echo esc_attr( $nonce ); ?>">
+                    onclick="csAutoRerun(<?php echo esc_js( (string) $post->ID ); ?>, '<?php echo esc_js( $nonce ); ?>')">
                 <?php esc_html_e( '↺ Re-run AI Automation', 'cloudscale-seo-ai-optimizer' ); ?>
             </button>
             <?php if ( is_array( $log ) && ! empty( $log ) ) : ?>
@@ -628,36 +627,30 @@ trait CS_SEO_Auto_Pipeline {
         <?php
         // Inline JS attached to the registered metabox script handle — no echoed <script> tags.
         ob_start(); ?>
-        document.addEventListener('DOMContentLoaded', function() {
+        function csAutoRerun(postId, nonce) {
             var btn = document.getElementById('cs-auto-rerun-btn');
-            if (btn) {
-                btn.addEventListener('click', function() {
-                    var postId = btn.getAttribute('data-post-id');
-                    var nonce = btn.getAttribute('data-nonce');
-                    btn.disabled = true;
-                    btn.textContent = '...Scheduling';
-                    var fd = new FormData();
-                    fd.append('action',  'cs_seo_auto_rerun');
-                    fd.append('nonce',   nonce);
-                    fd.append('post_id', postId);
-                    fetch(ajaxurl, { method: 'POST', body: fd })
-                        .then(function(r) { return r.json(); })
-                        .then(function(d) {
-                            if (d.success) {
-                                btn.textContent = '\u2713 Queued \u2014 reload in a moment';
-                                btn.style.color = '#16a34a';
-                            } else {
-                                btn.textContent = '\u2717 Failed';
-                                btn.disabled = false;
-                            }
-                        })
-                        .catch(function() {
-                            btn.textContent = '\u2717 Error';
-                            btn.disabled = false;
-                        });
+            btn.disabled = true;
+            btn.textContent = '...Scheduling';
+            var fd = new FormData();
+            fd.append('action',  'cs_seo_auto_rerun');
+            fd.append('nonce',   nonce);
+            fd.append('post_id', postId);
+            fetch(ajaxurl, { method: 'POST', body: fd })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d.success) {
+                        btn.textContent = '\u2713 Queued \u2014 reload in a moment';
+                        btn.style.color = '#16a34a';
+                    } else {
+                        btn.textContent = '\u2717 Failed';
+                        btn.disabled = false;
+                    }
+                })
+                .catch(function() {
+                    btn.textContent = '\u2717 Error';
+                    btn.disabled = false;
                 });
-            }
-        });
+        }
         <?php wp_add_inline_script( 'cs-seo-metabox-js', ob_get_clean() );
     }
 

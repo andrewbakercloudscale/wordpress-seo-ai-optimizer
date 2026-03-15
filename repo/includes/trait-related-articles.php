@@ -125,7 +125,8 @@ trait CS_SEO_Related_Articles {
         $out .= '<ul style="margin:0;padding:16px 24px;list-style:none;display:flex;flex-direction:column;gap:10px;">';
         foreach ($links as $link) {
             $out .= '<li style="margin:0;padding:0;">';
-            $out .= '<a href="' . esc_url($link['url']) . '" class="cs-rc-link" style="color:' . esc_attr($accent) . ';font-size:14px;font-weight:500;text-decoration:none;line-height:1.5;">'
+            $out .= '<a href="' . esc_url($link['url']) . '" style="color:' . esc_attr($accent) . ';font-size:14px;font-weight:500;text-decoration:none;line-height:1.5;"';
+            $out .= ' onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">'
                   . '&#8594;&nbsp;' . esc_html($link['title']) . '</a>';
             $out .= '</li>';
         }

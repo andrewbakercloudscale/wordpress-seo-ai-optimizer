@@ -41,19 +41,20 @@ trait CS_SEO_Settings_Page {
             box-shadow:0 3px 10px rgba(249,83,198,0.45);
             letter-spacing:0.03em;
             transition:filter 0.15s, transform 0.15s;
-        " class="cs-settings-link">
+        " onmouseover="this.style.filter='brightness(1.15)';this.style.transform='scale(1.03)'"
+           onmouseout="this.style.filter='';this.style.transform=''">
             <span style="font-size:16px">🥷</span> Totally Free by AndrewBaker.Ninja
         </a>
 
         <?php /* ── TAB NAV ── */ ?>
 
         <div class="ab-tabs">
-            <button class="ab-tab active" data-tab="seo">📊 <?php esc_html_e( 'Optimise SEO', 'cloudscale-seo-ai-optimizer' ); ?></button>
-            <button class="ab-tab"        data-tab="aitools">✨ <?php esc_html_e( 'AI Tools', 'cloudscale-seo-ai-optimizer' ); ?></button>
-            <button class="ab-tab"        data-tab="sitemap">🗺 <?php esc_html_e( 'Sitemap &amp; Robots', 'cloudscale-seo-ai-optimizer' ); ?></button>
-            <button class="ab-tab"        data-tab="perf">⚡ <?php esc_html_e( 'Performance', 'cloudscale-seo-ai-optimizer' ); ?></button>
-            <button class="ab-tab"        data-tab="catfix">🏷 <?php esc_html_e( 'Categories', 'cloudscale-seo-ai-optimizer' ); ?></button>
-            <button class="ab-tab"        data-tab="batch">🔄 <?php esc_html_e( 'Scheduled Batch', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab active" data-tab="seo"      onclick="abTab('seo',this)">📊 <?php esc_html_e( 'Optimise SEO', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="aitools"  onclick="abTab('aitools',this)">✨ <?php esc_html_e( 'AI Tools', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="sitemap"  onclick="abTab('sitemap',this)">🗺 <?php esc_html_e( 'Sitemap &amp; Robots', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="perf"    onclick="abTab('perf',this)">⚡ <?php esc_html_e( 'Performance', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="catfix"  onclick="abTab('catfix',this)">🏷 <?php esc_html_e( 'Categories', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="batch"   onclick="abTab('batch',this)">🔄 <?php esc_html_e( 'Scheduled Batch', 'cloudscale-seo-ai-optimizer' ); ?></button>
         </div>
         </div>
 
@@ -68,7 +69,7 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">🌐</span> <?php esc_html_e( 'Site Identity', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-identity" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-identity', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('identity', '🌐 Site Identity — What each field does', [
                         ['rec'=>'✅ Recommended','name'=>'Site name','desc'=>'The name of your site as it appears in search results, browser tabs, and social sharing. Used in JSON-LD schema and OpenGraph tags. e.g. "Andrew Baker" or "Andrew Baker\'s Tech Blog".'],
                         ['rec'=>'✅ Recommended','name'=>'Title suffix','desc'=>'Appended to every page title in search results. e.g. if your suffix is "| Andrew Baker" then a post titled "AWS Lambda Tips" appears as "AWS Lambda Tips | Andrew Baker". Helps with brand recognition in SERPs.'],
@@ -120,7 +121,7 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">👤</span> <?php esc_html_e( 'Person Schema', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-person" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-person', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('person', '👤 Person Schema — What each field does', [
                         ['rec'=>'✅ Recommended','name'=>'Full name','desc'=>'Your name as it appears in Google search results and Knowledge Graph. Use your real name exactly as you want it attributed — this is what Google uses to connect your content to you as an individual author.'],
                         ['rec'=>'✅ Recommended','name'=>'Profile URL','desc'=>'The canonical URL for your personal profile — usually your homepage (https://yoursite.com/). Google uses this as the authoritative identifier for you as a person in its Knowledge Graph.'],
@@ -170,7 +171,7 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">✦</span> <?php esc_html_e( 'AI Meta Writer', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-ai" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-ai', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('ai', '✦ AI Meta Writer — What each setting does', [
                         ['rec'=>'✅ Recommended','name'=>'Anthropic API key','desc'=>'Your secret key from console.anthropic.com. Required to call the Claude AI to generate meta descriptions. Keep this private — anyone with this key can use your Anthropic account. The key is stored securely in your WordPress database.'],
                         ['rec'=>'ℹ️ Info','name'=>'Claude model','desc'=>'Which version of Claude to use for generation. Claude Haiku is fast and cheap — ideal for bulk processing hundreds of posts. Claude Sonnet is slower and costs more but produces higher quality, more nuanced descriptions. For a blog with 100+ posts, Haiku is usually the right choice.'],
@@ -185,7 +186,7 @@ trait CS_SEO_Settings_Page {
                     <tr>
                         <th><?php esc_html_e( 'AI Provider:', 'cloudscale-seo-ai-optimizer' ); ?></th>
                         <td>
-                            <select name="<?php echo esc_attr(self::AI_OPT); ?>[ai_provider]" id="ab-ai-provider">
+                            <select name="<?php echo esc_attr(self::AI_OPT); ?>[ai_provider]" id="ab-ai-provider" onchange="abProviderChanged()">
                                 <option value="anthropic" <?php selected($ai['ai_provider'] ?? 'anthropic', 'anthropic'); ?>>Anthropic Claude</option>
                                 <option value="gemini"    <?php selected($ai['ai_provider'] ?? 'anthropic', 'gemini'); ?>>Google Gemini</option>
                             </select>
@@ -207,7 +208,7 @@ trait CS_SEO_Settings_Page {
                                     value="<?php echo esc_attr($ai['gemini_key'] ?? ''); ?>"
                                     placeholder="AIza..."
                                     style="<?php echo esc_attr( ($ai['ai_provider'] ?? 'anthropic') !== 'gemini' ? 'display:none' : '' ); ?>">
-                                <button type="button" class="button" id="ab-test-key-btn">Test Key</button>
+                                <button type="button" class="button" onclick="abTestKey()">Test Key</button>
                                 <span id="ab-key-status" class="ab-key-status"></span>
                             </div>
                             <p class="description" id="ab-key-hint-anthropic" style="<?php echo esc_attr( ($ai['ai_provider'] ?? 'anthropic') === 'gemini' ? 'display:none' : '' ); ?>">
@@ -272,7 +273,7 @@ trait CS_SEO_Settings_Page {
                                 id="ab-prompt-field"
                                 name="<?php echo esc_attr(self::AI_OPT); ?>[prompt]"><?php echo esc_textarea($ai['prompt']); ?></textarea>
                             <div style="display:flex;gap:6px;margin-top:4px">
-                                <button type="button" class="button" id="ab-copy-prompt">⎘ Copy</button>
+                                <button type="button" class="button" id="ab-copy-prompt" onclick="abCopyPrompt()">⎘ Copy</button>
                                 <button type="button" class="button" id="ab-reset-prompt">
                                     Reset to default
                                 </button>
@@ -343,8 +344,8 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">✦</span> <?php esc_html_e( 'Update Posts with AI Descriptions', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
-                        <button class="button" id="ab-reload-hdr" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-update-posts" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
+                        <button class="button" id="ab-reload-hdr" onclick="abLoadPosts()" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-update-posts', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
                         <?php $this->explain_btn('updateposts', '✦ Update Posts — How this works', [
                         ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Writes the short text snippet that appears under your page title in Google search results — using AI to craft a compelling 140–155 character summary for each post.'],
                         ['rec'=>'ℹ️ Info','name'=>'Total Posts','desc'=>'The total number of published posts and pages on your site that are eligible for meta description generation.'],
@@ -391,14 +392,14 @@ trait CS_SEO_Settings_Page {
 
                 <?php /* ── Toolbar ── */ ?>
                 <div class="ab-ai-toolbar" id="ab-ai-toolbar" style="display:none">
-                    <button class="button button-primary ab-action-btn" id="ab-ai-gen-missing" disabled>✦ Generate Missing</button>
-                    <button class="button ab-action-btn ab-regen-btn" id="ab-ai-gen-all" disabled>↺ Regenerate All</button>
-                    <button class="button ab-action-btn ab-fix-btn" id="ab-ai-fix" disabled>⚑ Fix Long/Short</button>
-                    <button class="button ab-action-btn" id="ab-ai-fix-titles" disabled style="background:#7c3aed;color:#fff;border-color:#6d28d9">✎ Fix Titles</button>
-                    <button class="button ab-action-btn ab-static-btn" id="ab-ai-static" disabled>🖼 Regenerate Static</button>
-                    <button class="button ab-action-btn" id="ab-ai-score-all" disabled style="background:#0e6b6b;border-color:#0a5050;color:#fff;font-weight:600">📊 Calculate SEO Scores</button>
+                    <button class="button button-primary ab-action-btn" id="ab-ai-gen-missing" onclick="abGenAll(0)" disabled>✦ Generate Missing</button>
+                    <button class="button ab-action-btn ab-regen-btn" id="ab-ai-gen-all" onclick="abGenAll(1)" disabled>↺ Regenerate All</button>
+                    <button class="button ab-action-btn ab-fix-btn" id="ab-ai-fix" onclick="abFixAll()" disabled>⚑ Fix Long/Short</button>
+                    <button class="button ab-action-btn" id="ab-ai-fix-titles" onclick="abFixTitles()" disabled style="background:#7c3aed;color:#fff;border-color:#6d28d9">✎ Fix Titles</button>
+                    <button class="button ab-action-btn ab-static-btn" id="ab-ai-static" onclick="abRegenStatic()" disabled>🖼 Regenerate Static</button>
+                    <button class="button ab-action-btn" id="ab-ai-score-all" onclick="abScoreAll()" disabled style="background:#0e6b6b;border-color:#0a5050;color:#fff;font-weight:600">📊 Calculate SEO Scores</button>
                     <span id="ab-toolbar-status" style="font-size:12px;color:#50575e;"></span>
-                    <button class="button" id="ab-ai-stop" style="display:none">◻ Stop</button>
+                    <button class="button" id="ab-ai-stop" onclick="abStop()" style="display:none">◻ Stop</button>
                 </div>
 
                 <?php /* ── Progress bar ── */ ?>
@@ -418,9 +419,9 @@ trait CS_SEO_Settings_Page {
                 <?php /* ── Post table ── */ ?>
                 <div id="ab-posts-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
                 <div class="ab-pager" id="ab-pager" style="display:none">
-                    <button class="button" id="ab-prev">← Prev</button>
+                    <button class="button" id="ab-prev" onclick="abPage(-1)">← Prev</button>
                     <span id="ab-page-info" style="font-size:12px;color:#50575e;"></span>
-                    <button class="button" id="ab-next">Next →</button>
+                    <button class="button" id="ab-next" onclick="abPage(1)">Next →</button>
                 </div>
 
                 </div><!-- /ab-zone-body -->
@@ -430,8 +431,8 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">🖼</span> <?php esc_html_e( 'AI Image ALT Text Generator', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
-                        <button class="button" id="ab-alt-reload-hdr" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-alt" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
+                        <button class="button" id="ab-alt-reload-hdr" onclick="altLoad()" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-alt', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
                         <?php $this->explain_btn('alttext', '🖼 ALT Text — How this works', [
                         ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Adds descriptive labels to every image on your site — used by screen readers for accessibility and by Google to understand image content for search ranking.'],
                         ['rec'=>'✅ Recommended','name'=>'Why ALT text matters','desc'=>'ALT (alternative) text describes images to screen readers and search engines. Missing ALT text is an accessibility failure and an SEO missed opportunity — Google uses ALT text to understand image content and rank your images in Google Images search.'],
@@ -467,12 +468,12 @@ trait CS_SEO_Settings_Page {
                 </div>
 
                 <div class="ab-ai-toolbar" id="ab-alt-toolbar" style="display:none">
-                    <button class="button button-primary ab-action-btn" id="ab-alt-gen-all" <?php echo ($alt_has_key ? '' : 'disabled'); ?>>✦ Generate All Missing</button>
-                    <button class="button ab-action-btn" id="ab-alt-force-all" style="background:#b45309;border-color:#92400e;color:#fff;font-weight:600" <?php echo ($alt_has_key ? '' : 'disabled'); ?>>🔄 Force Regenerate All</button>
+                    <button class="button button-primary ab-action-btn" id="ab-alt-gen-all" onclick="altGenAll(false)" <?php echo ($alt_has_key ? '' : 'disabled'); ?>>✦ Generate All Missing</button>
+                    <button class="button ab-action-btn" id="ab-alt-force-all" onclick="altGenAll(true)" style="background:#b45309;border-color:#92400e;color:#fff;font-weight:600" <?php echo ($alt_has_key ? '' : 'disabled'); ?>>🔄 Force Regenerate All</button>
                     <span id="ab-alt-status" style="font-size:12px;color:#50575e;"></span>
-                    <button class="button" id="ab-alt-stop" style="display:none">◻ Stop</button>
+                    <button class="button" id="ab-alt-stop" onclick="altStop()" style="display:none">◻ Stop</button>
                     <label id="ab-alt-show-all-wrap" style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-                        <input type="checkbox" id="ab-alt-show-all"> Show all
+                        <input type="checkbox" id="ab-alt-show-all" onchange="altState.showAll=this.checked;altRenderTable()"> Show all
                     </label>
                 </div>
 
@@ -495,8 +496,8 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">📋</span> <?php esc_html_e( 'AI Summary Box Generator', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
-                        <button class="button" id="ab-sum-reload-hdr" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-summary" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
+                        <button class="button" id="ab-sum-reload-hdr" onclick="sumLoad()" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-summary', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
                         <?php $this->explain_btn('summary', '📋 AI Summary Box — How this works', [
                         ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Generates the three-field AI Summary Box shown at the top of each post — What it is, Why it matters, and Key takeaway. These are displayed to readers and used by AI search engines to understand your content.'],
                         ['rec'=>'✅ Recommended','name'=>'Why it matters','desc'=>'AI-powered search engines like Perplexity and SearchGPT use structured summaries to decide whether to cite your content. A well-written summary box increases the chance your post appears as a source in AI-generated answers.'],
@@ -524,10 +525,10 @@ trait CS_SEO_Settings_Page {
                 </div>
 
                 <div class="ab-ai-toolbar" id="ab-sum-toolbar" style="display:none">
-                    <button class="button button-primary ab-action-btn" id="ab-sum-gen-all" <?php echo $alt_has_key ? '' : 'disabled'; ?>>✦ Generate Missing</button>
-                    <button class="button ab-action-btn" id="ab-sum-force-all" style="background:#b45309;border-color:#92400e;color:#fff;font-weight:600" <?php echo $alt_has_key ? '' : 'disabled'; ?>>🔄 Force Regenerate All</button>
+                    <button class="button button-primary ab-action-btn" id="ab-sum-gen-all" onclick="sumGenAll(false)" <?php echo $alt_has_key ? '' : 'disabled'; ?>>✦ Generate Missing</button>
+                    <button class="button ab-action-btn" id="ab-sum-force-all" onclick="sumGenAll(true)" style="background:#b45309;border-color:#92400e;color:#fff;font-weight:600" <?php echo $alt_has_key ? '' : 'disabled'; ?>>🔄 Force Regenerate All</button>
                     <span id="ab-sum-status" style="font-size:12px;color:#50575e;"></span>
-                    <button class="button" id="ab-sum-stop" style="display:none">◻ Stop</button>
+                    <button class="button" id="ab-sum-stop" onclick="sumStop()" style="display:none">◻ Stop</button>
                 </div>
 
                 <div class="ab-progress" id="ab-sum-progress">
@@ -560,7 +561,7 @@ trait CS_SEO_Settings_Page {
                     <div class="ab-zone-header" style="background:#0e7490;display:flex;align-items:center;justify-content:space-between;">
                         <span>&#128279; Related Articles</span>
                         <span style="display:flex;align-items:center;gap:8px;">
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-rc-settings-card" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-rc-settings-card', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
                         <?php $this->explain_btn('rc_settings', '&#128279; Related Articles — Settings', [
                             ['name'=>'Enable feature',       'rec'=>'ℹ️ Info',      'desc'=>'Enables or disables the Related Articles and You Might Also Like blocks on all posts. Disabling hides the blocks from the front end immediately without deleting any stored data.'],
                             ['name'=>'Related Articles block','rec'=>'ℹ️ Info',     'desc'=>'The block that appears near the top of each post, directly after the AI summary box. Shows the closest conceptual matches based on shared categories, tags, and keyword overlap. Requires at least 2 links to display.'],
@@ -588,7 +589,7 @@ trait CS_SEO_Settings_Page {
                                     <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[rc_top_enabled]" value="1" <?php checked((int)($o['rc_top_enabled'] ?? 1), 1); ?>> Show &ldquo;Related Articles&rdquo; block at the top (after AI summary)</label><br>
                                     <span style="display:inline-flex;align-items:center;gap:8px;margin-top:6px;">
                                         Links to show:
-                                        <input type="number" id="rc_top_count_input" name="<?php echo esc_attr(self::OPT); ?>[rc_top_count]" value="<?php echo esc_attr((int)($o['rc_top_count'] ?? 3)); ?>" min="1" max="5" style="width:60px;" data-saved="<?php echo esc_attr((int)($o['rc_top_count'] ?? 3)); ?>">
+                                        <input type="number" id="rc_top_count_input" name="<?php echo esc_attr(self::OPT); ?>[rc_top_count]" value="<?php echo esc_attr((int)($o['rc_top_count'] ?? 3)); ?>" min="1" max="5" style="width:60px;" data-saved="<?php echo esc_attr((int)($o['rc_top_count'] ?? 3)); ?>" onchange="rcCheckCountWarning(this,'rc-top-warn')">
                                         <span style="color:#888;font-size:12px;">(min 2, max 5)</span>
                                     </span>
                                     <p id="rc-top-warn" style="display:none;margin:6px 0 0;padding:8px 12px;background:#fffbeb;border-left:3px solid #f59e0b;color:#92400e;font-size:12px;">&#9888; You have increased the link count. Existing posts will only show the new amount after you run <strong>Refresh Stale</strong> in the Related Articles table below.</p>
@@ -600,7 +601,7 @@ trait CS_SEO_Settings_Page {
                                     <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[rc_bottom_enabled]" value="1" <?php checked((int)($o['rc_bottom_enabled'] ?? 1), 1); ?>> Show &ldquo;You Might Also Like&rdquo; block at the bottom (before comments)</label><br>
                                     <span style="display:inline-flex;align-items:center;gap:8px;margin-top:6px;">
                                         Links to show:
-                                        <input type="number" id="rc_bottom_count_input" name="<?php echo esc_attr(self::OPT); ?>[rc_bottom_count]" value="<?php echo esc_attr((int)($o['rc_bottom_count'] ?? 5)); ?>" min="1" max="10" style="width:60px;" data-saved="<?php echo esc_attr((int)($o['rc_bottom_count'] ?? 5)); ?>">
+                                        <input type="number" id="rc_bottom_count_input" name="<?php echo esc_attr(self::OPT); ?>[rc_bottom_count]" value="<?php echo esc_attr((int)($o['rc_bottom_count'] ?? 5)); ?>" min="1" max="10" style="width:60px;" data-saved="<?php echo esc_attr((int)($o['rc_bottom_count'] ?? 5)); ?>" onchange="rcCheckCountWarning(this,'rc-bottom-warn')">
                                         <span style="color:#888;font-size:12px;">(min 3, max 10)</span>
                                     </span>
                                     <p id="rc-bottom-warn" style="display:none;margin:6px 0 0;padding:8px 12px;background:#fffbeb;border-left:3px solid #f59e0b;color:#92400e;font-size:12px;">&#9888; You have increased the link count. Existing posts will only show the new amount after you run <strong>Refresh Stale</strong> in the Related Articles table below.</p>
@@ -653,7 +654,7 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="background:linear-gradient(120deg,#4338ca 0%,#6366f1 60%,#818cf8 100%);display:flex;align-items:center;justify-content:space-between;">
                     <span>&#128279; Related Articles — Post Status</span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-rc-table" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-rc-table', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
                         <?php $this->explain_btn('rc_table', '&#128279; Related Articles — How it works', [
                             ['name'=>'What it does',       'rec'=>'ℹ️ Info',      'desc'=>'For every published post, Related Articles finds and ranks other posts on your site that are topically related. It surfaces two blocks on the front end: a &ldquo;Related Articles&rdquo; block near the top of the article (closest conceptual matches) and a &ldquo;You Might Also Like&rdquo; block at the bottom (broader related posts).'],
                             ['name'=>'No AI required',     'rec'=>'✅ Free',       'desc'=>'Generation uses only signals already on your site — shared categories, shared tags, title keyword overlap, and your existing AI summary text. There are zero API calls and no cost. It scores every candidate post locally in PHP and ranks by relevance.'],
@@ -669,15 +670,15 @@ trait CS_SEO_Settings_Page {
 
                     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
                         <span style="font-weight:600;color:#1d2327;font-size:13px;">Filter:</span>
-                        <button type="button" class="button rc-filter-btn rc-filter-active" data-filter="all"    >All Posts</button>
-                        <button type="button" class="button rc-filter-btn"                  data-filter="pending" >&#9711; Pending</button>
-                        <button type="button" class="button rc-filter-btn"                  data-filter="complete">&#9989; Complete</button>
-                        <button type="button" class="button rc-filter-btn"                  data-filter="error"   >&#10060; Error</button>
+                        <button type="button" class="button rc-filter-btn rc-filter-active" data-filter="all"     onclick="rcSetFilter('all',this)">All Posts</button>
+                        <button type="button" class="button rc-filter-btn"                  data-filter="pending"  onclick="rcSetFilter('pending',this)">&#9711; Pending</button>
+                        <button type="button" class="button rc-filter-btn"                  data-filter="complete" onclick="rcSetFilter('complete',this)">&#9989; Complete</button>
+                        <button type="button" class="button rc-filter-btn"                  data-filter="error"    onclick="rcSetFilter('error',this)">&#10060; Error</button>
                         <span style="flex:1;"></span>
-                        <button type="button" class="button button-primary" id="rc-btn-sync-counts"      title="Generates missing Related Articles for new posts and syncs link counts for existing ones — single server-side pass">&#9881; Generate &amp; Sync</button>
-                        <button type="button" class="button"               id="rc-btn-refresh-stale"   >&#8635; Refresh Stale</button>
-                        <button type="button" class="button"               id="rc-btn-retry-failed"    >&#128257; Retry Failed</button>
-                        <button type="button" class="button"               id="rc-btn-reset-all"        style="color:#b91c1c;border-color:#b91c1c;">&#128465; Reset All</button>
+                        <button type="button" class="button button-primary" id="rc-btn-sync-counts"      onclick="rcSyncCounts()" title="Generates missing Related Articles for new posts and syncs link counts for existing ones — single server-side pass">&#9881; Generate &amp; Sync</button>
+                        <button type="button" class="button"               id="rc-btn-refresh-stale"    onclick="rcBatch('stale')">&#8635; Refresh Stale</button>
+                        <button type="button" class="button"               id="rc-btn-retry-failed"     onclick="rcBatch('failed')">&#128257; Retry Failed</button>
+                        <button type="button" class="button"               id="rc-btn-reset-all"        onclick="rcResetAll()" style="color:#b91c1c;border-color:#b91c1c;">&#128465; Reset All</button>
                     </div>
 
                     <div id="rc-batch-bar" style="display:none;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:8px;padding:12px 16px;margin-bottom:16px;">
@@ -686,7 +687,7 @@ trait CS_SEO_Settings_Page {
                                 <div id="rc-batch-progress-bar" style="height:100%;background:#6366f1;border-radius:4px;width:0%;transition:width 0.3s;"></div>
                             </div>
                             <span id="rc-batch-label" style="font-size:12px;color:#4338ca;font-weight:600;white-space:nowrap;">0 / 0</span>
-                            <button type="button" class="button" id="rc-btn-stop" style="color:#b91c1c;border-color:#b91c1c;">&#9646;&#9646; Stop</button>
+                            <button type="button" class="button" id="rc-btn-stop" onclick="rcStopBatch()" style="color:#b91c1c;border-color:#b91c1c;">&#9646;&#9646; Stop</button>
                         </div>
                     </div>
 
@@ -729,7 +730,7 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">⚙</span> <?php esc_html_e( 'Features &amp; Robots', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-features" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-features', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('features', '⚙ Features & Robots — What each option does', [
                         ['rec'=>'✅ Recommended','name'=>'OpenGraph + Twitter Cards','desc'=>'Adds structured metadata so your posts display with a title, description and image when shared on LinkedIn, Twitter/X, WhatsApp or any other platform. Without this, shared links look blank or use random images.'],
                         ['rec'=>'✅ Recommended','name'=>'WebSite JSON-LD (front page)','desc'=>'Tells Google the name and URL of your site in structured data format. Helps Google display your site name correctly in search results and can unlock sitelinks beneath your homepage listing.'],
@@ -771,7 +772,7 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">⚙</span> <?php esc_html_e( 'Sitemap Settings', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-sitemap-settings" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-sitemap-settings', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('sitemap', '⚙ Sitemap Settings — What each option does', [
                         ['rec'=>'✅ Recommended','name'=>'Enable /sitemap.xml','desc'=>'Generates a sitemap at yoursite.com/sitemap.xml listing all your published content. Submit this URL to Google Search Console so Google knows exactly what pages to crawl. Also automatically appends the sitemap URL to your robots.txt.'],
                         ['rec'=>'✅ Recommended','name'=>'Include Posts','desc'=>'Adds all your published blog posts to the sitemap. This should always be on — posts are your primary content and the main thing you want Google to discover and index.'],
@@ -843,7 +844,7 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">🤖</span> <?php esc_html_e( 'Robots.txt', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-robots" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-robots', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('robots', '🤖 Robots.txt — What this all means', [
                         ['rec'=>'ℹ️ Info','name'=>'What is robots.txt?','desc'=>'A plain text file at yoursite.com/robots.txt that tells search engine crawlers which pages they are and aren\'t allowed to visit. It doesn\'t prevent indexing — it prevents crawling. Google respects it; malicious bots ignore it entirely.'],
                         ['rec'=>'ℹ️ Info','name'=>'Physical file warning','desc'=>'If a robots.txt file exists on disk, the web server serves it directly — bypassing WordPress and this plugin completely. You must rename or delete it to let the plugin take control. The plugin offers a one-click rename to robots.txt.bak.'],
@@ -899,7 +900,7 @@ trait CS_SEO_Settings_Page {
                         <?php endif; ?>
                         <strong>What happens when you click Rename:</strong> The file is renamed to <code>robots.txt.bak</code> in the same directory. WordPress then takes over and this plugin generates robots.txt dynamically on every request.<br><br>
                         <?php if ($physical_writable): ?>
-                        <button type="button" class="button button-primary" id="ab-rename-robots-btn">
+                        <button type="button" class="button button-primary" id="ab-rename-robots-btn" onclick="abRenameRobots()">
                             ✎ Rename robots.txt → robots.txt.bak
                         </button>
                         <span id="ab-rename-robots-status" style="margin-left:10px;font-size:13px"></span>
@@ -930,8 +931,8 @@ trait CS_SEO_Settings_Page {
                             &nbsp;<a href="<?php echo esc_url(home_url('/robots.txt')); ?>" target="_blank" style="font-size:12px">↗ view in browser</a>
                         </div>
                         <div style="display:flex;gap:6px">
-                            <button type="button" class="button" style="font-size:11px;padding:2px 10px" id="ab-robots-live-copy">⎘ Copy</button>
-                            <button type="button" class="button" style="font-size:11px;padding:2px 10px">↻ Refresh</button>
+                            <button type="button" class="button" style="font-size:11px;padding:2px 10px" id="ab-robots-live-copy" onclick="abCopyRobotsLive()">⎘ Copy</button>
+                            <button type="button" class="button" style="font-size:11px;padding:2px 10px" onclick="abRefreshRobotsPreview()">↻ Refresh</button>
                         </div>
                     </div>
                     <pre id="ab-robots-live-preview" style="background:#1a1a2e;color:#e0e0f0;font-family:'Courier New',monospace;font-size:12px;line-height:1.6;padding:14px;border-radius:6px;max-height:320px;overflow-y:auto;margin:0;white-space:pre-wrap;word-break:break-word">Loading…</pre>
@@ -953,8 +954,8 @@ trait CS_SEO_Settings_Page {
                                 rows="16" style="width:100%"><?php echo esc_textarea((string)($o['robots_txt'] ?? self::default_robots_txt())); ?></textarea>
                             <p class="description">Full robots.txt content. The AI bot blocklist (if enabled) and your sitemap URL are appended automatically — do not add them here. Changes take effect immediately at <a href="<?php echo esc_url(home_url('/robots.txt')); ?>" target="_blank"><?php echo esc_html(home_url('/robots.txt')); ?></a></p>
                             <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px">
-                                <button type="button" class="button" id="ab-robots-copy">⎘ Copy</button>
-                                <button type="button" class="button">Reset to default</button>
+                                <button type="button" class="button" id="ab-robots-copy" onclick="abCopyRobots()">⎘ Copy</button>
+                                <button type="button" class="button" onclick="document.getElementById('cs-robots-txt').value=<?php echo wp_json_encode(self::default_robots_txt()); ?>">Reset to default</button>
                             </div>
                         </td>
                     </tr>
@@ -978,10 +979,11 @@ trait CS_SEO_Settings_Page {
                         ['rec'=>'ℹ️ Info','name'=>'Pagination','desc'=>'Results are shown 200 at a time. Use Prev/Next to browse all your URLs. The count at the bottom right shows which URLs you\'re viewing out of the total.'],
                         ['rec'=>'ℹ️ Info','name'=>'View live sitemap','desc'=>'The link opens your actual sitemap.xml in a new tab — this is what Google sees. The index file lists all your sub-sitemaps (one per post type). Click through to see the raw XML.'],
                     ]); ?>
-                    <button id="ab-sitemap-load"                        style="background:#f0b429;border:none;border-radius:6px;color:#1d2327;font-size:13px;font-weight:700;padding:7px 18px;cursor:pointer;letter-spacing:0.02em;box-shadow:0 2px 6px rgba(0,0,0,0.25);transition:background 0.15s">
+                    <button id="ab-sitemap-load" onclick="abLoadSitemap();return false;"
+                        style="background:#f0b429;border:none;border-radius:6px;color:#1d2327;font-size:13px;font-weight:700;padding:7px 18px;cursor:pointer;letter-spacing:0.02em;box-shadow:0 2px 6px rgba(0,0,0,0.25);transition:background 0.15s">
                         ⬇ Load Preview
                     </button>
-                    <button id="ab-sitemap-copy" class="button"
+                    <button id="ab-sitemap-copy" onclick="abCopySitemap()" class="button"
                         style="font-size:11px;padding:2px 10px;margin-left:6px">
                         ⎘ Copy URLs
                     </button>
@@ -1000,7 +1002,7 @@ trait CS_SEO_Settings_Page {
             <div class="ab-zone-header" style="justify-content:space-between">
                 <span><span class="ab-zone-icon">🤖</span> llms.txt — LLM Crawler Guidance</span>
                 <span style="display:flex;align-items:center;gap:8px;">
-                    <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-llms" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                    <button type="button" class="button" onclick="abToggleCard('ab-card-llms', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                     <?php $this->explain_btn('llms', '🤖 llms.txt — What this does', [
                     ['rec'=>'✅ Recommended','name'=>'What is llms.txt','desc'=>'llms.txt is an emerging standard (proposed 2024) that helps large language model crawlers like ChatGPT, Claude, and Perplexity understand your site\'s content structure. It\'s a plain-text markdown file served at yoursite.com/llms.txt listing your posts, pages, and descriptions — similar to what sitemap.xml does for traditional search engines, but optimised for AI indexing.'],
                     ['rec'=>'✅ Recommended','name'=>'Enable /llms.txt','desc'=>'Serves a dynamically generated llms.txt at yoursite.com/llms.txt. The file is built from your published posts and pages, using your AI-generated meta descriptions as the per-post summaries. Enable this if you want AI assistants and LLM-powered search engines to have an accurate, structured view of your site content.'],
@@ -1030,7 +1032,7 @@ trait CS_SEO_Settings_Page {
                 <div style="margin-top:8px;border-top:1px solid #f0f0f0;padding-top:16px">
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
                         <button id="ab-llms-load" class="button" style="background:#1a4a8a;color:#fff;border-color:#143a6e">🔍 Load Preview</button>
-                        <button id="ab-llms-copy" class="button" style="font-size:11px;padding:2px 10px">⎘ Copy</button>
+                        <button id="ab-llms-copy" class="button" style="font-size:11px;padding:2px 10px" onclick="abCopyLlms()">⎘ Copy</button>
                         <?php if ((int)($o['enable_llms_txt'] ?? 0)): ?>
                         <a href="<?php echo esc_url(home_url('/llms.txt')); ?>" target="_blank" class="button">↗ View Live File</a>
                         <?php endif; ?>
@@ -1053,7 +1055,7 @@ trait CS_SEO_Settings_Page {
                     ['rec'=>'⚠️ Caution',     'name'=>'What Fix does',          'desc'=>'Replaces all found http:// references with https://. This is a bulk database update — take a backup before running. The operation is not reversible from within this tool. It covers post_content, post_excerpt, postmeta, options, and comments.'],
                     ['rec'=>'ℹ️ Info',        'name'=>'External links',         'desc'=>'The fix also updates external URLs in your content from http to https where present. This is generally safe but worth reviewing if you link to sites that may not support HTTPS.'],
                 ]); ?>
-                <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-https" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                <button type="button" class="button" onclick="abToggleCard('ab-card-https', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                 </span>
             </div>
             <div class="ab-zone-body" style="padding:20px 24px 24px">
@@ -1382,7 +1384,7 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="background:#0066cc;justify-content:space-between">
                     <span><span class="ab-zone-icon">🔤</span> <?php esc_html_e( 'Font-Display Optimization', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-fonts" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-fonts', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('perf', '⚡ Performance Tab — What each feature does', [
                         ['rec'=>'✅ Recommended','name'=>'Font-Display: Swap','desc'=>'Adds font-display: swap to your @font-face rules. This tells browsers to show text immediately using a fallback font, then swap in the custom font once loaded. Eliminates the "Flash of Invisible Text" (FOIT) and dramatically improves Largest Contentful Paint (LCP) scores. Typical savings: 500ms–2s.'],
                         ['rec'=>'✅ Recommended','name'=>'Font Metric Overrides','desc'=>'Adds size-adjust, ascent-override, and descent-override properties to match your web font metrics to the fallback font. This prevents layout shift (CLS) when the custom font loads. Without this, text may jump or reflow as fonts swap.'],
@@ -1411,16 +1413,16 @@ trait CS_SEO_Settings_Page {
                     </div>
                     
                     <div style="padding:0 20px; margin:16px 0; display:flex; gap:10px; flex-wrap:wrap;">
-                        <button type="button" class="button" id="ab-font-scan-btn" style="background:#0066cc;border-color:#004d99;color:#fff;font-weight:600">
+                        <button type="button" class="button" id="ab-font-scan-btn" onclick="abFontScan(this)" style="background:#0066cc;border-color:#004d99;color:#fff;font-weight:600">
                             🔍 Scan CSS Files
                         </button>
-                        <button type="button" class="button" id="ab-font-download-btn" style="background:#1a7a34;border-color:#145a27;color:#fff;font-weight:600">
+                        <button type="button" class="button" id="ab-font-download-btn" onclick="abFontDownload(this)" style="background:#1a7a34;border-color:#145a27;color:#fff;font-weight:600">
                             ⬇️ Auto-Download CDN Fonts
                         </button>
-                        <button type="button" class="button" id="ab-font-fix-btn" style="background:#7c3aed;border-color:#5b21b6;color:#fff;font-weight:600">
+                        <button type="button" class="button" id="ab-font-fix-btn" onclick="abFontFix(this)" style="background:#7c3aed;border-color:#5b21b6;color:#fff;font-weight:600">
                             ✨ Auto-Fix All
                         </button>
-                        <button type="button" class="button" id="ab-font-clear-btn" style="background:#d946a6;border-color:#b5348a;color:#fff;font-weight:600">
+                        <button type="button" class="button" id="ab-font-clear-btn" onclick="abFontClearConsole()" style="background:#d946a6;border-color:#b5348a;color:#fff;font-weight:600">
                             🧹 Clear Console
                         </button>
                     </div>
@@ -1445,7 +1447,7 @@ trait CS_SEO_Settings_Page {
                         ['rec'=>'⬜ Optional',   'name'=>'Minify HTML',        'desc'=>'Strips whitespace, comments, and redundant characters from HTML output. Typical savings of 5–15% page size. Purely cosmetic — does not change content or break functionality. The minified HTML is served directly; no files are written to disk.'],
                         ['rec'=>'⬜ Optional',   'name'=>'Defer web fonts',    'desc'=>'Defers font stylesheet loading so text renders immediately using fallback fonts, then swaps once the font file arrives. Eliminates render-blocking from Google Fonts and similar CDN-hosted fonts. Works in combination with Font-Display: Swap in the Font Optimizer above.'],
                     ]); ?>
-                    <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-render" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                    <button type="button" class="button" onclick="abToggleCard('ab-card-render', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                     </span>
                 </div>
                 <div class="ab-zone-body" style="padding:16px 20px">
@@ -1513,7 +1515,7 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">⏱</span> <?php esc_html_e( 'Scheduled Batch Generation', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-schedule" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-schedule', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('schedule', '⏱ Scheduled Batch — How this works', [
                         ['rec'=>'ℹ️ Info','name'=>'What this does','desc'=>'Automatically runs the AI meta description generator on a schedule — no need to manually click Generate Missing. The batch only processes posts that don\'t yet have a description, so it never overwrites existing ones.'],
                         ['rec'=>'⬜ Optional','name'=>'Enable schedule','desc'=>'Turns the scheduled batch on or off. When enabled, the batch runs automatically at midnight (server time) on the days you select. When disabled, no automatic generation happens — you can still run it manually from the Optimise SEO tab.'],
@@ -1534,7 +1536,7 @@ trait CS_SEO_Settings_Page {
                                     id="cs-sched-enabled"
                                     name="<?php echo esc_attr(self::AI_OPT); ?>[schedule_enabled]"
                                     value="1" <?php checked((int)($ai['schedule_enabled'] ?? 0), 1); ?>
-                                   >
+                                    onchange="csToggleSchedDays(this.checked)">
                                 Enable automatic scheduled batch
                             </label>
                             <p class="description">Requires an Anthropic API key saved in the Optimise SEO tab → AI Meta Writer section.</p>
@@ -1603,7 +1605,7 @@ trait CS_SEO_Settings_Page {
             <div class="ab-zone-header" style="justify-content:space-between">
                 <span><span class="ab-zone-icon">📋</span> <?php esc_html_e( 'Batch Run History (28 days)', 'cloudscale-seo-ai-optimizer' ); ?></span>
                 <span style="display:flex;align-items:center;gap:8px;">
-                    <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-lastrun" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                    <button type="button" class="button" onclick="abToggleCard('ab-card-lastrun', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                     <?php $this->explain_btn('lastrun', '📋 Batch Run History — Reading the results', [
                     ['rec'=>'ℹ️ Info','name'=>'Run history','desc'=>'Shows all batch runs from the last 28 days, newest first. Each entry shows when the batch ran, how many posts were processed, and any errors. Entries older than 28 days are automatically pruned.'],
                     ['rec'=>'ℹ️ Info','name'=>'Processed','desc'=>'How many posts the batch attempted to generate descriptions for in each run. Posts that already had descriptions are skipped and not counted here.'],
@@ -1671,8 +1673,8 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="display:flex;align-items:center;justify-content:space-between;">
                     <span>🏷 Category Fixer</span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <button class="button" id="cf-reload-hdr" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#8635; Reload</button>
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-catfix" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <button class="button" id="cf-reload-hdr" onclick="cfLoad()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#8635; Reload</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-catfix', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('catfix', 'Category Fixer', [
                             ['name'=>'How it works','rec'=>'Info','desc'=>'Scans all posts using local keyword matching against your category list. No AI calls are made.'],
                             ['name'=>'Scoring','rec'=>'Info','desc'=>'Compares post title (4pts), AI summary (3pts), tags (3pts), and slug (2pts) against each category name. Existing categories get a continuity bonus.'],
@@ -1685,18 +1687,18 @@ trait CS_SEO_Settings_Page {
 
                     <div id="cf-cta" style="text-align:center;padding:32px 0;">
                         <p style="color:#555;margin:0 0 16px;">Scan all posts and suggest improved category assignments.</p>
-                        <button class="button button-primary button-hero">&#128269; Scan Posts</button>
+                        <button class="button button-primary button-hero" onclick="cfLoad()">&#128269; Scan Posts</button>
                     </div>
 
                     <div id="cf-toolbar" style="display:none;margin-bottom:16px;align-items:center;gap:8px;flex-wrap:wrap;">
                         <span id="cf-status" style="color:#555;font-size:13px;flex:1;"></span>
-                        <button class="button" id="cf-f-all">All</button>
-                        <button class="button" id="cf-f-changed">Changed</button>
-                        <button class="button" id="cf-f-unchanged">Unchanged</button>
-                        <button class="button" id="cf-f-low">Low Confidence</button>
-                        <button class="button" id="cf-f-missing">Missing</button>
-                        <button class="button" id="cf-ai-btn" style="background:#1a4a7a;border-color:#1a4a7a;color:#fff;">&#129302; AI Analyse All</button>
-                        <button class="button button-primary" id="cf-bulk-btn" style="margin-left:auto;background:#2d6a4f;border-color:#2d6a4f;color:#fff;">&#10003; Apply All Changed</button>
+                        <button class="button" onclick="cfFilter('all')" id="cf-f-all">All</button>
+                        <button class="button" onclick="cfFilter('changed')" id="cf-f-changed">Changed</button>
+                        <button class="button" onclick="cfFilter('unchanged')" id="cf-f-unchanged">Unchanged</button>
+                        <button class="button" onclick="cfFilter('low')" id="cf-f-low">Low Confidence</button>
+                        <button class="button" onclick="cfFilter('missing')" id="cf-f-missing">Missing</button>
+                        <button class="button" id="cf-ai-btn" onclick="cfAiAnalyseAll()" style="background:#1a4a7a;border-color:#1a4a7a;color:#fff;">&#129302; AI Analyse All</button>
+                        <button class="button button-primary" id="cf-bulk-btn" onclick="cfBulkApply()" style="margin-left:auto;background:#2d6a4f;border-color:#2d6a4f;color:#fff;">&#10003; Apply All Changed</button>
                     </div>
 
                     <div id="cf-stats" style="display:none;margin-bottom:16px;gap:12px;flex-wrap:wrap;"></div>
@@ -1712,7 +1714,7 @@ trait CS_SEO_Settings_Page {
                         <table id="cf-table" style="display:none;width:100%;min-width:700px;border-collapse:collapse;font-size:13px;">
                             <thead>
                                 <tr style="background:#f0f0f0;">
-                                    <th style="padding:8px 10px;text-align:left;width:24px;"><input type="checkbox" id="cf-check-all"></th>
+                                    <th style="padding:8px 10px;text-align:left;width:24px;"><input type="checkbox" id="cf-check-all" onchange="cfToggleAll(this)"></th>
                                     <th style="padding:8px 10px;text-align:left;">Post</th>
                                     <th style="padding:8px 10px;text-align:left;width:180px;">Current</th>
                                     <th style="padding:8px 10px;text-align:left;width:180px;">Proposed</th>
@@ -1732,8 +1734,8 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="display:flex;align-items:center;justify-content:space-between;background:#0e5a6e;">
                     <span>&#128202; Category Health</span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <button class="button" id="ch-reload-hdr" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#8635; Reload</button>
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-cathealth" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <button class="button" id="ch-reload-hdr" onclick="chLoad()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#8635; Reload</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-cathealth', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('cathealth', 'Category Health Dashboard', [
                             ['name'=>'Strong','rec'=>'✅ Recommended','desc'=>'10 or more published posts. This category is well established and should remain.'],
                             ['name'=>'Moderate','rec'=>'⬜ Optional','desc'=>'4 to 9 posts. Healthy but could grow further.'],
@@ -1748,7 +1750,7 @@ trait CS_SEO_Settings_Page {
 
                     <div id="ch-cta" style="text-align:center;padding:32px 0;">
                         <p style="color:#555;margin:0 0 16px;">Analyse all categories and show post counts, health grades, and per-category post lists.</p>
-                        <button class="button button-primary button-hero">&#128202; Analyse Categories</button>
+                        <button class="button button-primary button-hero" onclick="chLoad()">&#128202; Analyse Categories</button>
                     </div>
 
                     <div id="ch-stats" style="display:none;margin-bottom:16px;gap:10px;flex-wrap:wrap;"></div>
@@ -1772,8 +1774,8 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="display:flex;align-items:center;justify-content:space-between;background:#6b3fa0;">
                     <span>&#9889; Category Drift</span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <button class="button" id="cd-reload-hdr" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#129302; Re-run Analysis</button>
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-catdrift" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <button class="button" id="cd-reload-hdr" onclick="cdLoad()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#129302; Re-run Analysis</button>
+                        <button type="button" class="button" onclick="abToggleCard('ab-card-catdrift', this)" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('catdrift', 'Category Drift Detection', [
                             ['name'=>'How it works','rec'=>'ℹ️ Info','desc'=>'AI analyses the post titles in each category to determine whether the category covers a coherent topic or is being used as a catch-all for unrelated subjects. It uses semantic understanding, not pattern counting, so it can tell the difference between a legitimately broad category and a genuinely overloaded one.'],
                             ['name'=>'Catch-all','rec'=>'ℹ️ Info','desc'=>'The category contains posts on clearly unrelated topics with no coherent theme. These are the most actionable findings and are listed first.'],
@@ -1788,8 +1790,8 @@ trait CS_SEO_Settings_Page {
                     <div id="cd-cta" style="text-align:center;padding:32px 0;">
                         <p style="color:#555;margin:0 0 16px;">Detect categories being used inconsistently across posts.</p>
                         <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
-                            <button class="button" id="cd-btn-cache" style="background:#2d6a4f;color:#fff;border-color:#2d6a4f;padding:6px 16px;">&#128336; Load Cached Results</button>
-                            <button class="button button-primary" id="cd-btn-fresh">&#9889; Run Fresh AI Analysis</button>
+                            <button class="button" id="cd-btn-cache" onclick="cdLoadFromCache()" style="background:#2d6a4f;color:#fff;border-color:#2d6a4f;padding:6px 16px;">&#128336; Load Cached Results</button>
+                            <button class="button button-primary" id="cd-btn-fresh" onclick="cdLoad()">&#9889; Run Fresh AI Analysis</button>
                         </div>
                         <p id="cd-cta-msg" style="color:#888;font-size:12px;margin:12px 0 0;">Load cached results instantly, or run a fresh AI analysis.</p>
                     </div>
@@ -4426,7 +4428,7 @@ trait CS_SEO_Settings_Page {
                 clearInterval(timer);
                 if (e.name === 'AbortError') {
                     wrap.innerHTML = '<p style="color:#888;font-size:13px;">&#9632; Analysis stopped. ' +
-                        '<button type="button" class="button button-small">Try again</button></p>';
+                        '<button type="button" class="button button-small" onclick="cdLoad()">Try again</button></p>';
                     cta.style.display = 'block';
                 } else {
                     wrap.innerHTML = `<p style="color:#c3372b;font-size:13px;">&#9888; ${e.message}</p>`;
@@ -5066,120 +5068,6 @@ trait CS_SEO_Settings_Page {
                 }
             }
         })();
-
-        // Attach event listeners for all buttons (replaces inline onclick handlers)
-        document.addEventListener('DOMContentLoaded', function() {
-            // Helper function to add click listener by ID
-            function on(id, handler) {
-                var el = document.getElementById(id);
-                if (el) el.addEventListener('click', handler);
-            }
-            // AI Tools tab - Meta Description panel
-            on('ab-test-key-btn', function() { if (typeof abTestKey === 'function') abTestKey(); });
-            on('ab-copy-prompt', function() { if (typeof abCopyPrompt === 'function') abCopyPrompt(); });
-            on('ab-reload-hdr', function() { if (typeof abLoadPosts === 'function') abLoadPosts(); });
-            on('ab-ai-gen-missing', function() { if (typeof abGenAll === 'function') abGenAll(0); });
-            on('ab-ai-gen-all', function() { if (typeof abGenAll === 'function') abGenAll(1); });
-            on('ab-ai-fix', function() { if (typeof abFixAll === 'function') abFixAll(); });
-            on('ab-ai-fix-titles', function() { if (typeof abFixTitles === 'function') abFixTitles(); });
-            on('ab-ai-static', function() { if (typeof abRegenStatic === 'function') abRegenStatic(); });
-            on('ab-ai-score-all', function() { if (typeof abScoreAll === 'function') abScoreAll(); });
-            on('ab-ai-stop', function() { if (typeof abStop === 'function') abStop(); });
-            on('ab-prev', function() { if (typeof abPage === 'function') abPage(-1); });
-            on('ab-next', function() { if (typeof abPage === 'function') abPage(1); });
-            // ALT text panel
-            on('ab-alt-reload-hdr', function() { if (typeof altLoad === 'function') altLoad(); });
-            on('ab-alt-gen-all', function() { if (typeof altGenAll === 'function') altGenAll(false); });
-            on('ab-alt-force-all', function() { if (typeof altGenAll === 'function') altGenAll(true); });
-            on('ab-alt-stop', function() { if (typeof altStop === 'function') altStop(); });
-            var altShowAll = document.getElementById('ab-alt-show-all');
-            if (altShowAll) altShowAll.addEventListener('change', function() { if (typeof altState !== 'undefined') { altState.showAll = this.checked; if (typeof altRenderTable === 'function') altRenderTable(); } });
-            // Summary panel
-            on('ab-sum-reload-hdr', function() { if (typeof sumLoad === 'function') sumLoad(); });
-            on('ab-sum-gen-all', function() { if (typeof sumGenAll === 'function') sumGenAll(false); });
-            on('ab-sum-force-all', function() { if (typeof sumGenAll === 'function') sumGenAll(true); });
-            on('ab-sum-stop', function() { if (typeof sumStop === 'function') sumStop(); });
-            // Related Articles filters
-            var rcFilters = document.querySelectorAll('.rc-filter-btn');
-            rcFilters.forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    var filter = this.getAttribute('data-filter');
-                    if (typeof rcSetFilter === 'function') rcSetFilter(filter, this);
-                });
-            });
-            on('rc-btn-sync-counts', function() { if (typeof rcSyncCounts === 'function') rcSyncCounts(); });
-            on('rc-btn-refresh-stale', function() { if (typeof rcBatch === 'function') rcBatch('stale'); });
-            on('rc-btn-retry-failed', function() { if (typeof rcBatch === 'function') rcBatch('failed'); });
-            on('rc-btn-reset-all', function() { if (typeof rcResetAll === 'function') rcResetAll(); });
-            on('rc-btn-stop', function() { if (typeof rcStopBatch === 'function') rcStopBatch(); });
-            // RC count inputs
-            var rcTopInput = document.getElementById('rc_top_count_input');
-            if (rcTopInput) rcTopInput.addEventListener('change', function() { if (typeof rcCheckCountWarning === 'function') rcCheckCountWarning(this, 'rc-top-warn'); });
-            var rcBottomInput = document.getElementById('rc_bottom_count_input');
-            if (rcBottomInput) rcBottomInput.addEventListener('change', function() { if (typeof rcCheckCountWarning === 'function') rcCheckCountWarning(this, 'rc-bottom-warn'); });
-            // Robots.txt
-            on('ab-rename-robots-btn', function() { if (typeof abRenameRobots === 'function') abRenameRobots(); });
-            on('ab-robots-live-copy', function() { if (typeof abCopyRobotsLive === 'function') abCopyRobotsLive(); });
-            on('ab-robots-copy', function() { if (typeof abCopyRobots === 'function') abCopyRobots(); });
-            var robotsReset = document.querySelector('[onclick*="default_robots_txt"]');
-            if (robotsReset) {
-                robotsReset.removeAttribute('onclick');
-                robotsReset.addEventListener('click', function() {
-                    var textarea = document.getElementById('cs-robots-txt');
-                    if (textarea && typeof csSeoAdmin !== 'undefined' && csSeoAdmin.defaultRobotsTxt) {
-                        textarea.value = csSeoAdmin.defaultRobotsTxt;
-                    }
-                });
-            }
-            var robotsRefresh = document.querySelector('[onclick*="abRefreshRobotsPreview"]');
-            if (robotsRefresh) {
-                robotsRefresh.removeAttribute('onclick');
-                robotsRefresh.addEventListener('click', function() { if (typeof abRefreshRobotsPreview === 'function') abRefreshRobotsPreview(); });
-            }
-            // Sitemap
-            on('ab-sitemap-load', function(e) { e.preventDefault(); if (typeof abLoadSitemap === 'function') abLoadSitemap(); });
-            on('ab-sitemap-copy', function() { if (typeof abCopySitemap === 'function') abCopySitemap(); });
-            // LLMS.txt
-            on('ab-llms-copy', function() { if (typeof abCopyLlms === 'function') abCopyLlms(); });
-            // Font optimization
-            on('ab-font-scan-btn', function() { if (typeof abFontScan === 'function') abFontScan(this); });
-            on('ab-font-download-btn', function() { if (typeof abFontDownload === 'function') abFontDownload(this); });
-            on('ab-font-fix-btn', function() { if (typeof abFontFix === 'function') abFontFix(this); });
-            on('ab-font-clear-btn', function() { if (typeof abFontClearConsole === 'function') abFontClearConsole(); });
-            // Schedule toggle
-            var schedToggle = document.getElementById('ab-schedule-toggle');
-            if (schedToggle) schedToggle.addEventListener('change', function() { if (typeof csToggleSchedDays === 'function') csToggleSchedDays(this.checked); });
-            // Category fix
-            on('cf-reload-hdr', function() { if (typeof cfLoad === 'function') cfLoad(); });
-            var cfScanBtn = document.querySelector('[onclick="cfLoad()"]');
-            if (cfScanBtn && cfScanBtn.classList.contains('button-hero')) {
-                cfScanBtn.removeAttribute('onclick');
-                cfScanBtn.addEventListener('click', function() { if (typeof cfLoad === 'function') cfLoad(); });
-            }
-            on('cf-f-all', function() { if (typeof cfFilter === 'function') cfFilter('all'); });
-            on('cf-f-changed', function() { if (typeof cfFilter === 'function') cfFilter('changed'); });
-            on('cf-f-unchanged', function() { if (typeof cfFilter === 'function') cfFilter('unchanged'); });
-            on('cf-f-low', function() { if (typeof cfFilter === 'function') cfFilter('low'); });
-            on('cf-f-missing', function() { if (typeof cfFilter === 'function') cfFilter('missing'); });
-            on('cf-ai-btn', function() { if (typeof cfAiAnalyseAll === 'function') cfAiAnalyseAll(); });
-            on('cf-bulk-btn', function() { if (typeof cfBulkApply === 'function') cfBulkApply(); });
-            var cfCheckAll = document.getElementById('cf-check-all');
-            if (cfCheckAll) cfCheckAll.addEventListener('change', function() { if (typeof cfToggleAll === 'function') cfToggleAll(this); });
-            // Category health
-            on('ch-reload-hdr', function() { if (typeof chLoad === 'function') chLoad(); });
-            var chAnalyseBtn = document.querySelector('[onclick="chLoad()"]');
-            if (chAnalyseBtn && chAnalyseBtn.classList.contains('button-hero')) {
-                chAnalyseBtn.removeAttribute('onclick');
-                chAnalyseBtn.addEventListener('click', function() { if (typeof chLoad === 'function') chLoad(); });
-            }
-            // Category drift
-            on('cd-reload-hdr', function() { if (typeof cdLoad === 'function') cdLoad(); });
-            on('cd-btn-cache', function() { if (typeof cdLoadFromCache === 'function') cdLoadFromCache(); });
-            on('cd-btn-fresh', function() { if (typeof cdLoad === 'function') cdLoad(); });
-            // AI provider change
-            var providerSelect = document.getElementById('ab-ai-provider');
-            if (providerSelect) providerSelect.addEventListener('change', function() { if (typeof abProviderChanged === 'function') abProviderChanged(); });
-        });
 
         <?php wp_add_inline_script('cs-seo-admin-js', ob_get_clean()); ?>
         </div><!-- /wrap -->

@@ -152,6 +152,18 @@ final class CloudScale_SEO_AI_Optimizer {
     private array $opts;
     private array $ai_opts;
 
+    /**
+     * Log debug messages only when WP_DEBUG is enabled.
+     *
+     * @param string $message The message to log.
+     * @return void
+     */
+    private static function debug_log(string $message): void {
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log($message); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+        }
+    }
+
     public function __construct() {
         $this->opts    = $this->get_opts();
         $this->ai_opts = $this->get_ai_opts();
@@ -210,9 +222,7 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('before_delete_post',     [$this, 'on_post_delete'],  10, 1);
         add_action('cs_seo_cleanup_pipeline',            [$this, 'run_cleanup_pipeline']);
         add_action('wp_ajax_cs_seo_pipeline_run',        [$this, 'ajax_pipeline_run']);
-        // nopriv is intentional — the handler authenticates via a single-use HMAC token
-        // (stored as a transient, expiring after 120 s) generated at fire time. No session needed.
-        add_action('wp_ajax_nopriv_cs_seo_pipeline_run', [$this, 'ajax_pipeline_run']); // phpcs:ignore WordPressVIPMinimum.Hooks.RestrictedHooks.wp_ajax_nopriv -- secured by HMAC token; see ajax_pipeline_run() in trait-auto-pipeline.php.
+        add_action('wp_ajax_nopriv_cs_seo_pipeline_run', [$this, 'ajax_pipeline_run']);
         add_action('wp_ajax_cs_seo_auto_rerun',          [$this, 'ajax_auto_rerun']);
         add_action('add_meta_boxes', [$this, 'add_auto_run_metabox']);
 

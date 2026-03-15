@@ -136,8 +136,6 @@ table.ab-sitemap-tbl tr:nth-child(even) td { background:#fafafa; }
 table.ab-sitemap-tbl tr:nth-child(even):hover td { background:#e8f0fa; }
 .ab-sitemap-count { font-size:13px; color:#1d2327; margin:0 0 12px; font-weight:500; }
 .ab-sitemap-count strong { color:#1d2327; }
-.cs-rc-link:hover { text-decoration:underline !important; }
-.cs-hover-underline:hover { text-decoration:underline !important; }
 .ab-zone-card.ab-card-update-posts .ab-zone-header { background:#1d2327; font-size:17px; padding:16px 22px; }
 .ab-zone-card.ab-card-update-posts .ab-zone-header .ab-zone-icon { color:#f0c040; font-size:20px; }
 .ab-load-cta { display:flex; align-items:center; gap:18px; background:linear-gradient(135deg, #1d2327 0%, #2c3338 100%); border-radius:6px; padding:20px 24px; margin-bottom:20px; border-left:5px solid #f0c040; }
