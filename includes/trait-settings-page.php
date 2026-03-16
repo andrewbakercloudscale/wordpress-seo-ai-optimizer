@@ -1685,7 +1685,7 @@ trait CS_SEO_Settings_Page {
 
                     <div id="cf-cta" style="text-align:center;padding:32px 0;">
                         <p style="color:#555;margin:0 0 16px;">Scan all posts and suggest improved category assignments.</p>
-                        <button class="button button-primary button-hero">&#128269; Scan Posts</button>
+                        <button id="cf-scan-btn" class="button button-primary button-hero">&#128269; Scan Posts</button>
                     </div>
 
                     <div id="cf-toolbar" style="display:none;margin-bottom:16px;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1748,7 +1748,7 @@ trait CS_SEO_Settings_Page {
 
                     <div id="ch-cta" style="text-align:center;padding:32px 0;">
                         <p style="color:#555;margin:0 0 16px;">Analyse all categories and show post counts, health grades, and per-category post lists.</p>
-                        <button class="button button-primary button-hero">&#128202; Analyse Categories</button>
+                        <button id="ch-analyse-btn" class="button button-primary button-hero">&#128202; Analyse Categories</button>
                     </div>
 
                     <div id="ch-stats" style="display:none;margin-bottom:16px;gap:10px;flex-wrap:wrap;"></div>
@@ -5255,11 +5255,7 @@ trait CS_SEO_Settings_Page {
             if (schedToggle) schedToggle.addEventListener('change', function() { if (typeof csToggleSchedDays === 'function') csToggleSchedDays(this.checked); });
             // Category fix
             on('cf-reload-hdr', function() { if (typeof cfLoad === 'function') cfLoad(); });
-            var cfScanBtn = document.querySelector('[onclick="cfLoad()"]');
-            if (cfScanBtn && cfScanBtn.classList.contains('button-hero')) {
-                cfScanBtn.removeAttribute('onclick');
-                cfScanBtn.addEventListener('click', function() { if (typeof cfLoad === 'function') cfLoad(); });
-            }
+            on('cf-scan-btn',   function() { if (typeof cfLoad === 'function') cfLoad(); });
             on('cf-f-all', function() { if (typeof cfFilter === 'function') cfFilter('all'); });
             on('cf-f-changed', function() { if (typeof cfFilter === 'function') cfFilter('changed'); });
             on('cf-f-unchanged', function() { if (typeof cfFilter === 'function') cfFilter('unchanged'); });
@@ -5270,12 +5266,8 @@ trait CS_SEO_Settings_Page {
             var cfCheckAll = document.getElementById('cf-check-all');
             if (cfCheckAll) cfCheckAll.addEventListener('change', function() { if (typeof cfToggleAll === 'function') cfToggleAll(this); });
             // Category health
-            on('ch-reload-hdr', function() { if (typeof chLoad === 'function') chLoad(); });
-            var chAnalyseBtn = document.querySelector('[onclick="chLoad()"]');
-            if (chAnalyseBtn && chAnalyseBtn.classList.contains('button-hero')) {
-                chAnalyseBtn.removeAttribute('onclick');
-                chAnalyseBtn.addEventListener('click', function() { if (typeof chLoad === 'function') chLoad(); });
-            }
+            on('ch-reload-hdr',    function() { if (typeof chLoad === 'function') chLoad(); });
+            on('ch-analyse-btn',   function() { if (typeof chLoad === 'function') chLoad(); });
             // Category drift
             on('cd-reload-hdr', function() { if (typeof cdLoad === 'function') cdLoad(); });
             on('cd-btn-cache', function() { if (typeof cdLoadFromCache === 'function') cdLoadFromCache(); });
