@@ -3,28 +3,22 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased] - 2026-03-16
-### Fixed
-- Medium: Inline `onmouseover`/`onmouseout` event handlers removed from `render_rc_block()` output in `trait-related-articles.php`; replaced with CSS class `cs-rc-link` and a `wp_add_inline_style()` call via the new `enqueue_rc_front_styles()` method (hooked to `wp_enqueue_scripts`)
-- Medium: DocBlocks added to five private methods in `trait-font-optimizer.php`: `scan_enqueued_css`, `resolve_css_path`, `fix_css_fonts`, `patch_font_face_blocks`, `undo_font_fixes`
-- Medium: DocBlocks completed for five private methods in `trait-https-fixer.php`: `https_replace_value`, `has_incomplete_class`, `https_replace_serialized_raw`, `https_replace_recursive`, `https_replace_string`
-- Medium: DocBlocks added to ten private RC pipeline methods in `trait-related-articles.php`: `rc_step_load` through `rc_step_complete`, `rc_fingerprint`, `rc_keywords`
-- Medium: `@since` tag added to `compute_alt_content_hash()` DocBlock in `trait-seo-health.php`
-- Medium: DocBlocks added to three private methods in `trait-sitemap.php`: `get_all_sitemap_urls`, `build_sitemap_index`, `build_sitemap_page`
-- Low: Redundant `[CloudScale SEO]` prefix stripped from all `debug_log()` call-site strings in `trait-font-optimizer.php` — `Utils::log()` already prepends the prefix, so passing it again produced double-prefixed log lines
-- Low: `phpcs:ignore NonceVerification.Missing` added to `$_POST` reads in `ajax_summary_generate_one()` and `ajax_summary_generate_all()` (`trait-ai-summary.php`), `ajax_https_fix()` and `ajax_https_delete()` (`trait-https-fixer.php`), and `ajax_sitemap_preview()` (`trait-sitemap.php`) — nonce is verified by `ajax_check()` in each case; PHPCS cannot trace the delegation
-- Low: `phpcs:ignore NonPrefixedHooknameFound` added to the `apply_filters( 'https_local_ssl_verify', ... )` call in `trait-auto-pipeline.php` — `https_local_ssl_verify` is a WordPress core filter, not a plugin-owned hook
-
-
-### Fixed
-- Show/Hide Details buttons broken on all admin screens — `getElementById` in the toggle listener replaced with `querySelector('.' + cardId)` since cards use CSS classes, not IDs; auto-load logic for update-posts, alt, and summary cards restored; two pre-existing broken `if/else` blocks in dashboard widget fetch handlers corrected (`trait-admin.php`)
-- `sumGenOne` activity-log line used `({}).textContent` when `querySelector` returned `null`, producing `"✓ undefined"` — now falls back to `"Post #N"` (`trait-settings-page.php`)
+## [4.19.6] - 2026-03-16
 ### Added
 - SEO Score badge click now opens a modal showing the AI feedback notes with a **Copy Feedback** button and a **Re-score** button; unscored badges still trigger scoring directly (`trait-settings-page.php`)
 - Per-row **✦ Generate** button added to AI Summary Box Generator table — calls `cs_seo_summary_generate_one` with `force: 1` for targeted single-article regeneration (`trait-settings-page.php`)
 - Per-row **✦ Generate** button now shown on every row in the AI Image ALT Text Generator table (previously hidden for posts with no missing ALT); always calls with `force: 1` (`trait-settings-page.php`)
+### Fixed
+- Tab selection no longer resets to "AI Tools" on every page refresh — the `DOMContentLoaded` tab click handler in `trait-admin.php` now delegates to `abTab()` so `localStorage` is updated on every tab click (`trait-admin.php`)
+- Show/Hide Details buttons broken on all admin screens — `getElementById` replaced with `querySelector('.' + cardId)`; auto-load logic for update-posts, alt, and summary cards restored (`trait-admin.php`)
+- `sumGenOne` activity-log line produced `"✓ undefined"` when `querySelector` returned `null`; now falls back to `"Post #N"` (`trait-settings-page.php`)
+- Inline `onmouseover`/`onmouseout` event handlers removed from `render_rc_block()` frontend output; replaced with `.cs-rc-link` CSS class delivered via `wp_add_inline_style()` (`trait-related-articles.php`)
+- PHPCS `NonceVerification.Missing` false-positive suppressions added to `$_POST` reads in `ajax_summary_generate_one()`, `ajax_summary_generate_all()`, `ajax_https_fix()`, `ajax_https_delete()`, and `ajax_sitemap_preview()` — nonce verified by `ajax_check()` in every case
+- PHPCS `NonPrefixedHooknameFound` false-positive suppression added to `apply_filters('https_local_ssl_verify',…)` — WordPress core filter, not a plugin-owned hook (`trait-auto-pipeline.php`)
+- DocBlocks completed (missing `@since`/`@param`/`@return`) for private methods in `trait-font-optimizer.php`, `trait-https-fixer.php`, `trait-related-articles.php`, `trait-sitemap.php`, and `trait-seo-health.php`
+- Redundant `[CloudScale SEO]` prefix removed from all `debug_log()` call-site strings in `trait-font-optimizer.php` — `Utils::log()` already prepends it
 ### Changed
-- `readme.txt` `Tested up to` restored to `6.9` (current WordPress stable) after an incorrect downgrade to `6.8` during standards review
+- `readme.txt` `Tested up to` restored to `6.9` after an incorrect downgrade to `6.8` during a prior standards review
 
 ## [4.19.5] - 2026-03-15
 ### Added
