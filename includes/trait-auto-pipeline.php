@@ -149,7 +149,7 @@ trait CS_SEO_Auto_Pipeline {
             [
                 'blocking'  => false,
                 'timeout'   => 0.01,
-                'sslverify' => apply_filters( 'https_local_ssl_verify', false ), // Same pattern as WordPress core spawn_cron() — loopback to own admin-ajax.php.
+                'sslverify' => apply_filters( 'https_local_ssl_verify', false ), // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- https_local_ssl_verify is a WordPress core filter; same pattern as WP core spawn_cron()
                 'body'      => [
                     'action'  => 'cs_seo_pipeline_run',
                     'post_id' => $post_id,

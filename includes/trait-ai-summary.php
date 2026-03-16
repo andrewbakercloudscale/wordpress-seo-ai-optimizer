@@ -73,10 +73,12 @@ trait CS_SEO_AI_Summary {
     public function ajax_summary_generate_one(): void {
         $this->ajax_check();
 
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
         $post_id = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
         if (!$post_id) wp_send_json_error('Missing post_id');
 
         $force = !empty($_POST['force']);
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         // Skip if already generated and not forced.
         if (!$force) {
@@ -159,6 +161,7 @@ trait CS_SEO_AI_Summary {
     public function ajax_summary_generate_all(): void {
         $this->ajax_check();
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
         $force = !empty($_POST['force']);
 
         $args = [

@@ -309,6 +309,7 @@ trait CS_SEO_HTTPS_Fixer {
         try {
             global $wpdb;
 
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
             $domains_raw = isset($_POST['domains']) ? sanitize_text_field(wp_unslash($_POST['domains'])) : '';
             $domains = array_filter(array_map('trim', explode(',', $domains_raw)));
 
@@ -415,6 +416,7 @@ trait CS_SEO_HTTPS_Fixer {
     public function ajax_https_delete(): void {
         $this->ajax_check();
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
         $domain = isset($_POST['domain']) ? sanitize_text_field(wp_unslash($_POST['domain'])) : '';
         if (empty($domain)) {
             wp_send_json_error('No domain provided.');

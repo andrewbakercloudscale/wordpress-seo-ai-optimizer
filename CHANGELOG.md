@@ -12,6 +12,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Medium: `@since` tag added to `compute_alt_content_hash()` DocBlock in `trait-seo-health.php`
 - Medium: DocBlocks added to three private methods in `trait-sitemap.php`: `get_all_sitemap_urls`, `build_sitemap_index`, `build_sitemap_page`
 - Low: Redundant `[CloudScale SEO]` prefix stripped from all `debug_log()` call-site strings in `trait-font-optimizer.php` — `Utils::log()` already prepends the prefix, so passing it again produced double-prefixed log lines
+- Low: `phpcs:ignore NonceVerification.Missing` added to `$_POST` reads in `ajax_summary_generate_one()` and `ajax_summary_generate_all()` (`trait-ai-summary.php`), `ajax_https_fix()` and `ajax_https_delete()` (`trait-https-fixer.php`), and `ajax_sitemap_preview()` (`trait-sitemap.php`) — nonce is verified by `ajax_check()` in each case; PHPCS cannot trace the delegation
+- Low: `phpcs:ignore NonPrefixedHooknameFound` added to the `apply_filters( 'https_local_ssl_verify', ... )` call in `trait-auto-pipeline.php` — `https_local_ssl_verify` is a WordPress core filter, not a plugin-owned hook
 
 
 ### Fixed

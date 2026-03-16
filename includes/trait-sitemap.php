@@ -225,6 +225,7 @@ trait CS_SEO_Sitemap {
         $total    = count($all);
         $per_page = self::SITEMAP_PREVIEW_PER;
         $pages    = max(1, (int) ceil($total / $per_page));
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
         $pg       = max(1, min($pages, absint(wp_unslash($_POST['sitemap_pg'] ?? 1))));
         $slice    = array_slice($all, ($pg - 1) * $per_page, $per_page);
 
