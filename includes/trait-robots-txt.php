@@ -17,7 +17,7 @@ trait CS_SEO_Robots_Txt {
     public function ajax_fetch_robots(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorised');
+            wp_send_json_error('Forbidden', 403);
         }
         $physical = ABSPATH . 'robots.txt';
         if (file_exists($physical)) {
@@ -48,7 +48,7 @@ trait CS_SEO_Robots_Txt {
     public function ajax_rename_robots(): void {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorised');
+            wp_send_json_error('Forbidden', 403);
         }
         // Check ABSPATH first, then one level up for subdirectory installs
         $physical = ABSPATH . 'robots.txt';

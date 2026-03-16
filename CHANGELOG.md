@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased] - 2026-03-16
 ### Fixed
+- Medium: Inline `onmouseover`/`onmouseout` event handlers removed from `render_rc_block()` output in `trait-related-articles.php`; replaced with CSS class `cs-rc-link` and a `wp_add_inline_style()` call via the new `enqueue_rc_front_styles()` method (hooked to `wp_enqueue_scripts`)
+- Medium: DocBlocks added to five private methods in `trait-font-optimizer.php`: `scan_enqueued_css`, `resolve_css_path`, `fix_css_fonts`, `patch_font_face_blocks`, `undo_font_fixes`
+- Medium: DocBlocks completed for five private methods in `trait-https-fixer.php`: `https_replace_value`, `has_incomplete_class`, `https_replace_serialized_raw`, `https_replace_recursive`, `https_replace_string`
+- Medium: DocBlocks added to ten private RC pipeline methods in `trait-related-articles.php`: `rc_step_load` through `rc_step_complete`, `rc_fingerprint`, `rc_keywords`
+- Medium: `@since` tag added to `compute_alt_content_hash()` DocBlock in `trait-seo-health.php`
+- Medium: DocBlocks added to three private methods in `trait-sitemap.php`: `get_all_sitemap_urls`, `build_sitemap_index`, `build_sitemap_page`
+- Low: Redundant `[CloudScale SEO]` prefix stripped from all `debug_log()` call-site strings in `trait-font-optimizer.php` — `Utils::log()` already prepends the prefix, so passing it again produced double-prefixed log lines
+
+
+### Fixed
 - Show/Hide Details buttons broken on all admin screens — `getElementById` in the toggle listener replaced with `querySelector('.' + cardId)` since cards use CSS classes, not IDs; auto-load logic for update-posts, alt, and summary cards restored; two pre-existing broken `if/else` blocks in dashboard widget fetch handlers corrected (`trait-admin.php`)
 - `sumGenOne` activity-log line used `({}).textContent` when `querySelector` returned `null`, producing `"✓ undefined"` — now falls back to `"Post #N"` (`trait-settings-page.php`)
 ### Added

@@ -13,9 +13,7 @@
  * @since   4.15.5
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
  * Stateless utility helpers.

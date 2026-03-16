@@ -135,6 +135,24 @@ trait CS_SEO_Related_Articles {
         return $out;
     }
     /**
+     * Enqueues the minimal frontend CSS needed by the Related Articles blocks.
+     *
+     * Registers a no-op style handle so wp_add_inline_style() can attach the
+     * .cs-rc-link:hover rule without echoing a raw <style> tag into the page.
+     * Only enqueued on singular post pages when the feature is active.
+     *
+     * @since 4.10.0
+     * @return void
+     */
+    public function enqueue_rc_front_styles(): void {
+        if ( ! is_singular( 'post' ) ) return;
+        if ( ! (int) ( $this->opts['rc_enable'] ?? 1 ) ) return;
+        wp_register_style( 'cs-rc-styles', false ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- inline-only handle; no external file or version needed
+        wp_enqueue_style( 'cs-rc-styles' );
+        wp_add_inline_style( 'cs-rc-styles', '.cs-rc-link:hover{text-decoration:underline}' );
+    }
+
+    /**
      * Runs the Related Articles pipeline synchronously when a post is published or updated.
      *
      * RC generation is purely local (no API calls) and fast, so it runs inline on the
@@ -178,7 +196,7 @@ trait CS_SEO_Related_Articles {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) wp_die();
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce checked via check_ajax_referer above
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce checked via ajax_check()
         $page     = max(1, (int)(wp_unslash($_POST['page'] ?? 1)));
         $per_page = 50;
         $filter   = sanitize_text_field(wp_unslash($_POST['filter'] ?? 'all'));
@@ -293,7 +311,7 @@ trait CS_SEO_Related_Articles {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) wp_die();
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce checked via check_ajax_referer above
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce checked via ajax_check()
         $pid = (int)(wp_unslash($_POST['post_id'] ?? 0));
         // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
         if (!$pid || get_post_status($pid) !== 'publish') {
@@ -483,7 +501,7 @@ trait CS_SEO_Related_Articles {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) wp_die();
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce checked via check_ajax_referer above
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce checked via ajax_check()
         $pid  = (int)(wp_unslash($_POST['post_id'] ?? 0));
         $mode = sanitize_text_field(wp_unslash($_POST['mode'] ?? 'one'));
         // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
@@ -517,6 +535,16 @@ trait CS_SEO_Related_Articles {
 
     // ── RC Step implementations ───────────────────────────────────────────────
 
+    /**
+     * Step 1 — initialises a new RC generation run for a post.
+     *
+     * Records the current fingerprint, sets status to 'processing', and clears any
+     * previous error so later steps start from a clean slate.
+     *
+     * @since 4.10.0
+     * @param int $pid Post ID.
+     * @return void
+     */
     private function rc_step_load(int $pid): void {
         $post = get_post($pid);
         $fp   = $this->rc_fingerprint($pid);
@@ -526,6 +554,16 @@ trait CS_SEO_Related_Articles {
         update_post_meta($pid, self::META_RC_LAST_STEP,   self::RC_STEP_LOAD);
     }
 
+    /**
+     * Step 2 — skips regeneration if existing output is still valid.
+     *
+     * Marks the post complete without further steps when the fingerprint, generator
+     * version, and minimum link counts all match and every linked post is still published.
+     *
+     * @since 4.10.0
+     * @param int $pid Post ID.
+     * @return void
+     */
     private function rc_step_validate(int $pid): void {
         // Check if existing output is still valid — skip if nothing changed
         $stored_fp  = (string) get_post_meta($pid, self::META_RC_FINGERPRINT, true);
@@ -555,6 +593,16 @@ trait CS_SEO_Related_Articles {
         update_post_meta($pid, self::META_RC_LAST_STEP,   self::RC_STEP_VALIDATE);
     }
 
+    /**
+     * Step 3 — builds the candidate pool of posts to consider as related articles.
+     *
+     * Queries published posts sharing categories and/or tags with the source post,
+     * deduplicates, and stores the capped list in post meta for the next scoring step.
+     *
+     * @since 4.10.0
+     * @param int $pid Post ID.
+     * @return void
+     */
     private function rc_step_candidates(int $pid): void {
         $opts         = $this->opts;
         $pool_size    = max(10, min(50, (int)($opts['rc_pool_size'] ?? 20)));
@@ -608,6 +656,17 @@ trait CS_SEO_Related_Articles {
         update_post_meta($pid, self::META_RC_LAST_STEP,  self::RC_STEP_CANDIDATES);
     }
 
+    /**
+     * Step 4 — scores every candidate post against the source post.
+     *
+     * Awards points for shared primary category, shared categories/tags, title keyword
+     * overlap, summary keyword overlap, and a recency bonus. Stores the score map sorted
+     * descending so step 5 and 6 can simply slice the top entries.
+     *
+     * @since 4.10.0
+     * @param int $pid Post ID.
+     * @return void
+     */
     private function rc_step_score(int $pid): void {
         $opts      = $this->opts;
         $use_cats  = (int)($opts['rc_use_categories'] ?? 1);
@@ -686,6 +745,16 @@ trait CS_SEO_Related_Articles {
         update_post_meta($pid, self::META_RC_LAST_STEP, self::RC_STEP_SCORE);
     }
 
+    /**
+     * Step 5 — selects the top-scoring posts for the 'Related Articles' block.
+     *
+     * Slices the first rc_top_count entries from the sorted score map and stores
+     * their IDs in META_RC_TOP. An empty score map yields an empty array.
+     *
+     * @since 4.10.0
+     * @param int $pid Post ID.
+     * @return void
+     */
     private function rc_step_top(int $pid): void {
         $count  = max(2, min(5, (int)($this->opts['rc_top_count'] ?? 3)));
         $scores = maybe_unserialize(get_post_meta($pid, self::META_RC_SCORES, true));
@@ -699,6 +768,16 @@ trait CS_SEO_Related_Articles {
         update_post_meta($pid, self::META_RC_LAST_STEP, self::RC_STEP_TOP);
     }
 
+    /**
+     * Step 6 — selects posts for the 'You Might Also Like' block.
+     *
+     * Takes the next rc_bottom_count highest-scoring posts from the candidates
+     * that were not already selected for the top block, storing them in META_RC_BOTTOM.
+     *
+     * @since 4.10.0
+     * @param int $pid Post ID.
+     * @return void
+     */
     private function rc_step_bottom(int $pid): void {
         $count   = max(3, min(10, (int)($this->opts['rc_bottom_count'] ?? 5)));
         $scores  = maybe_unserialize(get_post_meta($pid, self::META_RC_SCORES, true));
@@ -716,6 +795,16 @@ trait CS_SEO_Related_Articles {
         update_post_meta($pid, self::META_RC_LAST_STEP, self::RC_STEP_BOTTOM);
     }
 
+    /**
+     * Step 7 — validates and filters the top and bottom output lists.
+     *
+     * Removes self-references and any post IDs that are no longer published. Also
+     * ensures no post appears in both blocks. Updates the stored lists in place.
+     *
+     * @since 4.10.0
+     * @param int $pid Post ID.
+     * @return void
+     */
     private function rc_step_validate_out(int $pid): void {
         $top_raw = maybe_unserialize(get_post_meta($pid, self::META_RC_TOP,    true));
         $bot_raw = maybe_unserialize(get_post_meta($pid, self::META_RC_BOTTOM, true));
@@ -733,6 +822,16 @@ trait CS_SEO_Related_Articles {
         update_post_meta($pid, self::META_RC_LAST_STEP, self::RC_STEP_VALIDATE_OUT);
     }
 
+    /**
+     * Step 8 — marks the pipeline run as complete.
+     *
+     * Writes status = 'complete', the current RC_VERSION, and the current timestamp
+     * so the validate step can detect staleness on the next run.
+     *
+     * @since 4.10.0
+     * @param int $pid Post ID.
+     * @return void
+     */
     private function rc_step_complete(int $pid): void {
         update_post_meta($pid, self::META_RC_STATUS,    'complete');
         update_post_meta($pid, self::META_RC_VERSION,   self::RC_VERSION);
@@ -743,8 +842,14 @@ trait CS_SEO_Related_Articles {
     // ── RC helpers ────────────────────────────────────────────────────────────
 
     /**
-     * Computes a fingerprint for a post based on signals used in scoring.
-     * If any of these change, the cache is invalidated.
+     * Computes a fingerprint for a post based on the signals used in RC scoring.
+     *
+     * Covers title, categories, tags, and the three summary meta fields. Any change
+     * to these values invalidates the existing Related Articles output.
+     *
+     * @since 4.10.0
+     * @param int $pid Post ID.
+     * @return string MD5 hash string representing the current scoring inputs.
      */
     private function rc_fingerprint(int $pid): string {
         $cats = wp_get_post_categories($pid, ['fields' => 'ids']);
@@ -761,8 +866,14 @@ trait CS_SEO_Related_Articles {
     }
 
     /**
-     * Extracts significant keywords from a text string for overlap scoring.
-     * Returns lowercase unique words, excluding common stop words.
+     * Extracts significant lowercase keywords from a text string for RC overlap scoring.
+     *
+     * Strips HTML, lowercases, removes punctuation, and filters out words shorter than
+     * three characters and a hardcoded list of common English stop words.
+     *
+     * @since 4.10.0
+     * @param string $text Plain or HTML text to tokenise.
+     * @return string[] Unique, lowercased, stop-word-filtered keyword tokens.
      */
     private function rc_keywords(string $text): array {
         static $stop = ['the','a','an','is','in','to','of','and','for','with','on','at','by',

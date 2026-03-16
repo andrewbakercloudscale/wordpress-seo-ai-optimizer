@@ -13,14 +13,15 @@ trait CS_SEO_SEO_Health {
     // =========================================================================
 
     /**
-     * Compute image content hash for a post.
+     * Computes an MD5 fingerprint of a post's image content.
      *
      * Combines post_content with all attachment IDs found in that content plus
      * the featured image ID. If the hash changes between runs it means images
      * were added or removed, so the ALT-done flag is stale.
      *
-     * @param int $post_id
-     * @return string MD5 hash string.
+     * @since 4.10.0
+     * @param int $post_id Post ID.
+     * @return string MD5 hash string, or empty string if the post does not exist.
      */
     public static function compute_alt_content_hash(int $post_id): string {
         $post = get_post($post_id);
@@ -167,10 +168,7 @@ trait CS_SEO_SEO_Health {
      * @return void
      */
     public function ajax_rebuild_health_cache(): void {
-        check_ajax_referer('cs_seo_nonce', 'nonce');
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Forbidden', 403);
-        }
+        $this->ajax_check();
         $cache = $this->rebuild_health_cache();
         wp_send_json_success($cache);
     }

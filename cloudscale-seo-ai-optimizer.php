@@ -13,7 +13,7 @@
  * Requires PHP: 8.0
  */
 
-if (!defined('ABSPATH')) exit;
+if ( ! defined( 'ABSPATH' ) ) exit;
 
 // PHP version guard — before any PHP 8-only syntax so older versions get a clean message.
 if (version_compare(PHP_VERSION, '8.0', '<')) {
@@ -205,6 +205,7 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('deleted_post', function() { delete_transient('cs_seo_llms_txt'); delete_transient(self::SITEMAP_URLS_CACHE); });
         add_filter('the_content',    [$this, 'prepend_summary_box']);
         add_filter('the_content',    [$this, 'inject_related_links'], 20);
+        add_action('wp_enqueue_scripts', [$this, 'enqueue_rc_front_styles']);
         // Clear stale custom OG image when the featured image is changed.
         add_action('updated_post_meta', [$this, 'on_thumbnail_updated'], 10, 4);
         add_action('added_post_meta',   [$this, 'on_thumbnail_updated'], 10, 4);
