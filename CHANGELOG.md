@@ -3,6 +3,13 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.19.7] - 2026-03-16
+### Fixed
+- **Scan Posts** button (Categories tab) not responding to clicks — button had no `id` after the PCP refactor removed its `onclick`; added `id="cf-scan-btn"` and replaced broken `querySelector('[onclick=...]')` with `on('cf-scan-btn', fn)` (`trait-settings-page.php`)
+- **Analyse Categories** button had the same issue — added `id="ch-analyse-btn"` and wired via `on()` (`trait-settings-page.php`)
+- **↻ Refresh** (Robots live preview) not responding — same root cause; added `id="ab-robots-refresh-btn"` and wired via `on()` (`trait-settings-page.php`)
+- **Reset to default** (Robots textarea) not responding — same root cause; added `id="ab-robots-reset-btn"` and wired via `on()` (`trait-settings-page.php`)
+
 ## [4.19.6] - 2026-03-16
 ### Added
 - SEO Score badge click now opens a modal showing the AI feedback notes with a **Copy Feedback** button and a **Re-score** button; unscored badges still trigger scoring directly (`trait-settings-page.php`)
