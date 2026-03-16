@@ -136,12 +136,15 @@ trait CS_SEO_Category_Fixer {
     }
 
     /**
-     * AJAX handler: loads all posts with their current and proposed category assignments.
+     * AJAX handler: returns all published post IDs and the category map.
      *
-     * @since 4.10.59
+     * Called first by the JS batch-scan flow to get the full list quickly,
+     * before the heavier per-batch analysis starts.
+     *
+     * @since 4.19.14
      * @return void
      */
-    public function ajax_catfix_load(): void {
+    public function ajax_catfix_list_ids(): void {
         $this->catfix_nonce_check();
 
         $posts = [];
@@ -161,6 +164,57 @@ trait CS_SEO_Category_Fixer {
             ]);
             $posts = array_merge($posts, $chunk);
         } while (count($chunk) === $batch);
+
+        $all_cats = get_categories(['hide_empty' => false]);
+        $cat_map  = [];
+        foreach ($all_cats as $c) $cat_map[(int) $c->term_id] = $c->name;
+
+        wp_send_json(['success' => true, 'ids' => array_map('intval', $posts), 'cat_map' => $cat_map]);
+    }
+
+    /**
+     * AJAX handler: loads posts with their current and proposed category assignments.
+     *
+     * Accepts an optional post_ids[] parameter for batched loading. If supplied,
+     * only those posts are processed — used by the JS progress-scan flow.
+     * Without it, all published posts are processed (legacy behaviour).
+     *
+     * @since 4.10.59
+     * @since 4.19.14 Added post_ids[] batch parameter.
+     * @return void
+     */
+    public function ajax_catfix_load(): void {
+        $this->catfix_nonce_check();
+
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
+        $requested_ids = isset($_POST['post_ids'])
+            ? array_map('intval', (array) wp_unslash($_POST['post_ids']))
+            : [];
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+        if (!empty($requested_ids)) {
+            // Batched mode: the JS already has the full ID list; process only this slice.
+            $posts = $requested_ids;
+        } else {
+            // Legacy full-load (kept for backwards compat; JS now uses batched mode).
+            $posts = [];
+            $page  = 1;
+            $batch = 500;
+            do {
+                $chunk = get_posts([
+                    'post_type'           => 'post',
+                    'post_status'         => 'publish',
+                    'posts_per_page'      => $batch,
+                    'paged'               => $page++,
+                    'fields'              => 'ids',
+                    'orderby'             => 'title',
+                    'order'               => 'ASC',
+                    'no_found_rows'       => true,
+                    'ignore_sticky_posts' => true,
+                ]);
+                $posts = array_merge($posts, $chunk);
+            } while (count($chunk) === $batch);
+        }
 
         $all_cats = get_categories(['hide_empty' => false]);
         $cat_map  = [];

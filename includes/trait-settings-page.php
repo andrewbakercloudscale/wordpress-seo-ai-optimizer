@@ -4143,137 +4143,219 @@ trait CS_SEO_Settings_Page {
             document.querySelectorAll('.cf-chk').forEach(c => c.checked = cb.checked);
         }
 
+        function cfErr(label, err) {
+            console.error('[catfix] ' + label, err);
+            const st = document.getElementById('cf-status');
+            if (st) st.textContent = 'Error: ' + (err ? err.message : label);
+        }
+
+        function cfSetLoadingState(loading) {
+            // Only disable action buttons (not filter buttons).
+            // Filters must always be clickable so the user can browse partial results
+            // while batches are still loading. Disabling them caused "nothing works"
+            // if any batch call hung and the finally block was never reached.
+            ['cf-ai-btn','cf-bulk-btn','cf-reload-hdr'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = loading;
+            });
+        }
+
+        async function cfFetchWithTimeout(url, opts, ms) {
+            // Wraps fetch with an AbortController timeout so a hung batch
+            // doesn't freeze the entire scan indefinitely.
+            const ctrl = new AbortController();
+            const tid  = setTimeout(() => ctrl.abort(), ms);
+            try {
+                return await fetch(url, Object.assign({}, opts, {signal: ctrl.signal}));
+            } finally { clearTimeout(tid); }
+        }
+
         async function cfLoad() {
-            document.getElementById('cf-cta').style.display = 'none';
-            document.getElementById('cf-status').textContent = 'Scanning posts...';
-            document.getElementById('cf-toolbar').style.display = 'flex';
-            document.getElementById('cf-stats').style.display = 'none';
-            document.getElementById('cf-table').style.display = 'none';
-            document.getElementById('cf-reload-hdr').style.display = '';
-            document.getElementById('cf-hideposts-hdr').style.display = '';
+            // Two-phase batched scan: Phase 1 gets all post IDs instantly (~10ms, no analysis).
+            // Phase 2 analyses in batches of 25 with a live counter — each batch is fast
+            // and the table populates progressively so filters work throughout.
+            const CF_BATCH   = 25;
+            const CF_TIMEOUT = 30000; // 30 s per batch before skipping
+            try {
+                document.getElementById('cf-cta').style.display = 'none';
+                document.getElementById('cf-toolbar').style.display = 'flex';
+                document.getElementById('cf-stats').style.display = 'none';
+                document.getElementById('cf-table').style.display = 'none';
+                document.getElementById('cf-reload-hdr').style.display = '';
+                const cfHideBtn = document.getElementById('cf-hideposts-hdr');
+                if (cfHideBtn) cfHideBtn.style.display = '';
+                cfSetLoadingState(true);
+                cfAllPosts = [];
 
-            const fd = new FormData();
-            fd.append('action', 'cs_catfix_load');
-            fd.append('nonce', cfNonce);
-            const r = await fetch(ajaxurl, {method:'POST', body:fd});
-            const d = await r.json();
-            if (!d.success) { document.getElementById('cf-status').textContent = 'Error loading posts.'; return; }
+                // ── Phase 1: get post ID list (fast, no analysis) ───────────────
+                document.getElementById('cf-status').textContent = 'Fetching post list…';
+                const fd1 = new FormData();
+                fd1.append('action', 'cs_catfix_list_ids');
+                fd1.append('nonce', cfNonce);
+                const r1 = await cfFetchWithTimeout(ajaxurl, {method:'POST', body:fd1}, CF_TIMEOUT);
+                const d1 = await r1.json();
+                if (!d1.success) { document.getElementById('cf-status').textContent = 'Error fetching post list.'; return; }
 
-            cfAllPosts = d.posts;
-            cfPage = 1;
-            document.getElementById('cf-table').style.display = 'table';
-            document.getElementById('cf-legend').style.display = 'block';
-            cfFilter('all'); // default to all posts view after scan
+                const allIds = d1.ids;
+                const total  = allIds.length;
+                if (total === 0) {
+                    document.getElementById('cf-status').textContent = 'No published posts found.';
+                    cfFilter('all');
+                    return;
+                }
+
+                document.getElementById('cf-table').style.display = 'table';
+                document.getElementById('cf-legend').style.display = 'block';
+
+                // ── Phase 2: analyse in batches, live progress ──────────────────
+                for (let i = 0; i < total; i += CF_BATCH) {
+                    const batchIds = allIds.slice(i, i + CF_BATCH);
+                    document.getElementById('cf-status').textContent =
+                        `Scanning post ${i + 1} of ${total}`;
+
+                    try {
+                        const fd2 = new FormData();
+                        fd2.append('action', 'cs_catfix_load');
+                        fd2.append('nonce', cfNonce);
+                        batchIds.forEach(id => fd2.append('post_ids[]', id));
+
+                        const r2 = await cfFetchWithTimeout(ajaxurl, {method:'POST', body:fd2}, CF_TIMEOUT);
+                        const d2 = await r2.json();
+                        if (d2.success) {
+                            cfAllPosts = cfAllPosts.concat(d2.posts);
+                            cfPage = 1;
+                            cfFilter('all');
+                        } else {
+                            console.error('[catfix] batch at offset ' + i + ' returned success:false');
+                        }
+                    } catch(batchErr) {
+                        console.error('[catfix] batch at offset ' + i + ' failed:', batchErr);
+                        // Continue with remaining batches — don't abort the whole scan
+                    }
+                }
+
+                document.getElementById('cf-status').textContent =
+                    cfAllPosts.length + ' posts scanned';
+                cfFilter('all');
+            } catch(err) { cfErr('cfLoad', err); }
+            finally { cfSetLoadingState(false); }
         }
 
         async function cfApplyOne(postId) {
-            const p = cfAllPosts.find(x => x.post_id === postId);
-            if (!p) return;
-            const fd = new FormData();
-            fd.append('action', 'cs_catfix_apply');
-            fd.append('nonce', cfNonce);
-            fd.append('post_id', postId);
-            p.proposed_ids.forEach(id => fd.append('proposed_ids[]', id));
-            const r = await fetch(ajaxurl, {method:'POST', body:fd});
-            const d = await r.json();
-            if (d.success) {
-                p.status = 'applied';
-                cfRender();
-            }
+            try {
+                const p = cfAllPosts.find(x => x.post_id === postId);
+                if (!p) return;
+                const fd = new FormData();
+                fd.append('action', 'cs_catfix_apply');
+                fd.append('nonce', cfNonce);
+                fd.append('post_id', postId);
+                p.proposed_ids.forEach(id => fd.append('proposed_ids[]', id));
+                const r = await fetch(ajaxurl, {method:'POST', body:fd});
+                const d = await r.json();
+                if (d.success) { p.status = 'applied'; cfRender(); }
+                else cfErr('cfApplyOne: server error for post ' + postId, null);
+            } catch(err) { cfErr('cfApplyOne', err); }
         }
 
         async function cfSkipOne(postId) {
-            const p = cfAllPosts.find(x => x.post_id === postId);
-            if (!p) return;
-            const fd = new FormData();
-            fd.append('action', 'cs_catfix_skip');
-            fd.append('nonce', cfNonce);
-            fd.append('post_id', postId);
-            await fetch(ajaxurl, {method:'POST', body:fd});
-            p.status = 'skipped';
-            cfRender();
+            try {
+                const p = cfAllPosts.find(x => x.post_id === postId);
+                if (!p) return;
+                const fd = new FormData();
+                fd.append('action', 'cs_catfix_skip');
+                fd.append('nonce', cfNonce);
+                fd.append('post_id', postId);
+                await fetch(ajaxurl, {method:'POST', body:fd});
+                p.status = 'skipped';
+                cfRender();
+            } catch(err) { cfErr('cfSkipOne', err); }
         }
 
         async function cfAiOne(postId) {
-            const fd = new FormData();
-            fd.append('action', 'cs_catfix_ai_one');
-            fd.append('nonce', cfNonce);
-            fd.append('post_id', postId);
-            const r = await fetch(ajaxurl, {method:'POST', body:fd});
-            const d = await r.json();
-            if (!d.success) return null;
-            // Merge result back into cfAllPosts
-            const idx = cfAllPosts.findIndex(p => p.post_id === postId);
-            if (idx !== -1) {
-                cfAllPosts[idx] = Object.assign(cfAllPosts[idx], {
-                    proposed_ids:    d.proposed_ids,
-                    proposed_names:  d.proposed_names,
-                    add_ids:         d.add_ids,
-                    add_names:       d.add_names,
-                    remove_ids:      d.remove_ids,
-                    remove_names:    d.remove_names,
-                    unchanged_names: d.unchanged_names,
-                    confidence:      d.confidence,
-                    changed:         d.changed,
-                    source:          'ai',
-                    status:          'pending',
-                });
-            }
-            return d;
+            try {
+                const fd = new FormData();
+                fd.append('action', 'cs_catfix_ai_one');
+                fd.append('nonce', cfNonce);
+                fd.append('post_id', postId);
+                const r = await fetch(ajaxurl, {method:'POST', body:fd});
+                const d = await r.json();
+                if (!d.success) return null;
+                const idx = cfAllPosts.findIndex(p => p.post_id === postId);
+                if (idx !== -1) {
+                    cfAllPosts[idx] = Object.assign(cfAllPosts[idx], {
+                        proposed_ids:    d.proposed_ids,
+                        proposed_names:  d.proposed_names,
+                        add_ids:         d.add_ids,
+                        add_names:       d.add_names,
+                        remove_ids:      d.remove_ids,
+                        remove_names:    d.remove_names,
+                        unchanged_names: d.unchanged_names,
+                        confidence:      d.confidence,
+                        changed:         d.changed,
+                        source:          'ai',
+                        status:          'pending',
+                    });
+                }
+                return d;
+            } catch(err) { cfErr('cfAiOne', err); return null; }
         }
 
         async function cfAiAnalyseAll() {
             const btn = document.getElementById('cf-ai-btn');
-            btn.disabled = true;
-            const posts = cfAllPosts.filter(p => p.status !== 'applied' && p.status !== 'skipped');
-            const total = posts.length;
-            let done = 0;
-            for (const p of posts) {
-                document.getElementById('cf-status').textContent = `AI analysing ${++done} / ${total}...`;
-                await cfAiOne(p.post_id);
-                // Re-apply current filter so row updates live
-                const active = document.querySelector('[id^="cf-f-"][style*="#2d6a4f"]');
-                const type = active ? active.id.replace('cf-f-','') : 'changed';
-                cfFilter(type);
-            }
-            document.getElementById('cf-status').textContent = `AI analysis complete. ${total} posts analysed.`;
-            btn.disabled = false;
+            try {
+                btn.disabled = true;
+                const posts = cfAllPosts.filter(p => p.status !== 'applied' && p.status !== 'skipped');
+                const total = posts.length;
+                let done = 0;
+                for (const p of posts) {
+                    document.getElementById('cf-status').textContent = `AI analysing ${++done} / ${total}...`;
+                    await cfAiOne(p.post_id);
+                    const active = document.querySelector('[id^="cf-f-"][style*="#2d6a4f"]');
+                    const type = active ? active.id.replace('cf-f-','') : 'changed';
+                    cfFilter(type);
+                }
+                document.getElementById('cf-status').textContent = `AI analysis complete. ${total} posts analysed.`;
+            } catch(err) { cfErr('cfAiAnalyseAll', err); }
+            finally { btn.disabled = false; }
         }
 
         async function cfReanalyse(postId) {
-            // Now uses AI instead of local scorer
-            document.getElementById('cf-status').textContent = `AI analysing post ${postId}...`;
-            const d = await cfAiOne(postId);
-            if (d) {
-                const active = document.querySelector('[id^="cf-f-"][style*="#2d6a4f"]');
-                const type = active ? active.id.replace('cf-f-','') : 'changed';
-                cfFilter(type);
-                document.getElementById('cf-status').textContent = `AI re-analysis complete.`;
-            }
+            try {
+                document.getElementById('cf-status').textContent = `AI analysing post ${postId}...`;
+                const d = await cfAiOne(postId);
+                if (d) {
+                    const active = document.querySelector('[id^="cf-f-"][style*="#2d6a4f"]');
+                    const type = active ? active.id.replace('cf-f-','') : 'changed';
+                    cfFilter(type);
+                    document.getElementById('cf-status').textContent = `AI re-analysis complete.`;
+                }
+            } catch(err) { cfErr('cfReanalyse', err); }
         }
 
         async function cfBulkApply() {
-            const checked = Array.from(document.querySelectorAll('.cf-chk:checked')).map(c => parseInt(c.dataset.pid));
-            const targets = checked.length
-                ? cfAllPosts.filter(p => checked.includes(p.post_id) && p.changed && p.status !== 'applied')
-                : cfAllPosts.filter(p => p.changed && p.status !== 'applied');
-            if (!targets.length) { alert('No changed posts to apply.'); return; }
-            if (!confirm(`Apply category changes to ${targets.length} posts?`)) return;
+            try {
+                const checked = Array.from(document.querySelectorAll('.cf-chk:checked')).map(c => parseInt(c.dataset.pid));
+                const targets = checked.length
+                    ? cfAllPosts.filter(p => checked.includes(p.post_id) && p.changed && p.status !== 'applied')
+                    : cfAllPosts.filter(p => p.changed && p.status !== 'applied');
+                if (!targets.length) { alert('No changed posts to apply.'); return; }
+                if (!confirm(`Apply category changes to ${targets.length} posts?`)) return;
 
-            const fd = new FormData();
-            fd.append('action', 'cs_catfix_bulk_apply');
-            fd.append('nonce', cfNonce);
-            targets.forEach((p, i) => {
-                fd.append(`items[${i}][post_id]`, p.post_id);
-                p.proposed_ids.forEach(id => fd.append(`items[${i}][proposed_ids][]`, id));
-            });
-            const r = await fetch(ajaxurl, {method:'POST', body:fd});
-            const d = await r.json();
-            if (d.success) {
-                targets.forEach(p => p.status = 'applied');
-                document.getElementById('cf-status').textContent = `Applied ${d.applied} posts.`;
-                cfRender();
-            }
+                const fd = new FormData();
+                fd.append('action', 'cs_catfix_bulk_apply');
+                fd.append('nonce', cfNonce);
+                targets.forEach((p, i) => {
+                    fd.append(`items[${i}][post_id]`, p.post_id);
+                    p.proposed_ids.forEach(id => fd.append(`items[${i}][proposed_ids][]`, id));
+                });
+                const r = await fetch(ajaxurl, {method:'POST', body:fd});
+                const d = await r.json();
+                if (d.success) {
+                    targets.forEach(p => p.status = 'applied');
+                    document.getElementById('cf-status').textContent = `Applied ${d.applied} posts.`;
+                    cfRender();
+                } else { cfErr('cfBulkApply: server error', null); }
+            } catch(err) { cfErr('cfBulkApply', err); }
         }
 
         // ── Category Health ───────────────────────────────────────────────────

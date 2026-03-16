@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.19.7
+ * Version:     4.19.20
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -147,7 +147,7 @@ final class CloudScale_SEO_AI_Optimizer {
     // Related Articles generator version — bump when scoring logic changes
     const RC_VERSION = '1.0';
 
-    const VERSION    = '4.19.7';
+    const VERSION    = '4.19.20';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -284,7 +284,8 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('wp_ajax_cs_seo_summary_generate_all', [$this, 'ajax_summary_generate_all']);
 
         // Font-display optimization
-        add_action('wp_ajax_cs_catfix_load',    [$this, 'ajax_catfix_load']);
+        add_action('wp_ajax_cs_catfix_list_ids', [$this, 'ajax_catfix_list_ids']);
+        add_action('wp_ajax_cs_catfix_load',     [$this, 'ajax_catfix_load']);
         add_action('wp_ajax_cs_catfix_analyse',  [$this, 'ajax_catfix_analyse']);
         add_action('wp_ajax_cs_catfix_apply',    [$this, 'ajax_catfix_apply']);
         add_action('wp_ajax_cs_catfix_skip',     [$this, 'ajax_catfix_skip']);

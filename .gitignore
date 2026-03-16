@@ -17,6 +17,13 @@ vendor/
 wp-config.php
 wp-content/uploads/
 
+# Playwright UI tests
+tests/.env
+tests/auth.json
+tests/node_modules/
+tests/playwright-report/
+tests/test-results/
+
 # Local deploy tooling
 build.sh
 deploy-wordpress.sh

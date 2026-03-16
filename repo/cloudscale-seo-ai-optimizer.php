@@ -263,7 +263,8 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('wp_ajax_cs_seo_summary_generate_all', [$this, 'ajax_summary_generate_all']);
 
         // Font-display optimization
-        add_action('wp_ajax_cs_catfix_load',    [$this, 'ajax_catfix_load']);
+        add_action('wp_ajax_cs_catfix_list_ids', [$this, 'ajax_catfix_list_ids']);
+        add_action('wp_ajax_cs_catfix_load',     [$this, 'ajax_catfix_load']);
         add_action('wp_ajax_cs_catfix_analyse',  [$this, 'ajax_catfix_analyse']);
         add_action('wp_ajax_cs_catfix_apply',    [$this, 'ajax_catfix_apply']);
         add_action('wp_ajax_cs_catfix_skip',     [$this, 'ajax_catfix_skip']);
