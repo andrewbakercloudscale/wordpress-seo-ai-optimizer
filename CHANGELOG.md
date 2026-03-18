@@ -3,6 +3,29 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.19.35] - 2026-03-18
+### Fixed
+- **Provider switch model reset** — switching AI provider (Anthropic ↔ Gemini) now always resets the model selector to the first option for the new provider using `option.selected = true` for reliable cross-browser behaviour; previously the old provider's model remained selected (`trait-settings-page.php`)
+- **Duplicate "Custom" option** — the model dropdown was showing "Custom (enter below)…" twice (once per provider); replaced with a single entry at the bottom of the list (`trait-settings-page.php`)
+- **Silent `catch(e) {}` in `abGenAll`** — page-fetch pagination loop using variable `d2` was missed by the earlier batch fix; now logs via `console.error` (`trait-settings-page.php`)
+- **`const VERSION` drift in `repo/`** — `repo/cloudscale-seo-ai-optimizer.php` had `const VERSION = '4.19.5'`; corrected to current version; `build.sh` now also patches the constant on every bump
+
+## [4.19.34] - 2026-03-18
+### Fixed
+- **Provider switch** — first fix attempt; superseded by 4.19.35
+
+## [4.19.33] - 2026-03-18
+### Fixed
+- **`repo/` version sync** — `build.sh` now updates both `* Version:` header and `const VERSION` constant in `repo/PLUGIN.php` on every version bump, and also syncs `readme.txt`; previously `repo/` drifted from the main plugin file between SVN deployments
+- **`const VERSION` in `repo/`** — corrected stale value to match current version
+
+## [4.19.32] - 2026-03-18
+### Fixed
+- **PCP: hidden files in zip** — `.svn-working-copy/` directory (containing hundreds of `.svn/` hidden files) was being bundled into the distribution zip; WordPress.org would reject with `hidden_files` error. Added `.svn-working-copy`, `.svn`, `.svn-credentials.sh`, `docs/`, `generate-help-docs.sh`, `build-review.sh`, `MANUAL-deploy-svn.sh`, `CloudScaleSEOAI.jpg` to `build.sh` rsync exclusions (`build.sh`)
+- **PCP: version bump reading wrong file** — `build.sh` was finding `.svn-working-copy/tags/*/cloudscale-seo-ai-optimizer.php` before the real plugin file, silently bumping versions inside the SVN working copy instead of the plugin header. Fixed by excluding `.svn-working-copy` from both the `MAIN_PHP` grep and the version bump sed loop (`build.sh`)
+- **PCP: inline `onchange` in PHP-rendered HTML** — removed `onchange="abModelSelectChanged()"` attribute from the `<select>` element; handler is already wired via `addEventListener` in the JS setup block (`trait-settings-page.php`)
+- **CHANGELOG** — added entries for v4.19.30 and v4.19.31 (`CHANGELOG.md`)
+
 ## [4.19.31] - 2026-03-18
 ### Fixed
 - **Gemini deprecated model** — replaced `gemini-2.0-flash` (no longer available to new users) with `gemini-2.5-flash-preview-04-17` as the default fallback across all AI traits (`trait-ai-meta-writer.php`, `trait-ai-scoring.php`, `trait-ai-summary.php`, `trait-ai-alt-text.php`, `trait-auto-pipeline.php`, `trait-batch-scheduler.php`, `trait-category-fixer.php`)

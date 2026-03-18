@@ -3287,7 +3287,7 @@ trait CS_SEO_Settings_Page {
                     try {
                         const d2 = await abPost('cs_seo_ai_get_posts', {page: pg});
                         if (d2.success) scoreAllPosts = scoreAllPosts.concat(d2.data.posts);
-                    } catch(e) {}
+                    } catch(e) { console.error('[cs-seo] page-fetch failed (pg=' + pg + ')', e); }
                 }
                 const toScore = scoreAllPosts.filter(p => {
                     if (p.no_post) return false;
