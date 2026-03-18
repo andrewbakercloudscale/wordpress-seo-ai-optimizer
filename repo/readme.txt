@@ -211,7 +211,7 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 
 == Changelog ==
 
-= 4.19.6 =
+= 4.19.10 =
 * Add: sitemap.txt endpoint — plain-text sitemap (one URL per line) served at /sitemap.txt alongside the existing XML sitemap
 
 = 4.19.4 =

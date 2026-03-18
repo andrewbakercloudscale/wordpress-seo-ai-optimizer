@@ -683,7 +683,7 @@ trait CS_SEO_Category_Fixer {
         }
 
         $model = trim((string)($this->ai_opts['model'] ?? ''))
-            ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001');
+            ?: ($provider === 'gemini' ? 'gemini-2.5-flash-preview-04-17' : 'claude-haiku-4-5-20251001');
 
         // ── Collect categories and their post titles ──────────────────────────
         $all_cats = get_categories(['hide_empty' => false]);
@@ -976,7 +976,7 @@ trait CS_SEO_Category_Fixer {
             return;
         }
         $model = trim((string)($this->ai_opts['model'] ?? ''))
-            ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001');
+            ?: ($provider === 'gemini' ? 'gemini-2.5-flash-preview-04-17' : 'claude-haiku-4-5-20251001');
 
         $all_cat_names = implode(', ', array_column(get_categories(['hide_empty' => false]), 'name'));
         $title_list    = implode("\n- ", array_values($unanalysed));

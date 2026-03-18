@@ -230,7 +230,7 @@ trait CS_SEO_Settings_Page {
                                     'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5 (faster, cheaper)',
                                 ];
                                 $gemini_models = [
-                                    'gemini-2.0-flash'          => 'Gemini 2.0 Flash (recommended — fast and cheap)',
+                                    'gemini-2.5-flash-preview-04-17'          => 'Gemini 2.0 Flash (recommended — fast and cheap)',
                                     'gemini-2.0-flash-lite'     => 'Gemini 2.0 Flash Lite (fastest, cheapest)',
                                     'gemini-2.0-pro-exp'        => 'Gemini 2.0 Pro Experimental (high quality)',
                                     'gemini-2.5-pro-preview-03-25' => 'Gemini 2.5 Pro Preview (best quality)',

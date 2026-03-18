@@ -54,7 +54,7 @@ trait CS_SEO_Sitemap {
     /**
      * Outputs a plain-text sitemap (one URL per line) at /sitemap.txt.
      *
-     * @since 4.19.5
+     * @since 4.19.10
      * @return void
      */
     public function maybe_render_sitemap_txt(): void {

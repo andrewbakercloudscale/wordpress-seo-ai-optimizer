@@ -16,7 +16,7 @@ trait CS_SEO_AI_Meta_Writer {
         $key      = $provider === 'gemini'
             ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
             : trim((string) $this->ai_opts['anthropic_key']);
-        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-sonnet-4-20250514');
+        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.5-flash-preview-04-17' : 'claude-sonnet-4-20250514');
         $prompt   = trim((string) $this->ai_opts['prompt']) ?: self::default_prompt();
         $min      = max(100, (int) $this->ai_opts['min_chars']);
         $max      = min(200, (int) $this->ai_opts['max_chars']);
@@ -199,7 +199,7 @@ trait CS_SEO_AI_Meta_Writer {
         $key      = $provider === 'gemini'
             ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
             : trim((string) $this->ai_opts['anthropic_key']);
-        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-sonnet-4-20250514');
+        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.5-flash-preview-04-17' : 'claude-sonnet-4-20250514');
         $prompt   = trim((string) $this->ai_opts['prompt']) ?: self::default_prompt();
         $min      = max(100, (int) $this->ai_opts['min_chars']);
         $max      = min(200, (int) $this->ai_opts['max_chars']);
@@ -398,7 +398,7 @@ trait CS_SEO_AI_Meta_Writer {
         $key      = $provider === 'gemini'
             ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
             : trim((string) $this->ai_opts['anthropic_key']);
-        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-sonnet-4-20250514');
+        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.5-flash-preview-04-17' : 'claude-sonnet-4-20250514');
         $prompt   = trim((string) $this->ai_opts['prompt']) ?: self::default_prompt();
         $min      = max(100, (int) $this->ai_opts['min_chars']);
         $max      = min(200, (int) $this->ai_opts['max_chars']);
@@ -589,7 +589,7 @@ trait CS_SEO_AI_Meta_Writer {
         $key      = $provider === 'gemini'
             ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
             : trim((string) $this->ai_opts['anthropic_key']);
-        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001');
+        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.5-flash-preview-04-17' : 'claude-haiku-4-5-20251001');
         if (!$key) throw new \RuntimeException($provider === 'gemini' ? 'No Gemini API key configured' : 'No Anthropic API key configured'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 
         $len       = mb_strlen($current_title);
@@ -882,7 +882,7 @@ trait CS_SEO_AI_Meta_Writer {
 
         if ($provider === 'gemini') {
             // Gemini: use generateContent endpoint with a minimal prompt
-            $model = 'gemini-2.0-flash';
+            $model = 'gemini-2.5-flash-preview-04-17';
             $url   = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$key}";
             $response = wp_remote_post($url, [
                 'timeout' => 15,

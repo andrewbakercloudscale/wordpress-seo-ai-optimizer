@@ -150,7 +150,7 @@ trait CS_SEO_AI_Alt_Text {
             : trim((string) $this->ai_opts['anthropic_key']);
         if (!$key) wp_send_json_error($provider === 'gemini' ? 'No Gemini API key configured' : 'No Anthropic API key configured');
 
-        $model   = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001');
+        $model   = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.5-flash-preview-04-17' : 'claude-haiku-4-5-20251001');
         $content = (string) $post->post_content;
         $title   = get_the_title($post_id);
 

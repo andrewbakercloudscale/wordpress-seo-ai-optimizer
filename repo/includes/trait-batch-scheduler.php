@@ -158,7 +158,7 @@ trait CS_SEO_Batch_Scheduler {
             'alt_errors'        => $alt_errors,
             'sum_done'          => $sum_done,
             'sum_errors'        => $sum_errors,
-            'elapsed'           => round((time() - $start) / 60, 1),
+            'elapsed'           => (time() - $start),
             'log'               => array_slice($log, 0, 100), // Keep last 100 entries per run.
         ];
         // Prune entries older than 28 days.
@@ -189,7 +189,7 @@ trait CS_SEO_Batch_Scheduler {
 
         // Use a lighter model for ALT text — same as the manual ALT generator.
         $model = trim((string) $this->ai_opts['model'])
-            ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001');
+            ?: ($provider === 'gemini' ? 'gemini-2.5-flash-preview-04-17' : 'claude-haiku-4-5-20251001');
 
         $title         = get_the_title($post_id);
         $excerpt_limit = max(100, min(2000, (int)($this->ai_opts['alt_excerpt_chars'] ?? 600)));

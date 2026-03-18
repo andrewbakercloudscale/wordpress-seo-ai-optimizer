@@ -516,7 +516,7 @@ trait CS_SEO_Category_Fixer {
      * Used by the JS health scanner to get the category list before processing
      * each category individually via ajax_catfix_health_cat().
      *
-     * @since 4.19.30
+     * @since 4.19.31
      * @return void
      */
     public function ajax_catfix_health_list(): void {
@@ -537,7 +537,7 @@ trait CS_SEO_Category_Fixer {
      * Accepts `cat_id` (int). Used by the JS scanner to process one category at a
      * time so the UI can show per-category progress and identify slow/stalled queries.
      *
-     * @since 4.19.30
+     * @since 4.19.31
      * @return void
      */
     public function ajax_catfix_health_cat(): void {
@@ -601,7 +601,7 @@ trait CS_SEO_Category_Fixer {
      * AJAX handler: returns category health statistics (post counts per category).
      *
      * @since 4.10.65
-     * @deprecated 4.19.30 JS now uses ajax_catfix_health_list + ajax_catfix_health_cat for progress.
+     * @deprecated 4.19.31 JS now uses ajax_catfix_health_list + ajax_catfix_health_cat for progress.
      * @return void
      */
     public function ajax_catfix_health(): void {
@@ -700,7 +700,7 @@ trait CS_SEO_Category_Fixer {
         }
 
         $model = trim((string)($this->ai_opts['model'] ?? ''))
-            ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001');
+            ?: ($provider === 'gemini' ? 'gemini-2.5-flash-preview-04-17' : 'claude-haiku-4-5-20251001');
 
         // ── Collect categories and their post titles ──────────────────────────
         $all_cats = get_categories(['hide_empty' => false]);
@@ -993,7 +993,7 @@ trait CS_SEO_Category_Fixer {
             return;
         }
         $model = trim((string)($this->ai_opts['model'] ?? ''))
-            ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001');
+            ?: ($provider === 'gemini' ? 'gemini-2.5-flash-preview-04-17' : 'claude-haiku-4-5-20251001');
 
         $all_cat_names = implode(', ', array_column(get_categories(['hide_empty' => false]), 'name'));
         $title_list    = implode("\n- ", array_values($unanalysed));
@@ -1108,7 +1108,7 @@ trait CS_SEO_Category_Fixer {
      * Accepts `post_id` (int), `from_cat_id` (int), and `to_cat_name` (string).
      * Resolves the target category by name; creates it if it does not yet exist.
      *
-     * @since 4.19.30
+     * @since 4.19.31
      * @return void
      */
     public function ajax_catfix_drift_move(): void {

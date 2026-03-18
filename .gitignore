@@ -32,3 +32,12 @@ purge-cloudflare.sh
 rollback-wordpress.sh
 .claude/
 .claude-flow/
+
+# SVN deploy tooling
+MANUAL-deploy-svn.sh
+.svn-credentials.sh
+.svn-working-copy/
+
+# Help docs generator
+generate-help-docs.sh
+docs/screenshots/

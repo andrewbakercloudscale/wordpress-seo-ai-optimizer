@@ -44,6 +44,25 @@ trait CS_SEO_Settings_Page {
         " class="cs-settings-link">
             <span style="font-size:16px">🥷</span> Totally Free by AndrewBaker.Ninja
         </a>
+        <a href="https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/" target="_blank" rel="noopener" style="
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            background:#1d2327;
+            color:#fff;
+            font-weight:600;
+            font-size:13px;
+            padding:8px 16px;
+            border-radius:20px;
+            text-decoration:none;
+            margin-bottom:18px;
+            margin-left:8px;
+            box-shadow:0 3px 10px rgba(0,0,0,0.25);
+            letter-spacing:0.03em;
+            transition:filter 0.15s, transform 0.15s;
+        " class="cs-settings-link">
+            <span style="font-size:15px">📖</span> Help &amp; Documentation
+        </a>
 
         <?php /* ── TAB NAV ── */ ?>
 
@@ -221,7 +240,7 @@ trait CS_SEO_Settings_Page {
                     <tr>
                         <th><?php esc_html_e( 'Model:', 'cloudscale-seo-ai-optimizer' ); ?></th>
                         <td>
-                            <select name="<?php echo esc_attr(self::AI_OPT); ?>[model]" id="ab-model-select">
+                            <select name="<?php echo esc_attr(self::AI_OPT); ?>[model]" id="ab-model-select" onchange="abModelSelectChanged()">
                                 <?php
                                 $provider = $ai['ai_provider'] ?? 'anthropic';
                                 $anthropic_models = [
@@ -229,11 +248,10 @@ trait CS_SEO_Settings_Page {
                                     'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5 (faster, cheaper)',
                                 ];
                                 $gemini_models = [
-                                    'gemini-2.0-flash'          => 'Gemini 2.0 Flash (recommended — fast and cheap)',
-                                    'gemini-2.0-flash-lite'     => 'Gemini 2.0 Flash Lite (fastest, cheapest)',
-                                    'gemini-2.0-pro-exp'        => 'Gemini 2.0 Pro Experimental (high quality)',
-                                    'gemini-2.5-pro-preview-03-25' => 'Gemini 2.5 Pro Preview (best quality)',
-                                    'gemini-1.5-pro'            => 'Gemini 1.5 Pro',
+                                    'gemini-2.5-flash-preview-04-17' => 'Gemini 2.5 Flash Preview (recommended — fast, latest)',
+                                    'gemini-2.0-flash-001'           => 'Gemini 2.0 Flash 001 (stable)',
+                                    'gemini-2.0-flash-lite'          => 'Gemini 2.0 Flash Lite (fastest, cheapest)',
+                                    'gemini-2.5-pro-preview-03-25'   => 'Gemini 2.5 Pro Preview (best quality)',
                                 ];
                                 $all_models = array_merge($anthropic_models, $gemini_models);
                                 foreach ($all_models as $v => $l):
@@ -246,8 +264,37 @@ trait CS_SEO_Settings_Page {
                                         <?php selected($ai['model'], $v); ?>
                                         <?php echo esc_attr($hidden); ?>
                                         ><?php echo esc_html($l); ?></option>
+                                <option value="_custom" data-provider="anthropic" <?php echo ($provider !== 'gemini') ? '' : 'style="display:none"'; ?>>Custom (enter below)…</option>
+                                <option value="_custom" data-provider="gemini"    <?php echo ($provider === 'gemini') ? '' : 'style="display:none"'; ?>>Custom (enter below)…</option>
                                 <?php endforeach; ?>
                             </select>
+                            <p style="margin:4px 0 0;font-size:12px;">
+                                <a href="https://docs.anthropic.com/en/docs/about-claude/models/overview" target="_blank" rel="noopener" id="ab-model-link-anthropic" style="<?php echo ($provider === 'gemini') ? 'display:none' : ''; ?>">View latest Claude models &rarr;</a>
+                                <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener" id="ab-model-link-gemini" style="<?php echo ($provider !== 'gemini') ? 'display:none' : ''; ?>">View latest Gemini models &rarr;</a>
+                            </p>
+                            <div id="ab-model-custom-wrap" style="margin-top:6px;<?php echo (in_array($ai['model'], array_keys($anthropic_models)) || in_array($ai['model'], array_keys($gemini_models))) ? 'display:none' : ''; ?>">
+                                <input type="text"
+                                    id="ab-model-custom-input"
+                                    value="<?php echo esc_attr($ai['model']); ?>"
+                                    placeholder="Enter a model ID…"
+                                    class="regular-text"
+                                    style="width:340px;">
+                                <p class="description">
+                                    Enter the exact model ID from your provider.<br>
+                                    <strong>Claude examples:</strong>
+                                    <code>claude-opus-4-6</code>
+                                    <code>claude-sonnet-4-6</code>
+                                    <code>claude-haiku-4-5-20251001</code><br>
+                                    <strong>Gemini examples:</strong>
+                                    <code>gemini-2.5-flash-preview-04-17</code>
+                                    <code>gemini-2.5-pro-preview-03-25</code>
+                                    <code>gemini-2.0-flash-001</code><br>
+                                    Find all available IDs at
+                                    <a href="https://docs.anthropic.com/en/docs/about-claude/models/overview" target="_blank" rel="noopener">Anthropic docs</a>
+                                    or
+                                    <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener">Gemini docs</a>.
+                                </p>
+                            </div>
                         </td>
                     </tr>
                     <tr>
@@ -1637,7 +1684,7 @@ trait CS_SEO_Settings_Page {
                             <span style="color:#1a7a34"><?php echo (int)($batch['done'] ?? 0); ?> generated</span>,
                             <?php echo (int)($batch['skipped'] ?? 0); ?> skipped<?php if (($batch['errors'] ?? 0) > 0): ?>,
                                 <span style="color:#c3372b"><?php echo (int)$batch['errors']; ?> errors</span><?php endif; ?>,
-                            <?php echo esc_html($batch['elapsed'] ?? '0'); ?> minutes total
+                            <?php echo (int)($batch['elapsed'] ?? 0); ?>s total
                         </p>
                         <?php if (!empty($batch['log'])): ?>
                         <details style="margin-top:4px">
@@ -2578,17 +2625,59 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-key-hint-gemini').style.display     = isGemini ? '' : 'none';
             // Show/hide model options for the active provider
             document.querySelectorAll('#ab-model-select option').forEach(opt => {
+                opt.style.display = (opt.dataset.provider === provider || opt.value === '_custom') ? '' : 'none';
+            });
+            // Hide provider-specific _custom duplicate
+            document.querySelectorAll('#ab-model-select option[value="_custom"]').forEach(opt => {
                 opt.style.display = opt.dataset.provider === provider ? '' : 'none';
             });
             // Select first visible model if current is wrong provider
             const sel = document.getElementById('ab-model-select');
             const cur = sel.options[sel.selectedIndex];
-            if (cur && cur.dataset.provider !== provider) {
-                const first = sel.querySelector('option[data-provider="' + provider + '"]');
-                if (first) sel.value = first.value;
+            if (cur && cur.dataset.provider !== provider && cur.value !== '_custom') {
+                const first = sel.querySelector('option[data-provider="' + provider + '"]:not([value="_custom"])');
+                if (first) { sel.value = first.value; abModelSelectChanged(); }
             }
             document.getElementById('ab-key-status').textContent = '';
+            // Toggle model docs link
+            const linkA = document.getElementById('ab-model-link-anthropic');
+            const linkG = document.getElementById('ab-model-link-gemini');
+            if (linkA) linkA.style.display = isGemini ? 'none' : '';
+            if (linkG) linkG.style.display = isGemini ? '' : 'none';
         }
+
+        function abModelSelectChanged() {
+            const sel   = document.getElementById('ab-model-select');
+            const wrap  = document.getElementById('ab-model-custom-wrap');
+            const input = document.getElementById('ab-model-custom-input');
+            if (!sel || !wrap) return;
+            if (sel.value === '_custom') {
+                wrap.style.display = '';
+                if (input) input.focus();
+            } else {
+                wrap.style.display = 'none';
+                if (input) input.value = sel.value;
+            }
+        }
+
+        // On page load: wire select change + sync hidden input
+        (function() {
+            const sel   = document.getElementById('ab-model-select');
+            const input = document.getElementById('ab-model-custom-input');
+            if (!sel) return;
+            sel.addEventListener('change', abModelSelectChanged);
+            // Copy custom model into select value on form submit
+            const form = sel.closest('form');
+            if (form) {
+                form.addEventListener('submit', function() {
+                    if (sel.value === '_custom' && input && input.value.trim()) {
+                        // Temporarily change the option value so it submits the custom text
+                        const customOpts = sel.querySelectorAll('[value="_custom"]');
+                        customOpts.forEach(o => { o.value = input.value.trim(); });
+                    }
+                });
+            }
+        })();
 
         function abTestKey() {
             const status   = document.getElementById('ab-key-status');
