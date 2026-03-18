@@ -1,14 +1,14 @@
 === CloudScale SEO AI Optimizer ===
-Contributors: andrewbaker007
+Contributors: andrewjbaker
 Tags: seo, meta description, ai, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.19.5
+Stable tag: 4.19.31
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Lightweight AI powered SEO with meta description and ALT text generation via Anthropic Claude or Google Gemini. No upsells, no restrictions.
+AI-powered SEO & AEO: meta descriptions, auto linking, category management, ALT text. Bring your own Claude or Gemini API key. Free, open source.
 
 == Description ==
 
@@ -113,7 +113,7 @@ This plugin connects to external AI APIs to generate meta descriptions and ALT t
 **Website:** https://anthropic.com
 **Endpoint:** https://api.anthropic.com/v1/messages
 **Data sent:** Post title and post content (up to 6,000 characters), plus your configured system prompt
-**When data is sent:** Only when you click Generate, Fix, or the Generate with Claude button in the post editor, or when the scheduled batch runs for posts without a meta description.
+**When data is sent:** Only when you click Generate, Fix, or the Generate with Claude button in the post editor, when the scheduled batch runs for posts without a meta description, or automatically on post publish/update when Auto Pipeline is enabled in AI Tools settings.
 **API key:** You must supply your own Anthropic API key. The key is stored in your WordPress database and is never transmitted anywhere except directly to api.anthropic.com.
 
 Anthropic Privacy Policy: https://www.anthropic.com/privacy
@@ -126,12 +126,23 @@ Anthropic API documentation: https://docs.anthropic.com
 **Website:** https://ai.google.dev
 **Endpoint:** https://generativelanguage.googleapis.com/v1beta/models/
 **Data sent:** Post title and post content (up to 6,000 characters), plus your configured system prompt
-**When data is sent:** Only when you click Generate, Fix, or the scheduled batch runs, and only when Gemini is selected as your AI provider.
+**When data is sent:** Only when you click Generate, Fix, or the scheduled batch runs, when Gemini is selected as your AI provider, or automatically on post publish/update when Auto Pipeline is enabled in AI Tools settings.
 **API key:** You must supply your own Google AI API key. The key is stored in your WordPress database and is never transmitted anywhere except directly to Google.
 
 Google Privacy Policy: https://policies.google.com/privacy
 Google Terms of Service: https://policies.google.com/terms
 Gemini API documentation: https://ai.google.dev/docs
+
+= Google Fonts CDN =
+
+**Service:** Google LLC
+**Websites:** https://fonts.googleapis.com, https://fonts.gstatic.com
+**When contacted:** Only when you use the Font Display Optimizer's "Download Fonts" feature in WP Admin (Performance tab). This feature downloads Google Fonts files to your server so they can be served locally.
+**Data sent:** The URL of the Google Font stylesheet registered on your site. No personal data or post content is transmitted.
+**Purpose:** To copy font files from Google's CDN to your own server, eliminating the external Google Fonts request from your frontend pages (improves GDPR compliance and Core Web Vitals).
+
+Google Privacy Policy: https://policies.google.com/privacy
+Google Terms of Service: https://policies.google.com/terms
 
 == Installation ==
 
@@ -200,11 +211,14 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 
 == Changelog ==
 
-= 4.19.5 =
+= 4.19.6 =
 * Add: sitemap.txt endpoint — plain-text sitemap (one URL per line) served at /sitemap.txt alongside the existing XML sitemap
 
 = 4.19.4 =
-* Version bump
+* Fix: debug_log() method added to main class — font optimizer and OG letterbox AJAX handlers threw fatal errors in production; now delegates to Utils::log() for a single logging code path
+* Fix: orphaned duplicate DocBlocks removed from trait-ai-meta-writer.php
+* Fix: missing DocBlocks added across main class, trait-ai-meta-writer.php, and trait-settings-assets.php
+* Fix: @package tag added to trait-settings-assets.php file DocBlock
 
 = 4.19.3 =
 * PCP: moved phpcs:ignore for post__not_in to same line as violation in trait-auto-pipeline.php, trait-ai-meta-writer.php, and trait-sitemap.php — inline suppression is required for PHPCS to recognise it
