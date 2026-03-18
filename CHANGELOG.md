@@ -3,6 +3,30 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.19.31] - 2026-03-18
+### Fixed
+- **Gemini deprecated model** — replaced `gemini-2.0-flash` (no longer available to new users) with `gemini-2.5-flash-preview-04-17` as the default fallback across all AI traits (`trait-ai-meta-writer.php`, `trait-ai-scoring.php`, `trait-ai-summary.php`, `trait-ai-alt-text.php`, `trait-auto-pipeline.php`, `trait-batch-scheduler.php`, `trait-category-fixer.php`)
+- **Inline `onchange` event handler** — removed `onchange="abModelSelectChanged()"` from PHP-rendered `<select>` tag; handler already wired via `addEventListener` in the JS setup block (`trait-settings-page.php`)
+- **Hidden files in zip** — added `.svn-working-copy`, `.svn`, `docs/`, `generate-help-docs.sh`, `build-review.sh`, `MANUAL-deploy-svn.sh`, and `CloudScaleSEOAI.jpg` to the `build.sh` rsync exclusion list; these were being bundled into the distribution zip and would have caused WordPress.org `hidden_files` rejection
+- **Blog category filter** — `wp:latest-posts` block on the Blog page was filtering to only 5 categories, excluding AWS Cloud, AI, Banking, Cyber, Databases and others; filter removed so all published posts appear
+- **S3 public access** — added bucket policy to `your-s3-bucket` S3 bucket to allow public-read on all objects
+### Added
+- **Custom model input** — "Custom (enter below)…" option in the AI model dropdown reveals a text field for entering any model ID, with examples for both Claude and Gemini and links to each provider's model docs (`trait-settings-page.php`)
+- **Updated Gemini model list** — dropdown now lists Gemini 2.5 Flash Preview, 2.0 Flash 001 (stable), 2.0 Flash Lite, and 2.5 Pro Preview; removed deprecated `gemini-2.0-flash` and `gemini-1.5-pro` (`trait-settings-page.php`)
+- **"View latest models" links** — provider-specific docs links shown below the model selector, switching automatically when the provider changes (`trait-settings-page.php`)
+
+## [4.19.30] - 2026-03-18
+### Added
+- **WordPress.org SVN support** — `MANUAL-deploy-svn.sh` script syncs `repo/` to trunk, commits trunk, and tags the release; `shared-help-docs/help-runner.sh` shared library for help doc generation across all plugins
+- **Help documentation system** — `generate-help-docs.sh` + `tests/generate-help-docs.js` take panel-level screenshots of every admin section, upload to WordPress Media Library, and create/update the "Help & Documentation" page under `/wordpress-plugin-help/seo-ai-optimizer/`; pages survive temp-user deletion via `--reassign` fix
+- **"CloudScale WordPress Plugins" nav dropdown** — added to site navigation with dropdown items for all 6 CloudScale plugins
+- **Batch run history in seconds** — `elapsed` field changed from minutes to integer seconds in `trait-batch-scheduler.php`
+### Fixed
+- **`readme.txt` Contributors field** — changed `andrewbaker007` to `andrewjbaker` to match WordPress.org SVN username
+- **Short description** — trimmed to exactly 150 characters (`and` → `&`)
+- **`build.sh` syntax error** — removed orphaned `else/fi` block that was causing `syntax error near unexpected token 'else'`
+- **`repo/readme.txt` sync** — `build.sh` now copies `readme.txt` into `repo/` after every version bump so SVN trunk always has the correct `Stable tag`
+
 ## [4.19.29] - 2026-03-17
 ### Fixed
 - **`rcRunOne`** — `fetch` and `r.json()` inside the `while` step-loop were not wrapped in `try/catch`; a network error or non-JSON response silently rejected the Promise, halting the run with no user feedback. Both are now guarded; errors surface via `rcUpdateRow` with the error message (`trait-settings-page.php`)

@@ -3,7 +3,7 @@ Contributors: andrewjbaker
 Tags: seo, meta description, ai, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.19.31
+Stable tag: 4.19.32
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -211,7 +211,7 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 
 == Changelog ==
 
-= 4.19.10 =
+= 4.19.11 =
 * Add: sitemap.txt endpoint — plain-text sitemap (one URL per line) served at /sitemap.txt alongside the existing XML sitemap
 
 = 4.19.4 =

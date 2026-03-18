@@ -240,7 +240,7 @@ trait CS_SEO_Settings_Page {
                     <tr>
                         <th><?php esc_html_e( 'Model:', 'cloudscale-seo-ai-optimizer' ); ?></th>
                         <td>
-                            <select name="<?php echo esc_attr(self::AI_OPT); ?>[model]" id="ab-model-select" onchange="abModelSelectChanged()">
+                            <select name="<?php echo esc_attr(self::AI_OPT); ?>[model]" id="ab-model-select">
                                 <?php
                                 $provider = $ai['ai_provider'] ?? 'anthropic';
                                 $anthropic_models = [
