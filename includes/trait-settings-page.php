@@ -264,9 +264,8 @@ trait CS_SEO_Settings_Page {
                                         <?php selected($ai['model'], $v); ?>
                                         <?php echo esc_attr($hidden); ?>
                                         ><?php echo esc_html($l); ?></option>
-                                <option value="_custom" data-provider="anthropic" <?php echo ($provider !== 'gemini') ? '' : 'style="display:none"'; ?>>Custom (enter below)…</option>
-                                <option value="_custom" data-provider="gemini"    <?php echo ($provider === 'gemini') ? '' : 'style="display:none"'; ?>>Custom (enter below)…</option>
                                 <?php endforeach; ?>
+                                <option value="_custom">— Custom model ID (enter below) —</option>
                             </select>
                             <p style="margin:4px 0 0;font-size:12px;">
                                 <a href="https://docs.anthropic.com/en/docs/about-claude/models/overview" target="_blank" rel="noopener" id="ab-model-link-anthropic" style="<?php echo ($provider === 'gemini') ? 'display:none' : ''; ?>">View latest Claude models &rarr;</a>
@@ -2625,18 +2624,17 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-key-hint-gemini').style.display     = isGemini ? '' : 'none';
             // Show/hide model options for the active provider
             document.querySelectorAll('#ab-model-select option').forEach(opt => {
-                opt.style.display = (opt.dataset.provider === provider || opt.value === '_custom') ? '' : 'none';
-            });
-            // Hide provider-specific _custom duplicate
-            document.querySelectorAll('#ab-model-select option[value="_custom"]').forEach(opt => {
+                if (opt.value === '_custom') return; // always visible
                 opt.style.display = opt.dataset.provider === provider ? '' : 'none';
             });
-            // Select first visible model if current is wrong provider
+            // Always switch to the first option for the newly selected provider
             const sel = document.getElementById('ab-model-select');
-            const cur = sel.options[sel.selectedIndex];
-            if (cur && cur.dataset.provider !== provider && cur.value !== '_custom') {
-                const first = sel.querySelector('option[data-provider="' + provider + '"]:not([value="_custom"])');
-                if (first) { sel.value = first.value; abModelSelectChanged(); }
+            const first = sel.querySelector('option[data-provider="' + provider + '"]');
+            if (first) {
+                // Use .selected = true for reliable cross-browser selection
+                Array.from(sel.options).forEach(o => { o.selected = false; });
+                first.selected = true;
+                abModelSelectChanged();
             }
             document.getElementById('ab-key-status').textContent = '';
             // Toggle model docs link
@@ -2671,9 +2669,9 @@ trait CS_SEO_Settings_Page {
             if (form) {
                 form.addEventListener('submit', function() {
                     if (sel.value === '_custom' && input && input.value.trim()) {
-                        // Temporarily change the option value so it submits the custom text
-                        const customOpts = sel.querySelectorAll('[value="_custom"]');
-                        customOpts.forEach(o => { o.value = input.value.trim(); });
+                        // Swap the option value so the custom text is what gets submitted
+                        const customOpt = sel.querySelector('[value="_custom"]');
+                        if (customOpt) customOpt.value = input.value.trim();
                     }
                 });
             }
