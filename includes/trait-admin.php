@@ -522,7 +522,7 @@ trait CS_SEO_Admin {
     public function admin_menu(): void {
         add_management_page(
             'CloudScale SEO AI Optimizer v' . self::VERSION,
-            'CloudScale SEO AI',
+            '🤖 CloudScale SEO AI',
             'manage_options',
             'cs-seo-optimizer',
             [$this, 'settings_page']
