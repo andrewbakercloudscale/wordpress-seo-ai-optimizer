@@ -24,7 +24,7 @@ trait CS_SEO_AI_Meta_Writer {
         $key      = $provider === 'gemini'
             ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
             : trim((string) $this->ai_opts['anthropic_key']);
-        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-sonnet-4-20250514');
+        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-sonnet-4-6');
         $prompt   = trim((string) $this->ai_opts['prompt']) ?: self::default_prompt();
         $min      = max(100, (int) $this->ai_opts['min_chars']);
         $max      = min(200, (int) $this->ai_opts['max_chars']);
@@ -213,7 +213,7 @@ trait CS_SEO_AI_Meta_Writer {
         $key      = $provider === 'gemini'
             ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
             : trim((string) $this->ai_opts['anthropic_key']);
-        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-sonnet-4-20250514');
+        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-sonnet-4-6');
         $prompt   = trim((string) $this->ai_opts['prompt']) ?: self::default_prompt();
         $min      = max(100, (int) $this->ai_opts['min_chars']);
         $max      = min(200, (int) $this->ai_opts['max_chars']);
@@ -427,7 +427,7 @@ trait CS_SEO_AI_Meta_Writer {
         $key      = $provider === 'gemini'
             ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
             : trim((string) $this->ai_opts['anthropic_key']);
-        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-sonnet-4-20250514');
+        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-sonnet-4-6');
         $prompt   = trim((string) $this->ai_opts['prompt']) ?: self::default_prompt();
         $min      = max(100, (int) $this->ai_opts['min_chars']);
         $max      = min(200, (int) $this->ai_opts['max_chars']);
@@ -938,7 +938,7 @@ trait CS_SEO_AI_Meta_Writer {
                     'anthropic-version' => '2023-06-01',
                 ],
                 'body' => wp_json_encode([
-                    'model'      => $this->ai_opts['model'] ?: 'claude-sonnet-4-20250514',
+                    'model'      => $this->ai_opts['model'] ?: 'claude-sonnet-4-6',
                     'max_tokens' => 10,
                     'messages'   => [['role' => 'user', 'content' => 'Reply with: OK']],
                 ]),

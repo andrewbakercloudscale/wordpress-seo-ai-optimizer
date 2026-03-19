@@ -82,7 +82,7 @@ trait CS_SEO_Options {
             'ai_provider'      => 'anthropic',
             'anthropic_key'    => '',
             'gemini_key'       => '',
-            'model'            => 'claude-sonnet-4-20250514',
+            'model'            => 'claude-sonnet-4-6',
             'overwrite'        => 0,
             'min_chars'        => 140,
             'max_chars'        => 155,
@@ -144,9 +144,13 @@ Write a single meta description for the article provided. Rules:
         $saved = get_option(self::AI_OPT, []);
         $merged = array_merge(self::ai_defaults(), is_array($saved) ? $saved : []);
 
-        // Migration: retired preview model → stable replacement.
-        if (($merged['model'] ?? '') === 'gemini-2.5-flash-preview-04-17') {
-            $merged['model'] = 'gemini-2.0-flash';
+        // Migration: retired/removed models → current replacements.
+        $model_migrations = [
+            'gemini-2.5-flash-preview-04-17' => 'gemini-2.0-flash',
+            'gemini-2.5-pro-preview-03-25'   => 'gemini-2.0-flash',
+        ];
+        if (isset($model_migrations[$merged['model'] ?? ''])) {
+            $merged['model'] = $model_migrations[$merged['model']];
             update_option(self::AI_OPT, $merged);
         }
 

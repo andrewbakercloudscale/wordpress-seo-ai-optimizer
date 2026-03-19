@@ -396,7 +396,7 @@ trait CS_SEO_Category_Fixer {
         $key      = $provider === 'gemini'
             ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
             : trim((string) $this->ai_opts['anthropic_key']);
-        $model    = trim((string) $this->ai_opts['model']) ?: 'claude-sonnet-4-20250514';
+        $model    = trim((string) $this->ai_opts['model']) ?: 'claude-sonnet-4-6';
         if (!$key) wp_send_json(['success' => false, 'error' => 'No API key configured']);
 
         // ── Build category list for the prompt ───────────────────────────────

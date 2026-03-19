@@ -413,7 +413,7 @@ trait CS_SEO_Category_Fixer {
         $key      = $provider === 'gemini'
             ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
             : trim((string) $this->ai_opts['anthropic_key']);
-        $model    = trim((string) $this->ai_opts['model']) ?: 'claude-sonnet-4-20250514';
+        $model    = trim((string) $this->ai_opts['model']) ?: 'claude-sonnet-4-6';
         if (!$key) wp_send_json(['success' => false, 'error' => 'No API key configured']);
 
         // ── Build category list for the prompt ───────────────────────────────
@@ -516,7 +516,7 @@ trait CS_SEO_Category_Fixer {
      * Used by the JS health scanner to get the category list before processing
      * each category individually via ajax_catfix_health_cat().
      *
-     * @since 4.19.36
+     * @since 4.19.37
      * @return void
      */
     public function ajax_catfix_health_list(): void {
@@ -537,7 +537,7 @@ trait CS_SEO_Category_Fixer {
      * Accepts `cat_id` (int). Used by the JS scanner to process one category at a
      * time so the UI can show per-category progress and identify slow/stalled queries.
      *
-     * @since 4.19.36
+     * @since 4.19.37
      * @return void
      */
     public function ajax_catfix_health_cat(): void {
@@ -601,7 +601,7 @@ trait CS_SEO_Category_Fixer {
      * AJAX handler: returns category health statistics (post counts per category).
      *
      * @since 4.10.65
-     * @deprecated 4.19.36 JS now uses ajax_catfix_health_list + ajax_catfix_health_cat for progress.
+     * @deprecated 4.19.37 JS now uses ajax_catfix_health_list + ajax_catfix_health_cat for progress.
      * @return void
      */
     public function ajax_catfix_health(): void {
@@ -1108,7 +1108,7 @@ trait CS_SEO_Category_Fixer {
      * Accepts `post_id` (int), `from_cat_id` (int), and `to_cat_name` (string).
      * Resolves the target category by name; creates it if it does not yet exist.
      *
-     * @since 4.19.36
+     * @since 4.19.37
      * @return void
      */
     public function ajax_catfix_drift_move(): void {

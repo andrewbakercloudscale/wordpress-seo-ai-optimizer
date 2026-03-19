@@ -244,14 +244,19 @@ trait CS_SEO_Settings_Page {
                                 <?php
                                 $provider = $ai['ai_provider'] ?? 'anthropic';
                                 $anthropic_models = [
-                                    'claude-sonnet-4-20250514'  => 'Claude Sonnet 4 (recommended — best quality)',
-                                    'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5 (faster, cheaper)',
+                                    'claude-opus-4-6'           => 'Claude Opus 4.6 (best quality, highest cost)',
+                                    'claude-sonnet-4-6'         => 'Claude Sonnet 4.6 (recommended — quality + speed)',
+                                    'claude-sonnet-4-5'         => 'Claude Sonnet 4.5',
+                                    'claude-sonnet-4-20250514'  => 'Claude Sonnet 4 (stable pinned)',
+                                    'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5 (fastest, cheapest)',
                                 ];
                                 $gemini_models = [
-                                    'gemini-2.0-flash'     => 'Gemini 2.0 Flash (recommended — stable, fast)',
-                                    'gemini-2.0-flash-001' => 'Gemini 2.0 Flash 001 (pinned stable)',
-                                    'gemini-2.0-flash-lite'          => 'Gemini 2.0 Flash Lite (fastest, cheapest)',
-                                    'gemini-2.5-pro-preview-03-25'   => 'Gemini 2.5 Pro Preview (best quality)',
+                                    'gemini-2.0-flash'      => 'Gemini 2.0 Flash (recommended — stable, fast)',
+                                    'gemini-2.0-flash-001'  => 'Gemini 2.0 Flash 001 (pinned stable)',
+                                    'gemini-2.0-flash-lite' => 'Gemini 2.0 Flash Lite (fast, cheapest 2.0)',
+                                    'gemini-1.5-pro'        => 'Gemini 1.5 Pro (high quality, long context)',
+                                    'gemini-1.5-flash'      => 'Gemini 1.5 Flash (fast, stable)',
+                                    'gemini-1.5-flash-8b'   => 'Gemini 1.5 Flash 8B (smallest, cheapest)',
                                 ];
                                 $all_models = array_merge($anthropic_models, $gemini_models);
                                 foreach ($all_models as $v => $l):
@@ -286,8 +291,8 @@ trait CS_SEO_Settings_Page {
                                     <code>claude-haiku-4-5-20251001</code><br>
                                     <strong>Gemini examples:</strong>
                                     <code>gemini-2.0-flash</code>
-                                    <code>gemini-2.5-pro-preview-03-25</code>
-                                    <code>gemini-2.0-flash-001</code><br>
+                                    <code>gemini-1.5-pro</code>
+                                    <code>gemini-1.5-flash</code><br>
                                     Find all available IDs at
                                     <a href="https://docs.anthropic.com/en/docs/about-claude/models/overview" target="_blank" rel="noopener">Anthropic docs</a>
                                     or
