@@ -434,7 +434,7 @@ trait CS_SEO_Settings_Page {
 
                 <?php /* ── Summary cards ── */ ?>
                 <div class="ab-summary-row" id="ab-summary" style="display:none">
-                    <div class="ab-summary-card"><div class="ab-summary-num" id="sum-total">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Total Posts', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
+                    <div class="ab-summary-card"><div class="ab-summary-num" id="sum-total">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Total Posts & Pages', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
                     <div class="ab-summary-card"><div class="ab-summary-num" id="sum-has" style="color:#1a7a34">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Have Description', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
                     <div class="ab-summary-card"><div class="ab-summary-num" id="sum-missing" style="color:#6b3fa0">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Unprocessed', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
                     <div class="ab-summary-card"><div class="ab-summary-num" id="sum-generated" style="color:#2271b1">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Generated This Session', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
@@ -2745,7 +2745,7 @@ trait CS_SEO_Settings_Page {
                 abState.page       = data.data.page;
                 abUpdateSummary();
                 abRenderTable();
-                abSetStatus(data.data.total + ' posts loaded');
+                abSetStatus(data.data.total + ' posts & pages loaded');
                 document.getElementById('ab-ai-toolbar').style.display = 'flex';
                 document.getElementById('ab-reload-hdr').style.visibility = 'visible';
                 document.getElementById('ab-ai-gen-missing').disabled = false;
@@ -2956,6 +2956,8 @@ trait CS_SEO_Settings_Page {
                     : '';
                 const typeLabel = isHome
                     ? '<span style="background:#2271b1;color:#fff;border-radius:3px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:4px">🏠 Homepage</span>'
+                    : p.type === 'page'
+                    ? '<span style="background:#6b3fa0;color:#fff;border-radius:3px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:4px">📄 Page</span>'
                     : '';
                 const noPostNote = p.no_post
                     ? '<span style="color:#888;font-size:12px">Blog posts index — no post object. Set a static front page to enable AI generation.</span>'
@@ -2970,7 +2972,6 @@ trait CS_SEO_Settings_Page {
                     : abEsc(abDecodeTitle(p.title));
                 return '<tr id="ab-row-' + p.id + '" style="' + rowStyle + '">' +
                     '<td><strong>' + typeLabel + titleLink + '</strong>' +
-                    (p.type && !p.is_homepage ? '<br><small style="color:#888">' + abEsc(p.type) + '</small>' : '') +
                     noPostNote + '</td>' +
                     '<td style="text-align:center;font-size:12px;color:#555;white-space:nowrap">' + abEsc(p.date || '—') + '</td>' +
                     '<td>' + descCell + '</td>' +

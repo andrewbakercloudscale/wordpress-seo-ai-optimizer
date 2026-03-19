@@ -844,7 +844,7 @@ trait CS_SEO_AI_Meta_Writer {
                 'desc'             => $desc,
                 'desc_chars'       => mb_strlen($desc),
                 'missing_alt'      => $missing_alt,
-                'edit_link'        => get_edit_post_link($p->ID),
+                'edit_link'        => get_edit_post_link($p->ID, ''),
                 'permalink'        => get_permalink($p->ID),
                 'seo_score'        => $score_raw !== '' ? (int) $score_raw : null,
                 'seo_notes'        => (string) get_post_meta($p->ID, self::META_SEO_NOTES, true),
