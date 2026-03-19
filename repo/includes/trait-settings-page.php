@@ -187,15 +187,17 @@ trait CS_SEO_Settings_Page {
 
                 <div class="ab-zone-card ab-card-ai">
                 <div class="ab-zone-header" style="justify-content:space-between">
-                    <span><span class="ab-zone-icon">✦</span> <?php esc_html_e( 'AI Meta Writer', 'cloudscale-seo-ai-optimizer' ); ?></span>
+                    <span><span class="ab-zone-icon">✦</span> <?php esc_html_e( 'AI Provider and Model', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-ai" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
-                        <?php $this->explain_btn('ai', '✦ AI Meta Writer — What each setting does', [
-                        ['rec'=>'✅ Recommended','name'=>'Anthropic API key','desc'=>'Your secret key from console.anthropic.com. Required to call the Claude AI to generate meta descriptions. Keep this private — anyone with this key can use your Anthropic account. The key is stored securely in your WordPress database.'],
-                        ['rec'=>'ℹ️ Info','name'=>'Claude model','desc'=>'Which version of Claude to use for generation. Claude Haiku is fast and cheap — ideal for bulk processing hundreds of posts. Claude Sonnet is slower and costs more but produces higher quality, more nuanced descriptions. For a blog with 100+ posts, Haiku is usually the right choice.'],
+                        <?php $this->explain_btn('ai', '✦ AI Provider and Model — What each setting does', [
+                        ['rec'=>'✅ Recommended','name'=>'AI Provider','desc'=>'Choose between Anthropic Claude or Google Gemini. Both support all generation features — pick based on your existing API key or pricing preference.'],
+                        ['rec'=>'✅ Recommended','name'=>'API Key (Anthropic)','desc'=>'Your secret key from console.anthropic.com. Required when using Anthropic Claude. Keep this private — anyone with this key can use your Anthropic account. The key is stored securely in your WordPress database.'],
+                        ['rec'=>'✅ Recommended','name'=>'API Key (Gemini)','desc'=>'Your secret key from aistudio.google.com. Required when using Google Gemini. Keep this private — anyone with this key can use your Google AI account. The key is stored securely in your WordPress database.'],
+                        ['rec'=>'ℹ️ Info','name'=>'Model','desc'=>'Which model to use for generation. For Anthropic: Haiku is fast and cheap (ideal for bulk), Sonnet is higher quality but costs more. For Gemini: Flash models are fast and affordable, Pro models offer higher quality and longer context. For most blogs, a Flash/Haiku tier model is the right choice.'],
                         ['rec'=>'⬜ Optional','name'=>'Overwrite existing','desc'=>'When enabled, the AI will regenerate descriptions for posts that already have one. Leave OFF to only fill in missing descriptions — this protects any manually written descriptions you\'ve already crafted.'],
                         ['rec'=>'⬜ Optional','name'=>'Min / Max characters','desc'=>'Target character range for generated descriptions. Google typically shows 140–160 characters in search results before truncating. Descriptions shorter than 120 characters look thin; longer than 165 get cut off with an ellipsis.'],
-                        ['rec'=>'⬜ Optional','name'=>'Custom prompt','desc'=>'Advanced: override the default instructions sent to Claude. The default prompt is tuned for technical blog posts. Only change this if you want a different tone, language, or specific instructions about what to include or exclude in descriptions.'],
+                        ['rec'=>'⬜ Optional','name'=>'Custom prompt','desc'=>'Advanced: override the default instructions sent to the AI. The default prompt is tuned for technical blog posts. Only change this if you want a different tone, language, or specific instructions about what to include or exclude in descriptions.'],
                     ]); ?>
                     </span>
                 </div>
@@ -267,7 +269,7 @@ trait CS_SEO_Settings_Page {
                                     <option value="<?php echo esc_attr($v); ?>"
                                         data-provider="<?php echo esc_attr($group); ?>"
                                         <?php selected($ai['model'], $v); ?>
-                                        <?php echo esc_attr($hidden); ?>
+                                        <?php if ( $provider !== $group ) echo 'style="display:none"'; ?>
                                         ><?php echo esc_html($l); ?></option>
                                 <?php endforeach; ?>
                                 <option value="_custom">— Custom model ID (enter below) —</option>
@@ -5598,7 +5600,10 @@ trait CS_SEO_Settings_Page {
             on('cd-btn-fresh', function() { if (typeof cdLoad === 'function') cdLoad(); });
             // AI provider change
             var providerSelect = document.getElementById('ab-ai-provider');
-            if (providerSelect) providerSelect.addEventListener('change', function() { if (typeof abProviderChanged === 'function') abProviderChanged(); });
+            if (providerSelect) {
+                providerSelect.addEventListener('change', function() { if (typeof abProviderChanged === 'function') abProviderChanged(); });
+                if (typeof abProviderChanged === 'function') abProviderChanged();
+            }
         });
 
         <?php wp_add_inline_script('cs-seo-admin-js', ob_get_clean()); ?>
