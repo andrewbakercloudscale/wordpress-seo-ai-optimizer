@@ -44,7 +44,7 @@ trait CS_SEO_Settings_Page {
         " class="cs-settings-link">
             <span style="font-size:16px">🥷</span> Totally Free by AndrewBaker.Ninja
         </a>
-        <a href="https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/" target="_blank" rel="noopener" style="
+        <a href="https://andrewbaker.ninja/wordpress-plugin-help/seo-ai-optimizer/" target="_blank" rel="noopener" style="
             display:inline-flex;
             align-items:center;
             gap:6px;
@@ -2967,8 +2967,8 @@ trait CS_SEO_Settings_Page {
                     : '<button class="button ab-row-btn" onclick="abGenOne(' + p.id + ')" ' + (canGen?'':'disabled') + ' id="ab-btn-' + p.id + '">' +
                       (p._processing ? '<span class="ab-spinner">⟳</span>' : '✦') + ' Generate</button>';
 
-                const titleLink = p.edit_link
-                    ? '<a href="' + safeHref(p.edit_link) + '" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted #aaa" title="Edit post">' + abEsc(abDecodeTitle(p.title)) + '</a>'
+                const titleLink = p.permalink
+                    ? '<a href="' + safeHref(p.permalink) + '" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted #aaa" title="View page">' + abEsc(abDecodeTitle(p.title)) + '</a>'
                     : abEsc(abDecodeTitle(p.title));
                 return '<tr id="ab-row-' + p.id + '" style="' + rowStyle + '">' +
                     '<td><strong>' + typeLabel + titleLink + '</strong>' +
