@@ -3,7 +3,7 @@ Contributors: andrewjbaker
 Tags: seo, meta description, ai, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.19.45
+Stable tag: 4.19.46
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -211,7 +211,7 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 
 == Changelog ==
 
-= 4.19.45 =
+= 4.19.46 =
 * Add: "Automatic" model option — new default that always resolves to the current recommended model per provider (claude-sonnet-4-6 / gemini-2.0-flash); existing users with a pinned model are unaffected
 
 = 4.19.11 =

@@ -2635,14 +2635,20 @@ trait CS_SEO_Settings_Page {
                 if (opt.value === '_custom' || opt.value === '_auto') return; // always visible
                 opt.style.display = opt.dataset.provider === provider ? '' : 'none';
             });
-            // Switch to Automatic when changing provider (safe default)
+            // Only reset model selection if the current choice belongs to a different provider.
+            // This preserves the saved value on initial page load while still switching to
+            // Automatic when the user actively changes provider.
             const sel = document.getElementById('ab-model-select');
-            const autoOpt = sel.querySelector('option[value="_auto"]');
-            const target = autoOpt || sel.querySelector('option[data-provider="' + provider + '"]');
-            if (target) {
-                Array.from(sel.options).forEach(o => { o.selected = false; });
-                target.selected = true;
-                abModelSelectChanged();
+            const currentOpt = sel.options[sel.selectedIndex];
+            const currentProvider = currentOpt ? currentOpt.dataset.provider : null;
+            if (currentProvider && currentProvider !== provider) {
+                const autoOpt = sel.querySelector('option[value="_auto"]');
+                const target = autoOpt || sel.querySelector('option[data-provider="' + provider + '"]');
+                if (target) {
+                    Array.from(sel.options).forEach(o => { o.selected = false; });
+                    target.selected = true;
+                    abModelSelectChanged();
+                }
             }
             document.getElementById('ab-key-status').textContent = '';
             // Toggle model docs link
