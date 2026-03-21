@@ -7,91 +7,79 @@
 
 <style>
 /* ── CloudScale SEO AI Optimizer — Help Page Styles ─────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-
-.cs-help-docs { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: #111; line-height: 1.7; max-width: 900px; -webkit-font-smoothing: antialiased; }
-.cs-help-docs a { color: #111; text-decoration: underline; }
-.cs-help-docs code { background: #f5f5f5; border: 1px solid #e8e8e8; border-radius: 3px; padding: 1px 6px; font-size: 0.88em; }
+.cs-help-docs { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1a202c; line-height: 1.7; max-width: 900px; }
+.cs-help-docs a { color: #2563eb; }
+.cs-help-docs code { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1px 6px; font-size: 0.88em; }
 
 /* Hero header */
-.cs-hero { background: #111; color: #fff; border-radius: 8px; padding: 48px 40px; margin-bottom: 40px; }
-.cs-hero h1 { font-size: 2.2em; font-weight: 900; margin: 0 0 16px; letter-spacing: -0.03em; color: #fff; line-height: 1.1; }
-.cs-hero p { font-size: 0.97em; margin: 0; color: #ccc; max-width: 680px; line-height: 1.75; }
-.cs-hero p + p { margin-top: 10px; }
-.cs-hero .cs-badge { display: inline-block; background: #e8ff00; color: #111; border-radius: 2px; padding: 4px 10px; font-size: 0.72em; font-weight: 800; margin-bottom: 20px; letter-spacing: 0.1em; text-transform: uppercase; }
+.cs-hero { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0e6b8f 100%); color: #fff; border-radius: 12px; padding: 48px 40px; margin-bottom: 40px; }
+.cs-hero h1 { font-size: 2.2em; font-weight: 800; margin: 0 0 12px; letter-spacing: -0.02em; color: #fff; }
+.cs-hero p { font-size: 1.1em; margin: 0; opacity: 0.85; max-width: 680px; }
+.cs-hero .cs-badge { display: inline-block; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 4px 14px; font-size: 0.8em; font-weight: 600; margin-bottom: 16px; letter-spacing: 0.05em; text-transform: uppercase; }
 
 /* Table of contents */
-.cs-toc { background: #f5f5f5; border: 1.5px solid #e8e8e8; border-radius: 8px; padding: 28px 36px; margin: 32px 0; }
-.cs-toc-title { font-size: 0.72em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #888; margin: 0 0 16px; }
+.cs-toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 28px 36px; margin: 32px 0; }
+.cs-toc-title { font-size: 1em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin: 0 0 16px; }
 .cs-toc > ol { columns: 2; gap: 0 32px; margin: 0; padding-left: 22px; }
 .cs-toc > ol > li { break-inside: avoid; margin-bottom: 6px; }
 .cs-toc > ol > li > ol { margin: 4px 0 0; padding-left: 18px; list-style-type: lower-alpha; }
 .cs-toc > ol > li > ol > li { margin: 2px 0; }
-.cs-toc li a { color: #111; text-decoration: none; font-weight: 600; font-size: 0.9em; }
+.cs-toc li a { color: #2563eb; text-decoration: none; font-weight: 500; font-size: 0.95em; }
 .cs-toc li a:hover { text-decoration: underline; }
 
 /* Setup checklist */
-.cs-setup { background: #f5f5f5; border: 1.5px solid #e8e8e8; border-top: 4px solid #e8ff00; border-radius: 8px; padding: 28px 36px; margin: 32px 0; }
-.cs-setup-title { font-size: 1.1em; font-weight: 800; color: #111; margin: 0 0 16px; letter-spacing: -0.01em; }
+.cs-setup { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 28px 36px; margin: 32px 0; }
+.cs-setup-title { font-size: 1.2em; font-weight: 700; color: #14532d; margin: 0 0 16px; }
 .cs-setup ol { margin: 0; padding-left: 20px; }
-.cs-setup li { margin: 8px 0; color: #333; }
-.cs-setup li strong { color: #111; }
+.cs-setup li { margin: 8px 0; color: #166534; }
+.cs-setup li strong { color: #14532d; }
 
 /* Tab section dividers */
 .cs-tab-section { margin: 56px 0 0; }
-.cs-tab-heading { font-size: 1.9em; font-weight: 900; color: #111; padding: 0 0 16px; border-bottom: 3px solid #e8ff00; margin: 0 0 8px; letter-spacing: -0.03em; }
-.cs-tab-intro { color: #555; font-size: 0.97em; margin: 10px 0 32px; line-height: 1.75; }
+.cs-tab-heading { font-size: 2em; font-weight: 800; color: #0f172a; padding: 0 0 16px; border-bottom: 3px solid #0e6b8f; margin: 0 0 8px; letter-spacing: -0.01em; }
+.cs-tab-intro { color: #475569; font-size: 1.05em; margin: 10px 0 32px; }
 
 /* Panel sections */
 .cs-panel-section { margin: 36px 0 0; }
-.cs-panel-no-screenshot { background: #f5f5f5; border: 1.5px solid #e8e8e8; border-radius: 8px; padding: 24px 28px; }
-.cs-panel-heading { font-size: 1.35em; font-weight: 800; color: #111; margin: 0 0 16px; padding: 0 0 10px; border-bottom: 1.5px solid #e8e8e8; display: flex; align-items: center; gap: 10px; letter-spacing: -0.02em; }
-.cs-panel-heading::before { content: ""; display: inline-block; width: 4px; height: 1.2em; background: #e8ff00; border-radius: 1px; flex-shrink: 0; }
+.cs-panel-no-screenshot { background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px 28px; }
+.cs-panel-heading { font-size: 1.45em; font-weight: 700; color: #1e293b; margin: 0 0 16px; padding: 0 0 10px; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center; gap: 10px; }
+.cs-panel-heading::before { content: ""; display: inline-block; width: 4px; height: 1.2em; background: #0e6b8f; border-radius: 2px; flex-shrink: 0; }
 
 /* Screenshots */
 .cs-screenshot { margin: 20px 0 24px; }
-.cs-screenshot img { max-width: 100%; border-radius: 6px; border: 1.5px solid #e8e8e8; box-shadow: 0 4px 16px rgba(0,0,0,0.08); display: block; }
+.cs-screenshot img { max-width: 100%; border-radius: 8px; border: 1px solid #d1d5db; box-shadow: 0 4px 20px rgba(0,0,0,0.10); display: block; }
 
 /* Panel body */
-.cs-panel-body { color: #333; }
+.cs-panel-body { color: #334155; }
 .cs-panel-body p { margin: 0 0 12px; }
 .cs-panel-body ul, .cs-panel-body ol { padding-left: 22px; margin: 8px 0 16px; }
 .cs-panel-body li { margin: 6px 0; }
-.cs-panel-body strong { color: #111; }
+.cs-panel-body strong { color: #1e293b; }
 
 /* Gated panel note */
-.cs-gated-note { background: #f5f5f5; border: 1.5px solid #e8e8e8; border-left: 4px solid #e8ff00; border-radius: 4px; padding: 10px 14px; font-size: 0.9em; color: #555; margin-top: 16px; }
+.cs-gated-note { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; font-size: 0.92em; color: #92400e; margin-top: 16px; }
 
 /* Section dividers */
-.cs-divider { border: none; border-top: 1px solid #e8e8e8; margin: 40px 0; }
+.cs-divider { border: none; border-top: 1px solid #e2e8f0; margin: 40px 0; }
 
 /* Glossary */
-.cs-glossary { background: #111; border-radius: 8px; padding: 28px 36px; margin-top: 40px; }
-.cs-glossary h2 { font-size: 1.6em; font-weight: 900; color: #fff; margin: 0 0 24px; letter-spacing: -0.03em; }
+.cs-glossary { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 28px 36px; margin-top: 40px; }
+.cs-glossary h2 { font-size: 1.8em; font-weight: 800; color: #0f172a; margin: 0 0 24px; }
 .cs-glossary dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 24px; align-items: baseline; }
-.cs-glossary dt { font-weight: 700; color: #e8ff00; font-size: 0.9em; }
-.cs-glossary dd { margin: 0; color: #ccc; font-size: 0.9em; }
-
-/* What is SEO explainer */
-.cs-explainer { background: #f5f5f5; border: 1.5px solid #e8e8e8; border-top: 4px solid #e8ff00; border-radius: 8px; padding: 28px 36px; margin: 32px 0; }
-.cs-explainer-title { font-size: 1.2em; font-weight: 800; color: #111; margin: 0 0 16px; letter-spacing: -0.02em; }
-.cs-explainer p { color: #333; margin: 0 0 12px; }
-.cs-explainer ul { padding-left: 22px; margin: 8px 0 16px; }
-.cs-explainer li { margin: 8px 0; color: #333; }
-.cs-explainer strong { color: #111; }
+.cs-glossary dt { font-weight: 700; color: #0e6b8f; font-size: 0.95em; }
+.cs-glossary dd { margin: 0; color: #475569; font-size: 0.95em; }
 </style>
 
 <div class="cs-hero">
 <div class="cs-badge">Free &amp; Open Source — No Pro Version, No Upsells, No Subscriptions</div>
 <h1>CloudScale SEO AI Optimizer — Help &amp; Documentation</h1>
 <p>CloudScale SEO AI Optimizer is a free WordPress plugin that combines complete technical SEO with an AI-powered content suite. It writes your meta descriptions, ALT text, and article summaries using your own Anthropic Claude or Google Gemini API key, builds an automatic internal linking network across your entire site, and handles all the technical SEO that WordPress leaves out — sitemaps, robots.txt, structured data schemas, social sharing tags, and performance optimisations that improve your Core Web Vitals scores.</p>
-<p style="margin-top:10px;">There is no Pro version, no upsell, no monthly subscription, and no feature locked behind a licence key. Everything the plugin does is documented on this page.</p>
+<p style="margin-top:12px;opacity:0.85">There is no Pro version, no upsell, no monthly subscription, and no feature locked behind a licence key. Everything the plugin does is documented on this page.</p>
 </div>
 
 <div class="cs-toc">
 <div class="cs-toc-title">Contents</div>
 <ol>
-<li><a href="#what-is-seo">What is SEO?</a></li>
 <li><a href="#setup">First-time setup</a></li>
 <li><a href="#seo">📊 SEO Settings</a>
   <ol>
@@ -142,19 +130,6 @@
 </ol>
 </div>
 
-<div class="cs-explainer" id="what-is-seo">
-<div class="cs-explainer-title">What is SEO — and why does it matter?</div>
-<p>SEO stands for <strong>Search Engine Optimisation</strong>. It is the practice of making your website easier for search engines like Google to find, understand, and rank highly. When someone types a question into Google, the search engine scans billions of pages and decides which ones to show — and in what order. SEO is how you influence that decision in your favour.</p>
-<p>Ranking well in search results matters because most people never scroll past the first page. If your content appears on page two or three, it is effectively invisible to most searchers. A website with great content but poor SEO is like a well-written book with no label on a library shelf — it exists, but no one will find it.</p>
-<p><strong>SEO breaks down into three areas:</strong></p>
-<ul>
-<li><strong>Technical SEO</strong> — making your site fast, secure, and crawlable. This includes XML sitemaps (which tell Google what pages exist), robots.txt (which tells crawlers what to ignore), structured data schemas (which help Google understand what your content <em>is</em>), and performance optimisations that improve your Core Web Vitals scores — a direct ranking factor.</li>
-<li><strong>On-page SEO</strong> — writing content that clearly matches what people are searching for. Meta descriptions, title tags, image ALT text, and heading structure all signal to Google what each page is about. Well-written meta descriptions also increase click-through rates from search results, even when your ranking stays the same.</li>
-<li><strong>Authority &amp; trust signals</strong> — convincing Google that you are a credible source. This includes E-E-A-T signals (Experience, Expertise, Authoritativeness, Trustworthiness), structured data that identifies you as the author, and internal linking that shows Google how your content fits together as a coherent body of work.</li>
-</ul>
-<p>This plugin handles all three areas automatically. The AI tools handle on-page SEO at scale — writing meta descriptions, ALT text, and summaries across your entire site in minutes. The technical settings manage sitemaps, schemas, robots.txt, and performance. The Person Schema and identity panels build your authority signals so Google knows who is behind the content. You do not need to be an SEO expert to use it, but understanding these three pillars helps you decide which features to prioritise for your site.</p>
-</div>
-
 <div class="cs-setup" id="setup">
 <div class="cs-setup-title">✅ First-time setup checklist</div>
 <ol>
@@ -174,7 +149,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-identity">Site Identity & Schema</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-identity-10.jpg" alt="Site Identity & Schema" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-identity-13.jpg" alt="Site Identity & Schema" /></figure>
 <div class="cs-panel-body">
 <p>When someone searches for your name or your site on Google, how does Google decide what to show? It reads structured signals embedded in your pages — your site name, your homepage title, your preferred language, your social profiles. Without those signals, Google guesses, and it often gets things wrong. The <strong>Site Identity</strong> panel is where you set the record straight.</p>
 <p>Everything you configure here is automatically embedded into every page on your site as meta tags, OpenGraph tags (which control how your pages look when shared on social media), and JSON-LD structured data (which Google reads to build rich search results). You only configure this once, and the plugin handles the rest.</p>
@@ -192,7 +167,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-person">Person Schema</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-person-10.jpg" alt="Person Schema" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-person-13.jpg" alt="Person Schema" /></figure>
 <div class="cs-panel-body">
 <p>Have you ever noticed how some people have a "Knowledge Panel" on Google — the box on the right side of search results that shows their photo, title, and links to their social profiles? That's powered by Person structured data. Even if you never reach Knowledge Panel status, telling Google who you are helps it connect your articles to your identity, which strengthens your E-E-A-T signals (Experience, Expertise, Authoritativeness, Trustworthiness) — one of Google's key quality criteria for ranking content, especially in technical and professional subject areas.</p>
 <p>The <strong>Person Schema</strong> panel embeds this identity information into your pages as JSON-LD structured data. Nothing visible is added to your pages — it sits in the page source where Google can read it. The key is the <strong>sameAs</strong> field: by linking to your LinkedIn, GitHub, Twitter/X, and other profiles, you give Google the cross-references it needs to confirm that the "Andrew Baker" who wrote this post is the same "Andrew Baker" on LinkedIn — and that they're a real, credible person.</p>
@@ -208,7 +183,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-ai">AI Settings</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-ai-10.jpg" alt="AI Settings" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-ai-13.jpg" alt="AI Settings" /></figure>
 <div class="cs-panel-body">
 <p>All the AI features in this plugin — meta description generation, ALT text writing, article summaries, SEO scoring, and category analysis — run through a single connection to your chosen AI provider. This plugin does not run its own AI service and does not charge for AI usage. You bring your own API key from either <strong>Anthropic Claude</strong> or <strong>Google Gemini</strong>, and the plugin sends your content directly to that provider's API. Your API key is stored in your WordPress database and never shared with anyone.</p>
 <p>The cost of running AI through your own API key is typically very small. For a site with 100 posts, generating meta descriptions for all of them using Claude Haiku costs less than $0.10. Google Gemini has a free tier that is sufficient for most personal blogs. There is no subscription, no per-site licence, and no hidden fee imposed by this plugin — you pay the AI provider directly, and only for what you use.</p>
@@ -251,7 +226,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-update-posts">AI Meta Description Writer</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-metadesc-10.jpg" alt="AI Meta Description Writer" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-metadesc-13.jpg" alt="AI Meta Description Writer" /></figure>
 <div class="cs-panel-body">
 <p>The text snippet that appears under your page title in Google Search results — the two or three lines that describe what the page is about — is called the meta description. It is often the deciding factor in whether a searcher clicks your result or the one below it. When you don't write one, Google generates its own, usually by pulling a random sentence from your page content. That sentence is rarely your best pitch to a potential reader.</p>
 <p>The <strong>AI Meta Description Writer</strong> solves this problem in bulk. It shows you every post and page on your site, the current status of each meta description, and lets you generate AI-written descriptions for all of them in a single operation. The AI reads your post title and content, then writes a compelling, correctly-sized description in your site's voice. For a site with 100 posts, this typically takes 2–3 minutes and costs less than $0.10 in API fees.</p>
@@ -279,7 +254,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-alt">AI ALT Text Generator</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-alttext-10.jpg" alt="AI ALT Text Generator" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-alttext-13.jpg" alt="AI ALT Text Generator" /></figure>
 <div class="cs-panel-body">
 <p>When someone uses a screen reader because they have a visual impairment, every image on your site that has no ALT text is invisible to them — they get silence where there should be a description. At the same time, Google's web crawler cannot "see" images either. It reads ALT text to understand what an image depicts, whether that image is relevant to the page topic, and whether it should appear in Google Image Search results. A site full of images with empty ALT attributes is failing both its users and its search rankings.</p>
 <p>The <strong>AI ALT Text Generator</strong> fixes this across your entire site in one bulk operation. It scans every post and page, identifies images with missing ALT attributes, and uses AI to write concise, contextually accurate descriptions for each one. The AI reads both the image filename and a short excerpt of the surrounding post content, so the ALT text it generates actually describes the image in context — not just a generic label.</p>
@@ -296,7 +271,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-summary">AI Summary Box</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-summary-10.jpg" alt="AI Summary Box" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-summary-13.jpg" alt="AI Summary Box" /></figure>
 <div class="cs-panel-body">
 <p>Most readers decide within the first few seconds whether an article is worth their time. If your post opens with a long preamble before getting to the point, readers bounce — and Google notices bounce rates. The <strong>AI Summary Box</strong> solves this by generating a three-sentence structured summary that appears at the very top of each post, before the article text. Readers see at a glance what the article is about, why it matters, and what they'll take away from it.</p>
 <p>The summary box also has an SEO benefit that isn't visible to readers. The three fields are embedded into the Article JSON-LD structured data for each post, which Google can read and potentially surface as featured snippets or in AI Overviews. Providing a clean, structured summary increases the chance that Google quotes your content directly in answer boxes — a core goal of AEO (Answer Engine Optimisation).</p>
@@ -318,7 +293,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-rc-settings-card">Related Articles — Settings</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-rc-settings-10.jpg" alt="Related Articles — Settings" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-rc-settings-13.jpg" alt="Related Articles — Settings" /></figure>
 <div class="cs-panel-body">
 <p>One of the best signals Google uses to understand a site's topical authority is internal linking — how well your posts link to each other around a common topic. A site where every post on cloud computing links to related cloud computing posts tells Google (and readers) that you are a serious resource on that topic. Building this network manually across dozens or hundreds of posts is impractical. The <strong>Related Articles</strong> feature builds it automatically.</p>
 <p>Related Articles analyses every post on your site and builds a relevance network — matching posts by shared categories, tags, and (if you've generated AI summaries) the semantic similarity of the content itself. It then injects a "Related Articles" block near the top of each post and a "You Might Also Like" block at the bottom. This keeps readers on your site longer, increases pages-per-session, and creates the kind of internal linking structure that Google rewards with stronger topical authority scores.</p>
@@ -340,7 +315,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-rc-table">Related Articles — Management</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-rc-table-10.jpg" alt="Related Articles — Management" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-rc-table-13.jpg" alt="Related Articles — Management" /></figure>
 <div class="cs-panel-body">
 <p>The <strong>Related Articles Management</strong> table is your control panel for the related articles network. When you first enable the feature, all posts start as "Pending" — they haven't been processed yet and are not showing related article blocks on the frontend. Run the batch operation here to process your entire site and go from zero to a complete internal linking network in one click.</p>
 <p>After changing your settings — for example, adding a new matching criterion, changing the number of links shown, or excluding a category — you'll need to re-run existing posts for the change to take effect. Use the "Re-run Complete" batch button to refresh all already-processed posts.</p>
@@ -370,7 +345,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-features">SEO Features</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-features-10.jpg" alt="SEO Features" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-features-13.jpg" alt="SEO Features" /></figure>
 <div class="cs-panel-body">
 <p>The <strong>SEO Features</strong> panel is the central switch board for every technical SEO capability the plugin provides. Each feature can be toggled independently — turn on what you need, turn off what you don't, and none of your settings are lost when you toggle something off.</p>
 <p>If you're setting up the plugin for the first time, the recommended approach is to enable all the Recommended items below, save, then come back and fine-tune after you've checked how your pages look in Google Search Console.</p>
@@ -404,7 +379,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-sitemap-settings">XML Sitemap Settings</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-sitemap-10.jpg" alt="XML Sitemap Settings" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-sitemap-13.jpg" alt="XML Sitemap Settings" /></figure>
 <div class="cs-panel-body">
 <p>A sitemap is the most direct line of communication between your website and Google. When you publish a new post, Google might not discover it for days or weeks if it has to find the page by following links. With a sitemap, you're effectively handing Google a complete, up-to-date list of every important URL on your site — and Google re-crawls that list regularly to find new content fast.</p>
 <p>The first thing you should do after enabling the sitemap is submit its URL to <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a> under Sitemaps. This is a one-time step that tells Google to start monitoring your sitemap. After that, the plugin keeps the sitemap updated automatically every time you publish or update a post.</p>
@@ -421,7 +396,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-robots">Robots.txt Editor</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-robots-10.jpg" alt="Robots.txt Editor" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-robots-13.jpg" alt="Robots.txt Editor" /></figure>
 <div class="cs-panel-body">
 <p>When a search engine crawler (or any bot) arrives at your website, the very first file it reads is <code>robots.txt</code> at the root of your domain. This file is a set of instructions that tells crawlers what they are and are not allowed to access. Without a well-configured robots.txt, crawlers may waste time in your admin area, checkout pages, or other non-public sections — consuming server resources and crawl budget that would be better spent on your actual content.</p>
 <p>The <strong>Robots.txt Editor</strong> gives you full control over this file directly from your WordPress admin, without needing FTP or server access.</p>
@@ -441,7 +416,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-llms">llms.txt</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-llms-10.jpg" alt="llms.txt" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-llms-13.jpg" alt="llms.txt" /></figure>
 <div class="cs-panel-body">
 <p>When someone asks ChatGPT, Perplexity, or Claude a question that your site could answer, the AI either knows about your site (because it was included in training data) or it visits your site in real time via web browsing. In both cases, a machine is trying to understand your content from raw HTML — which is full of navigation menus, sidebars, cookie banners, and other noise that gets in the way of the actual content.</p>
 <p><strong>llms.txt</strong> is the solution. It's a plain-text file at <code>/llms.txt</code> that gives AI systems a clean, structured summary of your website: your name, your site's purpose, and a list of your key posts and pages with their URLs and meta descriptions. Think of it as <code>robots.txt</code> for AI, or a table of contents written specifically for machine readers. It's an emerging standard proposed in 2024 and gaining adoption rapidly as AI-powered search becomes mainstream.</p>
@@ -460,7 +435,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-fonts">Font Optimiser</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-fonts-10.jpg" alt="Font Optimiser" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-fonts-13.jpg" alt="Font Optimiser" /></figure>
 <div class="cs-panel-body">
 <p>Most WordPress themes load their fonts from Google Fonts — a free CDN that serves web fonts from Google's servers. This is convenient for theme developers, but it has two significant downsides for your site. First, it's slow: every page load requires the browser to make an extra network request to <code>fonts.googleapis.com</code>, wait for a DNS lookup, establish a connection, and download the font stylesheet before text on your page can render. This directly hurts your Core Web Vitals scores — specifically LCP (Largest Contentful Paint), which Google uses as a direct ranking factor. Second, it's a GDPR problem: when a visitor's browser requests a font from Google's CDN, their IP address is sent to Google. Under the EU's General Data Protection Regulation, this is a transfer of personal data to a third party without your visitor's explicit consent — and German and Austrian courts have already ruled against sites doing this.</p>
 <p>The <strong>Font Optimiser</strong> solves both problems by downloading the font files from Google's CDN to your own server and rewriting the references in your theme to point to the local copies. The fonts look identical, but they now load from your domain — no external request, no GDPR exposure, faster rendering.</p>
@@ -476,7 +451,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-render">JS, CSS & HTML Optimisation</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-render-10.jpg" alt="JS, CSS & HTML Optimisation" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-render-13.jpg" alt="JS, CSS & HTML Optimisation" /></figure>
 <div class="cs-panel-body">
 <p>Page load speed is a confirmed Google ranking factor, and Google measures it using Core Web Vitals — real-world performance metrics visible in Google Search Console. The three optimisations in this panel target specific speed metrics that appear in those reports. None of them change how your site looks — they only change how quickly it gets to a usable state in the browser.</p>
 <ul>
@@ -514,7 +489,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-catfix">Category Fixer</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-catfix-9.jpg" alt="Category Fixer" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-catfix-12.jpg" alt="Category Fixer" /></figure>
 <div class="cs-panel-body">
 <p>Imagine a filing cabinet where half the folders have the wrong documents in them. That's what a miscategorised WordPress site looks like to Google. When a blog post about AWS Lambda is filed under "Personal" instead of "Cloud Computing", Google gets a confused signal about what topics each section of your site covers — which weakens your topical authority across the board. Google rewards sites that demonstrate consistent expertise in a topic, and consistent categorisation is a fundamental part of that signal.</p>
 <p>The <strong>Category Fixer</strong> audits every published post on your site and compares its content to its current category assignment. It uses keyword scoring to identify mismatches and can also use your configured AI provider for more nuanced analysis of ambiguous cases. The result is a prioritised list of suggested recategorisations — you review each one and decide whether to apply it.</p>
@@ -532,7 +507,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-cathealth">Category Health</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-cathealth-9.jpg" alt="Category Health" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-cathealth-12.jpg" alt="Category Health" /></figure>
 <div class="cs-panel-body">
 <p>Not all categories are created equal. A category with 25 posts about AWS architecture sends a strong topical signal to Google. A category with one post from 2021 that was never followed up sends essentially no signal at all — and worse, it wastes crawl budget. Google allocates a limited amount of crawl budget to each site, and spending some of it on thin, empty category pages is a wasted opportunity to get your actual content crawled more frequently.</p>
 <p>The <strong>Category Health Dashboard</strong> gives you an at-a-glance quality grade for every category on your site, so you can see immediately which categories are working for you and which ones are dragging down your topical authority. The grading is based on post count and recency — because a category you stopped writing about three years ago signals to Google that your site has abandoned that topic.</p>
@@ -551,7 +526,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-catdrift">Category Drift Detection</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-catdrift-9.jpg" alt="Category Drift Detection" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-catdrift-12.jpg" alt="Category Drift Detection" /></figure>
 <div class="cs-panel-body">
 <p>Over time, a category that started with a clear focus can quietly drift into something much less coherent. A "Technology" category that began with cloud computing posts might now contain posts about personal productivity, book reviews, and hardware reviews — because they're all vaguely "tech". This kind of category drift is one of the most common reasons sites fail to rank well for their core topics. Google reads the aggregate of everything in a category to understand what that section of your site is about, and a catch-all category produces a confused, diluted signal.</p>
 <p><strong>Category Drift Detection</strong> uses AI to do what's hard to see manually — read the titles of all the posts in each category and identify when they've stopped talking about the same topic. It flags categories that have become catch-alls and gives you specific recommendations for which posts to move where, so you can restore topical coherence to your category structure.</p>
@@ -581,7 +556,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-schedule">Batch Schedule</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-schedule-9.jpg" alt="Batch Schedule" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-schedule-12.jpg" alt="Batch Schedule" /></figure>
 <div class="cs-panel-body">
 <p>The AI generation tools in the AI Tools tab are all manually triggered — you click a button, they run. That's fine for a one-time audit of your existing content, but what about the post you publish next week, or the week after? Without automation, every new post needs a manual visit to the admin to generate its meta description, ALT text, and summary. The <strong>Scheduled Batch</strong> solves this by running a background job on a schedule, automatically filling in AI content for any posts that don't have it yet.</p>
 <p>The batch processor is designed to be safe and non-destructive: it only creates content where none exists. It will never overwrite a meta description you've written manually, a summary that was generated last week, or an SEO score from the previous run. If you want to force-regenerate content, use the individual bulk tools in the AI Tools tab. The batch processor's job is to catch anything that slips through — new posts, posts that failed during a previous run, or posts that existed before you installed the plugin.</p>
@@ -598,7 +573,7 @@
 
 <div class="cs-panel-section">
 <h3 class="cs-panel-heading" id="ab-card-lastrun">Last Run Log</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-lastrun-9.jpg" alt="Last Run Log" /></figure>
+<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/03/panel-lastrun-12.jpg" alt="Last Run Log" /></figure>
 <div class="cs-panel-body">
 <p>After enabling the Scheduled Batch, how do you know it's actually running? The <strong>Last Run Log</strong> is your confirmation. After each batch run, the plugin records exactly what it did — how many posts it checked, how many descriptions it wrote, how many summaries it created, how many SEO scores it calculated, and whether any posts failed. Check this log periodically to confirm the automation is working and to catch any recurring errors.</p>
 <ul>
