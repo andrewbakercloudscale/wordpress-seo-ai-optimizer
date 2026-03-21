@@ -23,6 +23,22 @@ trait CS_SEO_AI_Engine {
     }
 
     /**
+     * Resolves the stored model setting to an actual model ID.
+     * '_auto' (or empty string) maps to the recommended model for the provider.
+     *
+     * @since 4.19.45
+     * @param string $model    Stored model setting value.
+     * @param string $provider 'anthropic' or 'gemini'.
+     * @return string Resolved model ID.
+     */
+    private function resolve_model(string $model, string $provider): string {
+        if ($model === '_auto' || $model === '') {
+            return self::recommended_model($provider);
+        }
+        return $model;
+    }
+
+    /**
      * Central AI dispatcher — routes to Anthropic or Gemini and returns the response text.
      *
      * @since 4.0.0
@@ -35,22 +51,6 @@ trait CS_SEO_AI_Engine {
      * @param int        $max_tokens     Maximum tokens to generate.
      * @return string Response text from the AI.
      */
-    /**
-     * Resolves the stored model setting to an actual model ID.
-     * '_auto' (or empty string) maps to the recommended model for the provider.
-     *
-     * @since 4.20.0
-     * @param string $model    Stored model setting value.
-     * @param string $provider 'anthropic' or 'gemini'.
-     * @return string Resolved model ID.
-     */
-    private function resolve_model(string $model, string $provider): string {
-        if ($model === '_auto' || $model === '') {
-            return self::recommended_model($provider);
-        }
-        return $model;
-    }
-
     private function dispatch_ai(string $provider, string $key, string $model, string $system, string $user_msg, ?array $extra_messages, int $max_tokens): string {
         if ($provider === 'gemini') {
             return $this->call_gemini($key, $model, $system, $user_msg, $extra_messages, $max_tokens);

@@ -3,6 +3,16 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.19.46] - 2026-03-21
+### Fixed
+- **Model selection reverting to Automatic on page load** — `abProviderChanged()` runs on initial page load to sync provider UI; it now only resets the model selector when the current selection belongs to a different provider, preserving saved pinned model on load while still defaulting to Automatic on an active provider switch (`trait-settings-page.php`)
+
+## [4.19.45] - 2026-03-21
+### Added
+- **Automatic model option** — new `_auto` model setting (now the default) always resolves to the current recommended model for the active provider at runtime (`claude-sonnet-4-6` / `gemini-2.0-flash`); pinned model selections are unaffected (`trait-options.php`, `trait-ai-engine.php`, `trait-settings-page.php`, all AI call sites)
+- **`recommended_model(string $provider)`** — static method on the plugin class; single source of truth for the recommended model per provider (`trait-options.php`)
+- **`resolve_model(string $model, string $provider)`** — private method; maps `_auto` or empty string to `recommended_model()`; all 14 AI dispatch call sites updated (`trait-ai-engine.php`)
+
 ## [4.19.35] - 2026-03-18
 ### Fixed
 - **Provider switch model reset** — switching AI provider (Anthropic ↔ Gemini) now always resets the model selector to the first option for the new provider using `option.selected = true` for reliable cross-browser behaviour; previously the old provider's model remained selected (`trait-settings-page.php`)
