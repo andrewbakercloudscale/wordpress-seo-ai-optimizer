@@ -81,7 +81,7 @@ trait CS_SEO_Options {
      * Returns the recommended model ID for a given provider.
      * This is the model used when the model setting is '_auto'.
      *
-     * @since 4.20.0
+     * @since 4.19.45
      * @param string $provider 'anthropic' or 'gemini'.
      * @return string Model ID.
      */

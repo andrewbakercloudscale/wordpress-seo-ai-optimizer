@@ -276,10 +276,10 @@ trait CS_SEO_Settings_Page {
                                 <option value="_custom">— Custom model ID (enter below) —</option>
                             </select>
                             <p style="margin:4px 0 0;font-size:12px;">
-                                <a href="https://docs.anthropic.com/en/docs/about-claude/models/overview" target="_blank" rel="noopener" id="ab-model-link-anthropic" style="<?php echo ($provider === 'gemini') ? 'display:none' : ''; ?>">View latest Claude models &rarr;</a>
-                                <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener" id="ab-model-link-gemini" style="<?php echo ($provider !== 'gemini') ? 'display:none' : ''; ?>">View latest Gemini models &rarr;</a>
+                                <a href="https://docs.anthropic.com/en/docs/about-claude/models/overview" target="_blank" rel="noopener" id="ab-model-link-anthropic" style="<?php echo esc_attr( ($provider === 'gemini') ? 'display:none' : '' ); ?>">View latest Claude models &rarr;</a>
+                                <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener" id="ab-model-link-gemini" style="<?php echo esc_attr( ($provider !== 'gemini') ? 'display:none' : '' ); ?>">View latest Gemini models &rarr;</a>
                             </p>
-                            <div id="ab-model-custom-wrap" style="margin-top:6px;<?php echo ($ai['model'] === '_auto' || in_array($ai['model'], array_keys($anthropic_models)) || in_array($ai['model'], array_keys($gemini_models))) ? 'display:none' : ''; ?>">
+                            <div id="ab-model-custom-wrap" style="margin-top:6px;<?php echo esc_attr( ($ai['model'] === '_auto' || in_array($ai['model'], array_keys($anthropic_models)) || in_array($ai['model'], array_keys($gemini_models))) ? 'display:none' : '' ); ?>">
                                 <input type="text"
                                     id="ab-model-custom-input"
                                     value="<?php echo esc_attr($ai['model']); ?>"
@@ -521,8 +521,8 @@ trait CS_SEO_Settings_Page {
                 </div>
 
                 <div class="ab-ai-toolbar" id="ab-alt-toolbar" style="display:none">
-                    <button class="button button-primary ab-action-btn" id="ab-alt-gen-all" <?php echo ($alt_has_key ? '' : 'disabled'); ?>>✦ Generate All Missing</button>
-                    <button class="button ab-action-btn" id="ab-alt-force-all" style="background:#b45309;border-color:#92400e;color:#fff;font-weight:600" <?php echo ($alt_has_key ? '' : 'disabled'); ?>>🔄 Force Regenerate All</button>
+                    <button class="button button-primary ab-action-btn" id="ab-alt-gen-all" <?php echo esc_attr( $alt_has_key ? '' : 'disabled' ); ?>>✦ Generate All Missing</button>
+                    <button class="button ab-action-btn" id="ab-alt-force-all" style="background:#b45309;border-color:#92400e;color:#fff;font-weight:600" <?php echo esc_attr( $alt_has_key ? '' : 'disabled' ); ?>>🔄 Force Regenerate All</button>
                     <span id="ab-alt-status" style="font-size:12px;color:#50575e;"></span>
                     <button class="button" id="ab-alt-stop" style="display:none">◻ Stop</button>
                     <label id="ab-alt-show-all-wrap" style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
@@ -1527,7 +1527,7 @@ trait CS_SEO_Settings_Page {
                         </label>
                     </div>
 
-                    <div id="ab-defer-excludes-wrap" style="margin-top:12px;<?php echo (int)($o['defer_js'] ?? 0) ? '' : 'display:none'; ?>">
+                    <div id="ab-defer-excludes-wrap" style="margin-top:12px;<?php echo esc_attr( (int)($o['defer_js'] ?? 0) ? '' : 'display:none' ); ?>">
                         <label style="font-weight:600;display:block;margin-bottom:4px">Defer exclusions (one handle or URL substring per line):</label>
                         <textarea class="large-text" rows="4"
                             name="<?php echo esc_attr(self::OPT); ?>[defer_js_excludes]"
