@@ -694,16 +694,26 @@ trait CS_SEO_Auto_Pipeline {
      */
     public function count_posts_missing_auto_run(): int {
         global $wpdb;
+        // Count published posts that either have no meta description at all, or were
+        // edited after the last auto-pipeline run (description may be stale).
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- live count for dashboard widget; acceptable overhead
         return (int) $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT COUNT(DISTINCT p.ID)
                    FROM {$wpdb->posts} p
-              LEFT JOIN {$wpdb->postmeta} pm
-                     ON pm.post_id = p.ID AND pm.meta_key = %s
+              LEFT JOIN {$wpdb->postmeta} desc_pm
+                     ON desc_pm.post_id = p.ID AND desc_pm.meta_key = %s
+              LEFT JOIN {$wpdb->postmeta} run_pm
+                     ON run_pm.post_id  = p.ID AND run_pm.meta_key  = %s
                   WHERE p.post_status = 'publish'
                     AND p.post_type   = %s
-                    AND pm.meta_value IS NULL",
+                    AND (
+                        (desc_pm.meta_value IS NULL OR desc_pm.meta_value = '')
+                        OR
+                        (run_pm.meta_value IS NOT NULL
+                            AND UNIX_TIMESTAMP(p.post_modified_gmt) > CAST(run_pm.meta_value AS UNSIGNED))
+                    )",
+                self::META_DESC,
                 self::META_AUTO_COMPLETE,
                 'post'
             )

@@ -382,9 +382,9 @@ trait CS_SEO_Admin {
             <p style="margin:0 0 10px;font-size:12px;color:#6b7280;">
                 <?php if ( $missing_auto_run > 0 ) : ?>
                 <span style="color:#dc2626;font-weight:700;"><?php echo esc_html( (string) $missing_auto_run ); ?></span>
-                <?php esc_html_e( 'posts need AI auto run', 'cloudscale-seo-ai-optimizer' ); ?>
+                <?php esc_html_e( 'posts missing or outdated meta', 'cloudscale-seo-ai-optimizer' ); ?>
                 <?php else : ?>
-                <span style="color:#16a34a;font-weight:700;"><?php esc_html_e( 'All posts have run AI auto run', 'cloudscale-seo-ai-optimizer' ); ?></span>
+                <span style="color:#16a34a;font-weight:700;"><?php esc_html_e( 'All posts have up-to-date meta', 'cloudscale-seo-ai-optimizer' ); ?></span>
                 <?php endif; ?>
                 <?php if ( $pending_pipeline > 0 ) : ?>
                 &middot;
