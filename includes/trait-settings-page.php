@@ -243,6 +243,7 @@ trait CS_SEO_Settings_Page {
                         <th><?php esc_html_e( 'Model:', 'cloudscale-seo-ai-optimizer' ); ?></th>
                         <td>
                             <select name="<?php echo esc_attr(self::AI_OPT); ?>[model]" id="ab-model-select">
+                                <option value="_auto" <?php selected($ai['model'], '_auto'); ?>>&#x2728; Automatic (recommended model, always up to date)</option>
                                 <?php
                                 $provider = $ai['ai_provider'] ?? 'anthropic';
                                 $anthropic_models = [
@@ -278,7 +279,7 @@ trait CS_SEO_Settings_Page {
                                 <a href="https://docs.anthropic.com/en/docs/about-claude/models/overview" target="_blank" rel="noopener" id="ab-model-link-anthropic" style="<?php echo ($provider === 'gemini') ? 'display:none' : ''; ?>">View latest Claude models &rarr;</a>
                                 <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener" id="ab-model-link-gemini" style="<?php echo ($provider !== 'gemini') ? 'display:none' : ''; ?>">View latest Gemini models &rarr;</a>
                             </p>
-                            <div id="ab-model-custom-wrap" style="margin-top:6px;<?php echo (in_array($ai['model'], array_keys($anthropic_models)) || in_array($ai['model'], array_keys($gemini_models))) ? 'display:none' : ''; ?>">
+                            <div id="ab-model-custom-wrap" style="margin-top:6px;<?php echo ($ai['model'] === '_auto' || in_array($ai['model'], array_keys($anthropic_models)) || in_array($ai['model'], array_keys($gemini_models))) ? 'display:none' : ''; ?>">
                                 <input type="text"
                                     id="ab-model-custom-input"
                                     value="<?php echo esc_attr($ai['model']); ?>"
@@ -2631,16 +2632,16 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-key-hint-gemini').style.display     = isGemini ? '' : 'none';
             // Show/hide model options for the active provider
             document.querySelectorAll('#ab-model-select option').forEach(opt => {
-                if (opt.value === '_custom') return; // always visible
+                if (opt.value === '_custom' || opt.value === '_auto') return; // always visible
                 opt.style.display = opt.dataset.provider === provider ? '' : 'none';
             });
-            // Always switch to the first option for the newly selected provider
+            // Switch to Automatic when changing provider (safe default)
             const sel = document.getElementById('ab-model-select');
-            const first = sel.querySelector('option[data-provider="' + provider + '"]');
-            if (first) {
-                // Use .selected = true for reliable cross-browser selection
+            const autoOpt = sel.querySelector('option[value="_auto"]');
+            const target = autoOpt || sel.querySelector('option[data-provider="' + provider + '"]');
+            if (target) {
                 Array.from(sel.options).forEach(o => { o.selected = false; });
-                first.selected = true;
+                target.selected = true;
                 abModelSelectChanged();
             }
             document.getElementById('ab-key-status').textContent = '';

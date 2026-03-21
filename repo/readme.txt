@@ -3,7 +3,7 @@ Contributors: andrewjbaker
 Tags: seo, meta description, ai, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.19.41
+Stable tag: 4.19.45
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -210,6 +210,9 @@ Yes. The Scheduled Batch tab lets you select which days of the week to run autom
 8. Scheduled Batch configuration with day selector and last run status
 
 == Changelog ==
+
+= 4.19.45 =
+* Add: "Automatic" model option — new default that always resolves to the current recommended model per provider (claude-sonnet-4-6 / gemini-2.0-flash); existing users with a pinned model are unaffected
 
 = 4.19.11 =
 * Add: sitemap.txt endpoint — plain-text sitemap (one URL per line) served at /sitemap.txt alongside the existing XML sitemap

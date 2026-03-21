@@ -396,7 +396,7 @@ trait CS_SEO_Category_Fixer {
         $key      = $provider === 'gemini'
             ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
             : trim((string) $this->ai_opts['anthropic_key']);
-        $model    = trim((string) $this->ai_opts['model']) ?: 'claude-sonnet-4-6';
+        $model    = $this->resolve_model(trim((string) $this->ai_opts['model']), $provider);
         if (!$key) wp_send_json(['success' => false, 'error' => 'No API key configured']);
 
         // ── Build category list for the prompt ───────────────────────────────
@@ -682,8 +682,7 @@ trait CS_SEO_Category_Fixer {
             return;
         }
 
-        $model = trim((string)($this->ai_opts['model'] ?? ''))
-            ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001');
+        $model = $this->resolve_model(trim((string)($this->ai_opts['model'] ?? '')), $provider);
 
         // ── Collect categories and their post titles ──────────────────────────
         $all_cats = get_categories(['hide_empty' => false]);
@@ -975,8 +974,7 @@ trait CS_SEO_Category_Fixer {
             wp_send_json(['success' => false, 'error' => 'No AI API key configured.']);
             return;
         }
-        $model = trim((string)($this->ai_opts['model'] ?? ''))
-            ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001');
+        $model = $this->resolve_model(trim((string)($this->ai_opts['model'] ?? '')), $provider);
 
         $all_cat_names = implode(', ', array_column(get_categories(['hide_empty' => false]), 'name'));
         $title_list    = implode("\n- ", array_values($unanalysed));

@@ -188,8 +188,7 @@ trait CS_SEO_Batch_Scheduler {
         if (!$key) return 0;
 
         // Use a lighter model for ALT text — same as the manual ALT generator.
-        $model = trim((string) $this->ai_opts['model'])
-            ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001');
+        $model = $this->resolve_model(trim((string) $this->ai_opts['model']), $provider);
 
         $title         = get_the_title($post_id);
         $excerpt_limit = max(100, min(2000, (int)($this->ai_opts['alt_excerpt_chars'] ?? 600)));

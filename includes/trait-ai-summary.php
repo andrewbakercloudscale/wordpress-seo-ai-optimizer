@@ -28,7 +28,7 @@ trait CS_SEO_AI_Summary {
         $key      = $provider === 'gemini'
             ? trim((string)($this->ai_opts['gemini_key'] ?? ''))
             : trim((string) $this->ai_opts['anthropic_key']);
-        $model    = trim((string) $this->ai_opts['model']) ?: ($provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-sonnet-4-6');
+        $model    = $this->resolve_model(trim((string) $this->ai_opts['model']), $provider);
 
         if (!$key) throw new \RuntimeException($provider === 'gemini' ? 'No Gemini API key configured' : 'No Anthropic API key configured'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 

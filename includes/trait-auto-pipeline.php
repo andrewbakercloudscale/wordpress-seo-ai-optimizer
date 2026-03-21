@@ -269,8 +269,7 @@ trait CS_SEO_Auto_Pipeline {
             : trim( (string) $this->ai_opts['anthropic_key'] );
         if ( ! $key ) return;
 
-        $model    = trim( (string) $this->ai_opts['model'] )
-            ?: ( $provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001' );
+        $model    = $this->resolve_model( trim( (string) $this->ai_opts['model'] ), $provider );
         $title    = get_the_title( $post_id );
         $content  = $this->truncate_content( $this->get_clean_content( $post_id ), 2000 );
 
@@ -303,8 +302,7 @@ trait CS_SEO_Auto_Pipeline {
             : trim( (string) $this->ai_opts['anthropic_key'] );
         if ( ! $key ) return;
 
-        $model  = trim( (string) $this->ai_opts['model'] )
-            ?: ( $provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001' );
+        $model  = $this->resolve_model( trim( (string) $this->ai_opts['model'] ), $provider );
         $title  = get_the_title( $post_id );
         $system = 'You write concise, descriptive image alt text. Return 5–15 words describing the image in context. Do not start with "Image of" or "Photo of". Output ONLY the alt text.';
 
@@ -342,8 +340,7 @@ trait CS_SEO_Auto_Pipeline {
             : trim( (string) $this->ai_opts['anthropic_key'] );
         if ( ! $key ) return;
 
-        $model   = trim( (string) $this->ai_opts['model'] )
-            ?: ( $provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-haiku-4-5-20251001' );
+        $model   = $this->resolve_model( trim( (string) $this->ai_opts['model'] ), $provider );
         $content = $this->truncate_content( $this->get_clean_content( $post_id ), 6000 );
         $title   = get_the_title( $post_id );
 

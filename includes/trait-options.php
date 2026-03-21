@@ -77,12 +77,24 @@ trait CS_SEO_Options {
      * @since 4.0.0
      * @return array<string,mixed>
      */
+    /**
+     * Returns the recommended model ID for a given provider.
+     * This is the model used when the model setting is '_auto'.
+     *
+     * @since 4.20.0
+     * @param string $provider 'anthropic' or 'gemini'.
+     * @return string Model ID.
+     */
+    public static function recommended_model(string $provider): string {
+        return $provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-sonnet-4-6';
+    }
+
     public static function ai_defaults(): array {
         return [
             'ai_provider'      => 'anthropic',
             'anthropic_key'    => '',
             'gemini_key'       => '',
-            'model'            => 'claude-sonnet-4-6',
+            'model'            => '_auto',
             'overwrite'        => 0,
             'min_chars'        => 140,
             'max_chars'        => 155,
