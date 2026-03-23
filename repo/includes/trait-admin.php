@@ -450,7 +450,7 @@ trait CS_SEO_Admin {
 
         // ── SEO Health cache ──────────────────────────────────────────────────
         $health       = get_option(self::OPT_HEALTH_CACHE, null);
-        $health_valid = is_array($health) && isset($health['total'], $health['seo'], $health['images'], $health['links'], $health['summaries'], $health['built_at']);
+        $health_valid = is_array($health) && isset($health['total'], $health['seo'], $health['images'], $health['posts_with_images'], $health['links'], $health['summaries'], $health['built_at']);
 
         if ($health_valid) {
             $h_total     = (int) $health['total'];
@@ -470,7 +470,7 @@ trait CS_SEO_Admin {
             $pills = [
                 ['label' => 'Posts',     'value' => $h_total,                    'color' => '#2271b1'], // blue baseline
                 ['label' => 'SEO',       'value' => (int) $health['seo'],        'color' => $pill_color((int) $health['seo'],        $h_total)],
-                ['label' => 'Images',    'value' => (int) $health['images'],     'color' => $pill_color((int) $health['images'],     $h_total)],
+                ['label' => 'Images',    'value' => (int) $health['images'],     'color' => $pill_color((int) $health['images'],     (int) $health['posts_with_images'])],
                 ['label' => 'Links',     'value' => (int) $health['links'],      'color' => $pill_color((int) $health['links'],      $h_total)],
                 ['label' => 'Summaries', 'value' => (int) $health['summaries'],  'color' => $pill_color((int) $health['summaries'],  $h_total)],
             ];
