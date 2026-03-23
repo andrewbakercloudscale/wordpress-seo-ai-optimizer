@@ -110,13 +110,14 @@ trait CS_SEO_SEO_Health {
             )
         );
 
-        // 5. Posts/pages where every <img> in post_content has a non-empty alt attribute.
-        //    No AI calls — scans post_content directly. Posts with no images count as
-        //    fully covered (nothing missing). Processed in batches to avoid loading all
-        //    post_content into memory at once on large sites.
-        $images     = 0;
-        $batch_size = 200;
-        $offset     = 0;
+        // 5. Posts/pages that contain at least one <img> AND every <img> has a non-empty
+        //    alt attribute. Posts with no images are excluded from both numerator and
+        //    denominator — they are not an ALT-text problem and should not inflate the count.
+        //    Processed in batches to avoid loading all post_content into memory at once.
+        $images            = 0;
+        $posts_with_images = 0;
+        $batch_size        = 200;
+        $offset            = 0;
         do {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- intentional; results stored in cs_seo_health_cache option
             $batch = $wpdb->get_results($wpdb->prepare(
@@ -131,13 +132,12 @@ trait CS_SEO_SEO_Health {
                 $content = (string) $p->post_content;
                 preg_match_all('/<img[^>]+>/i', $content, $img_tags);
                 if (empty($img_tags[0])) {
-                    // No images in this post — counts as fully covered.
-                    $images++;
+                    // No images — skip entirely; does not count for or against the metric.
                     continue;
                 }
+                $posts_with_images++;
                 $all_have_alt = true;
                 foreach ($img_tags[0] as $tag) {
-                    // Check alt attribute exists and is non-empty.
                     if (!preg_match('/alt=["\']([^"\']+)["\']/i', $tag)) {
                         $all_have_alt = false;
                         break;
@@ -149,12 +149,13 @@ trait CS_SEO_SEO_Health {
         } while (count($batch) === $batch_size);
 
         $cache = [
-            'total'     => $total,
-            'seo'       => $seo,
-            'images'    => $images,
-            'links'     => $links,
-            'summaries' => $summaries,
-            'built_at'  => time(),
+            'total'              => $total,
+            'seo'                => $seo,
+            'images'             => $images,
+            'posts_with_images'  => $posts_with_images,
+            'links'              => $links,
+            'summaries'          => $summaries,
+            'built_at'           => time(),
         ];
 
         update_option(self::OPT_HEALTH_CACHE, $cache, false);
