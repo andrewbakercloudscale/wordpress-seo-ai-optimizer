@@ -38,7 +38,7 @@ trait CS_SEO_Options {
             'noindex_search'          => 1,
             'noindex_404'             => 1,
             'noindex_attachment'      => 1,
-            'noindex_author_archives' => 0,
+            'noindex_author_archives' => 1,
             'noindex_tag_archives'    => 0,
             'person_name'             => '',
             'person_job_title'        => '',
@@ -68,15 +68,10 @@ trait CS_SEO_Options {
             'rc_use_tags'             => 1,
             'rc_use_summary'          => 1,
             'rc_exclude_cats'         => [],
+            'rc_style'                => '1',
         ];
     }
 
-    /**
-     * Returns the full set of default AI option values.
-     *
-     * @since 4.0.0
-     * @return array<string,mixed>
-     */
     /**
      * Returns the recommended model ID for a given provider.
      * This is the model used when the model setting is '_auto'.
@@ -89,6 +84,12 @@ trait CS_SEO_Options {
         return $provider === 'gemini' ? 'gemini-2.0-flash' : 'claude-sonnet-4-6';
     }
 
+    /**
+     * Returns the full set of default AI option values.
+     *
+     * @since 4.0.0
+     * @return array<string,mixed>
+     */
     public static function ai_defaults(): array {
         return [
             'ai_provider'      => 'anthropic',

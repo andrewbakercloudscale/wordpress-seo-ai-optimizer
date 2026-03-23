@@ -439,7 +439,8 @@ trait CS_SEO_Auto_Pipeline {
             unset( $block );
 
             if ( $changed ) {
-                wp_update_post( [ 'ID' => $post_id, 'post_content' => serialize_blocks( $blocks ) ] );
+                // wp_slash() required — see trait-ai-alt-text.php for explanation.
+                wp_update_post( [ 'ID' => $post_id, 'post_content' => wp_slash( serialize_blocks( $blocks ) ) ] );
             }
         } else {
             // Classic editor: direct str_replace is safe (no block delimiters to corrupt).
@@ -455,7 +456,8 @@ trait CS_SEO_Auto_Pipeline {
                 $changed     = true;
             }
             if ( $changed ) {
-                wp_update_post( [ 'ID' => $post_id, 'post_content' => $new_content ] );
+                // wp_slash() required — see trait-ai-alt-text.php for explanation.
+                wp_update_post( [ 'ID' => $post_id, 'post_content' => wp_slash( $new_content ) ] );
             }
         }
     }

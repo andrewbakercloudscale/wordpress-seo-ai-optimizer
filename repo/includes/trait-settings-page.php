@@ -265,7 +265,6 @@ trait CS_SEO_Settings_Page {
                                 foreach ($all_models as $v => $l):
                                     $is_anthropic = array_key_exists($v, $anthropic_models);
                                     $group = $is_anthropic ? 'anthropic' : 'gemini';
-                                    $hidden = ($provider !== $group) ? 'style="display:none"' : '';
                                 ?>
                                     <option value="<?php echo esc_attr($v); ?>"
                                         data-provider="<?php echo esc_attr($group); ?>"
@@ -658,6 +657,44 @@ trait CS_SEO_Settings_Page {
                                         <span style="color:#888;font-size:12px;">(min 3, max 10)</span>
                                     </span>
                                     <p id="rc-bottom-warn" style="display:none;margin:6px 0 0;padding:8px 12px;background:#fffbeb;border-left:3px solid #f59e0b;color:#92400e;font-size:12px;">&#9888; You have increased the link count. Existing posts will only show the new amount after you run <strong>Refresh Stale</strong> in the Related Articles table below.</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th style="padding:12px 0;"><?php esc_html_e( 'Display style', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                <td style="padding:12px 0;">
+                                    <?php
+                                    $rc_styles = [
+                                        '1'  => 'Style 1  — Purple gradient header (default)',
+                                        '2'  => 'Style 2  — Dark gold: dark navy, gold accents',
+                                        '3'  => 'Style 3  — Royal blue minimal',
+                                        '4'  => 'Style 4  — Emerald green bordered cards',
+                                        '5'  => 'Style 5  — Steel grey side stripe',
+                                        '6'  => 'Style 6  — Crimson magazine rows',
+                                        '7'  => 'Style 7  — Ocean teal gradient header',
+                                        '8'  => 'Style 8  — Warm amber dark panel',
+                                        '9'  => 'Style 9  — Navy blue gradient header',
+                                        '10' => 'Style 10 — Charcoal minimal',
+                                        '11' => 'Style 11 — Forest green gradient header',
+                                        '12' => 'Style 12 — Rose pink gradient header',
+                                        '13' => 'Style 13 — Sunset orange gradient header',
+                                        '14' => 'Style 14 — Midnight dark (sky blue on black)',
+                                        '15' => 'Style 15 — Deep purple dark panel',
+                                        '16' => 'Style 16 — Teal minimal',
+                                        '17' => 'Style 17 — Rose pink minimal',
+                                        '18' => 'Style 18 — Amber side stripe',
+                                        '19' => 'Style 19 — Slate bordered box',
+                                        '20' => 'Style 20 — Violet pill badges',
+                                    ];
+                                    $rc_style_val = (string)($o['rc_style'] ?? '1');
+                                    ?>
+                                    <select id="rc-style-select" name="<?php echo esc_attr(self::OPT); ?>[rc_style]" style="max-width:420px;">
+                                        <?php foreach ($rc_styles as $val => $label) : ?>
+                                            <option value="<?php echo esc_attr($val); ?>" <?php selected($rc_style_val, $val); ?>><?php echo esc_html($label); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <p class="description" style="margin-top:4px;">Changes take effect immediately — no need to regenerate.</p>
+                                    <div id="rc-style-preview" style="margin-top:14px;max-width:400px;"></div>
+
                                 </td>
                             </tr>
                             <tr>
@@ -1645,8 +1682,11 @@ trait CS_SEO_Settings_Page {
                             </p>
                         </td>
                     </tr>
+                    <tr>
+                        <th></th>
+                        <td style="padding-top:4px;"><?php submit_button( __( 'Save Schedule Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></td>
+                    </tr>
                 </table>
-                <div style="margin-top:16px;"><?php submit_button( __( 'Save Schedule Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
                 </div><!-- /ab-zone-body -->
                 </div><!-- /ab-card-schedule -->
             </form>
@@ -1688,7 +1728,8 @@ trait CS_SEO_Settings_Page {
                     <div style="<?php echo esc_attr( $idx > 0 ? 'margin-top:12px;padding-top:12px;border-top:1px solid #e5e5e5;' : '' ); ?>">
                         <p style="margin:0 0 4px">
                             <strong><?php echo esc_html($batch['day'] ?? ''); ?> <?php echo esc_html($batch['date'] ?? ''); ?></strong> —
-                            <span style="color:#1a7a34"><?php echo (int)($batch['done'] ?? 0); ?> generated</span>,
+                            <?php $batch_done = (int)($batch['done'] ?? 0) + (int)($batch['alt_done'] ?? 0) + (int)($batch['sum_done'] ?? 0); ?>
+                            <span style="color:<?php echo $batch_done > 0 ? '#2271b1' : '#1a7a34'; ?>"><?php echo (int)($batch['done'] ?? 0); ?> generated</span>,
                             <?php echo (int)($batch['skipped'] ?? 0); ?> skipped<?php if (($batch['errors'] ?? 0) > 0): ?>,
                                 <span style="color:#c3372b"><?php echo (int)$batch['errors']; ?> errors</span><?php endif; ?>,
                             <?php echo (int)($batch['elapsed'] ?? 0); ?>s total
@@ -1700,6 +1741,12 @@ trait CS_SEO_Settings_Page {
                             <?php foreach ($batch['log'] as $entry): ?>
                                 <?php if ($entry['status'] === 'ok'): ?>
                                     <div style="color:#00d084">✓ <?php echo esc_html($entry['title']); ?> → <?php echo (int)$entry['chars']; ?> chars</div>
+                                <?php elseif ($entry['status'] === 'sum_ok'): ?>
+                                    <div style="color:#00d084">✓ <?php echo esc_html($entry['title']); ?> → summary</div>
+                                <?php elseif ($entry['status'] === 'alt_ok'): ?>
+                                    <div style="color:#00d084">✓ <?php echo esc_html($entry['title']); ?> → <?php echo (int)$entry['count']; ?> ALT text(s)</div>
+                                <?php elseif ($entry['status'] === 'timeout'): ?>
+                                    <div style="color:#ffa500">⏱ <?php echo esc_html($entry['title']); ?></div>
                                 <?php else: ?>
                                     <div style="color:#ff6b6b">✗ <?php echo esc_html($entry['title']); ?><?php if ( ! empty( $entry['message'] ) ) : ?>: <?php echo esc_html($entry['message']); ?><?php endif; ?></div>
                                 <?php endif; ?>
@@ -2148,10 +2195,11 @@ trait CS_SEO_Settings_Page {
             }
         }
 
-        // Restore the active tab after a page reload (e.g. after saving settings).
+        // Restore the active tab — URL ?tab= takes priority over localStorage.
         (function() {
             try {
-                const saved = localStorage.getItem('cs_seo_tab');
+                const urlTab = new URLSearchParams(window.location.search).get('tab');
+                const saved  = urlTab || localStorage.getItem('cs_seo_tab');
                 if (saved) {
                     const btn = document.querySelector('.ab-tab[data-tab="' + saved + '"]');
                     if (btn) abTab(saved, btn);

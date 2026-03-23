@@ -296,9 +296,14 @@ trait CS_SEO_AI_Alt_Text {
 
         if ($updated > 0 && $new_content !== $content) {
             // Save updated post content only if content images were changed.
+            // wp_slash() is required for programmatic wp_update_post() calls: WordPress's
+            // content_save_pre filter chain calls stripslashes() internally, which would
+            // strip backslashes from block comment JSON (e.g. \" → " and \n → n),
+            // corrupting Gutenberg block attributes. The REST API always uses wp_slash()
+            // before wp_update_post() for the same reason.
             wp_update_post([
                 'ID'           => $post_id,
-                'post_content' => $new_content,
+                'post_content' => wp_slash( $new_content ),
             ]);
         }
 

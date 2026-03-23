@@ -100,6 +100,9 @@ trait CS_SEO_Batch_Scheduler {
             }
             try {
                 $saved = $this->batch_generate_alt_for_post($p->ID, $images);
+                if ($saved > 0) {
+                    $log[] = ['status' => 'alt_ok', 'title' => get_the_title($p->ID), 'count' => $saved];
+                }
                 $alt_done += $saved;
             } catch (\Throwable $e) {
                 $log[] = ['status' => 'alt_err', 'title' => get_the_title($p->ID), 'message' => $e->getMessage()];

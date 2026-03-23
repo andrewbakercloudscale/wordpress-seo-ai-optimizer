@@ -371,7 +371,8 @@ trait CS_SEO_AI_Meta_Writer {
             $changed     = true;
         }
         if ($changed) {
-            wp_update_post(['ID' => $post_id, 'post_content' => $new_content]);
+            // wp_slash() required — see trait-ai-alt-text.php for explanation.
+            wp_update_post(['ID' => $post_id, 'post_content' => wp_slash( $new_content )]);
         }
     }
 

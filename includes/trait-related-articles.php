@@ -88,51 +88,167 @@ trait CS_SEO_Related_Articles {
      * @return string Rendered HTML block, or empty string if no valid links.
      */
     private function render_rc_block(string $heading, array $post_ids, string $position): string {
-        $accent  = $position === 'top' ? '#4f46e5' : '#0e7490';
-        $bg_head = $position === 'top'
-            ? 'linear-gradient(120deg,#4338ca 0%,#6366f1 60%,#818cf8 100%)'
-            : 'linear-gradient(120deg,#0c4a6e 0%,#0e7490 60%,#22d3ee 100%)';
+        $style  = (string)($this->opts['rc_style'] ?? '1');
+        $is_top = $position === 'top';
+        $slug   = esc_attr($position);
+        $cls    = esc_attr( 'cs-rc-block cs-rc-' . $slug . ' cs-rc-style-' . $style );
 
         $links = [];
         foreach ($post_ids as $tid) {
             $post = get_post($tid);
             if (!$post || $post->post_status !== 'publish') continue;
-            $links[] = [
-                'url'   => get_permalink($post),
-                'title' => get_the_title($post),
-            ];
+            $links[] = ['url' => get_permalink($post), 'title' => get_the_title($post)];
         }
-
         if (empty($links)) return '';
 
-        $icon_top    = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
-        $icon_bottom = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M4.19.11A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4.19.11v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
-        $icon = $position === 'top' ? $icon_top : $icon_bottom;
+        // ── Palette: each style declares fmt, accent, and optionally grad/dark_bg ──
+        $pal = [
+            '1'  => ['fmt' => 'gradient', 'accent' => $is_top ? '#4f46e5' : '#0e7490',
+                     'grad' => $is_top ? 'linear-gradient(120deg,#4338ca 0%,#6366f1 60%,#818cf8 100%)'
+                                       : 'linear-gradient(120deg,#0c4a6e 0%,#0e7490 60%,#22d3ee 100%)'],
+            '2'  => ['fmt' => 'dark',     'accent' => '#fbbf24', 'dark_bg' => '#1e1b4b'],
+            '3'  => ['fmt' => 'minimal',  'accent' => '#2563eb'],
+            '4'  => ['fmt' => 'cards',    'accent' => '#059669'],
+            '5'  => ['fmt' => 'stripe',   'accent' => '#64748b'],
+            '6'  => ['fmt' => 'magazine', 'accent' => '#dc2626',
+                     'grad' => 'linear-gradient(120deg,#7f1d1d 0%,#dc2626 60%,#f87171 100%)'],
+            '7'  => ['fmt' => 'gradient', 'accent' => '#0891b2',
+                     'grad' => 'linear-gradient(120deg,#0c4a6e 0%,#0891b2 60%,#38bdf8 100%)'],
+            '8'  => ['fmt' => 'dark',     'accent' => '#f59e0b', 'dark_bg' => '#1c1917'],
+            '9'  => ['fmt' => 'gradient', 'accent' => '#1e40af',
+                     'grad' => 'linear-gradient(120deg,#0f172a 0%,#1e40af 60%,#3b82f6 100%)'],
+            '10' => ['fmt' => 'minimal',  'accent' => '#374151'],
+            '11' => ['fmt' => 'gradient', 'accent' => '#16a34a',
+                     'grad' => 'linear-gradient(120deg,#14532d 0%,#16a34a 60%,#4ade80 100%)'],
+            '12' => ['fmt' => 'gradient', 'accent' => '#e11d48',
+                     'grad' => 'linear-gradient(120deg,#881337 0%,#e11d48 60%,#fb7185 100%)'],
+            '13' => ['fmt' => 'gradient', 'accent' => '#ea580c',
+                     'grad' => 'linear-gradient(120deg,#7c2d12 0%,#ea580c 60%,#fb923c 100%)'],
+            '14' => ['fmt' => 'dark',     'accent' => '#38bdf8', 'dark_bg' => '#020617'],
+            '15' => ['fmt' => 'dark',     'accent' => '#a78bfa', 'dark_bg' => '#2d1b69'],
+            '16' => ['fmt' => 'minimal',  'accent' => '#0d9488'],
+            '17' => ['fmt' => 'minimal',  'accent' => '#e11d48'],
+            '18' => ['fmt' => 'stripe',   'accent' => '#d97706'],
+            '19' => ['fmt' => 'bordered', 'accent' => '#475569'],
+            '20' => ['fmt' => 'pill',     'accent' => '#7c3aed'],
+        ];
+        $p      = $pal[$style] ?? $pal['1'];
+        $fmt    = $p['fmt'];
+        $accent = esc_attr( $p['accent'] );
+        $grad   = esc_attr( $p['grad'] ?? '' );
+        $dk     = esc_attr( $p['dark_bg'] ?? '' );
 
-        $out  = '<div class="cs-rc-block cs-rc-' . esc_attr($position) . '" style="';
-        $out .= 'background:#ffffff;border-radius:14px;overflow:hidden;';
-        $out .= 'margin:0 0 36px;';
-        $out .= 'box-shadow:0 2px 8px rgba(0,0,0,0.06),0 4px 24px rgba(79,70,229,0.10),0 1px 2px rgba(0,0,0,0.04);';
-        $out .= '">';
+        // ── Format rendering ────────────────────────────────────────────────────
+        switch ($fmt) {
 
-        // Header bar
-        $out .= '<div style="background:' . $bg_head . ';padding:12px 24px;display:flex;align-items:center;gap:9px;">';
-        $out .= $icon;
-        $out .= '<span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.95);">' . esc_html($heading) . '</span>';
-        $out .= '</div>';
+            case 'dark':
+                $out  = '<div class="' . $cls . '" style="background:' . $dk . ';border-radius:12px;margin:0 0 36px;padding:20px 24px;">';
+                $out .= '<div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:' . $accent . ';margin:0 0 14px;">' . esc_html($heading) . '</div>';
+                $out .= '<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;">';
+                foreach ($links as $i => $link) {
+                    $out .= '<li style="display:flex;align-items:baseline;gap:10px;">';
+                    $out .= '<span style="font-size:12px;font-weight:700;color:' . $accent . ';min-width:18px;flex-shrink:0;">' . ($i + 1) . '.</span>';
+                    $out .= '<a href="' . esc_url($link['url']) . '" class="cs-rc-link" style="color:#fff;font-size:14px;font-weight:500;text-decoration:none;line-height:1.5;">' . esc_html($link['title']) . '</a>';
+                    $out .= '</li>';
+                }
+                $out .= '</ul></div>';
+                return $out;
 
-        // Link list
-        $out .= '<ul style="margin:0;padding:16px 24px;list-style:none;display:flex;flex-direction:column;gap:10px;">';
-        foreach ($links as $link) {
-            $out .= '<li style="margin:0;padding:0;">';
-            $out .= '<a href="' . esc_url($link['url']) . '" class="cs-rc-link" style="color:' . esc_attr($accent) . ';font-size:14px;font-weight:500;text-decoration:none;line-height:1.5;">'
-                  . '&#8594;&nbsp;' . esc_html($link['title']) . '</a>';
-            $out .= '</li>';
+            case 'minimal':
+                $out  = '<div class="' . $cls . '" style="background:#fff;border-top:3px solid ' . $accent . ';padding:18px 24px;margin:0 0 36px;">';
+                $out .= '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:' . $accent . ';margin:0 0 12px;">' . esc_html($heading) . '</div>';
+                $out .= '<ul style="margin:0;padding:0;list-style:none;">';
+                foreach ($links as $i => $link) {
+                    $out .= '<li style="display:flex;align-items:baseline;gap:8px;padding:7px 0;border-bottom:1px solid #f3f4f6;">';
+                    $out .= '<span style="font-size:11px;color:#9ca3af;min-width:16px;flex-shrink:0;">' . ($i + 1) . '.</span>';
+                    $out .= '<a href="' . esc_url($link['url']) . '" class="cs-rc-link" style="color:#374151;font-size:14px;font-weight:500;text-decoration:none;line-height:1.5;">' . esc_html($link['title']) . '</a>';
+                    $out .= '</li>';
+                }
+                $out .= '</ul></div>';
+                return $out;
+
+            case 'cards':
+                $out  = '<div class="' . $cls . '" style="margin:0 0 36px;">';
+                $out .= '<div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:' . $accent . ';margin:0 0 10px;">' . esc_html($heading) . '</div>';
+                $out .= '<div style="display:flex;flex-direction:column;gap:8px;">';
+                foreach ($links as $i => $link) {
+                    $out .= '<div style="display:flex;align-items:stretch;border:1px solid #e5e7eb;border-left:4px solid ' . $accent . ';border-radius:6px;overflow:hidden;">';
+                    $out .= '<span style="background:' . $accent . ';color:#fff;font-size:12px;font-weight:700;padding:10px 12px;min-width:36px;text-align:center;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' . ($i + 1) . '</span>';
+                    $out .= '<a href="' . esc_url($link['url']) . '" class="cs-rc-link" style="color:#1f2937;font-size:14px;font-weight:500;text-decoration:none;padding:10px 14px;line-height:1.4;flex:1;display:flex;align-items:center;">' . esc_html($link['title']) . '</a>';
+                    $out .= '</div>';
+                }
+                $out .= '</div></div>';
+                return $out;
+
+            case 'stripe':
+                $out  = '<div class="' . $cls . '" style="border-left:4px solid ' . $accent . ';padding:16px 20px;margin:0 0 36px;background:#fafafa;">';
+                $out .= '<div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:' . $accent . ';margin:0 0 12px;">' . esc_html($heading) . '</div>';
+                $out .= '<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px;">';
+                foreach ($links as $i => $link) {
+                    $out .= '<li style="display:flex;align-items:baseline;gap:8px;">';
+                    $out .= '<span style="color:' . $accent . ';font-weight:700;font-size:13px;min-width:20px;flex-shrink:0;">' . ($i + 1) . '.</span>';
+                    $out .= '<a href="' . esc_url($link['url']) . '" class="cs-rc-link" style="color:#374151;font-size:14px;font-weight:500;text-decoration:none;">' . esc_html($link['title']) . '</a>';
+                    $out .= '</li>';
+                }
+                $out .= '</ul></div>';
+                return $out;
+
+            case 'magazine':
+                $out  = '<div class="' . $cls . '" style="background:#fff;border-radius:12px;overflow:hidden;margin:0 0 36px;box-shadow:0 1px 4px rgba(0,0,0,0.08);">';
+                $out .= '<div style="background:' . $grad . ';padding:10px 20px;"><span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.95);">' . esc_html($heading) . '</span></div>';
+                foreach ($links as $i => $link) {
+                    $bg   = esc_attr( ($i % 2 === 1) ? '#f9fafb' : '#fff' );
+                    $out .= '<div style="display:flex;align-items:stretch;background:' . $bg . ';border-bottom:1px solid #f3f4f6;">';
+                    $out .= '<span style="background:' . $grad . ';color:#fff;font-size:13px;font-weight:800;width:44px;min-width:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' . ($i + 1) . '</span>';
+                    $out .= '<a href="' . esc_url($link['url']) . '" class="cs-rc-link" style="color:#111827;font-size:14px;font-weight:500;text-decoration:none;padding:12px 16px;flex:1;line-height:1.4;display:flex;align-items:center;">' . esc_html($link['title']) . '</a>';
+                    $out .= '</div>';
+                }
+                $out .= '</div>';
+                return $out;
+
+            case 'bordered':
+                $out  = '<div class="' . $cls . '" style="background:#fff;border:1.5px solid ' . $accent . ';border-radius:12px;margin:0 0 36px;padding:20px 24px;">';
+                $out .= '<div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:' . $accent . ';margin:0 0 14px;">' . esc_html($heading) . '</div>';
+                $out .= '<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;">';
+                foreach ($links as $i => $link) {
+                    $out .= '<li style="display:flex;align-items:baseline;gap:10px;">';
+                    $out .= '<span style="font-size:12px;font-weight:700;color:' . $accent . ';min-width:18px;flex-shrink:0;">' . ($i + 1) . '.</span>';
+                    $out .= '<a href="' . esc_url($link['url']) . '" class="cs-rc-link" style="color:#1f2937;font-size:14px;font-weight:500;text-decoration:none;line-height:1.5;">' . esc_html($link['title']) . '</a>';
+                    $out .= '</li>';
+                }
+                $out .= '</ul></div>';
+                return $out;
+
+            case 'pill':
+                $out  = '<div class="' . $cls . '" style="background:#fff;border-radius:14px;margin:0 0 36px;padding:20px 24px;box-shadow:0 1px 4px rgba(0,0,0,0.08);">';
+                $out .= '<div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#6b7280;margin:0 0 14px;">' . esc_html($heading) . '</div>';
+                $out .= '<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;">';
+                foreach ($links as $i => $link) {
+                    $out .= '<li style="display:flex;align-items:center;gap:12px;">';
+                    $out .= '<span style="background:' . $accent . ';color:#fff;font-size:11px;font-weight:700;border-radius:20px;min-width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0 7px;">' . ($i + 1) . '</span>';
+                    $out .= '<a href="' . esc_url($link['url']) . '" class="cs-rc-link" style="color:#1f2937;font-size:14px;font-weight:500;text-decoration:none;line-height:1.4;">' . esc_html($link['title']) . '</a>';
+                    $out .= '</li>';
+                }
+                $out .= '</ul></div>';
+                return $out;
+
+            default: // gradient (styles 1, 7, 9, 11, 12, 13)
+                $icon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+                $out  = '<div class="' . $cls . '" style="background:#ffffff;border-radius:14px;overflow:hidden;margin:0 0 36px;box-shadow:0 2px 8px rgba(0,0,0,0.06),0 4px 24px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.04);">';
+                $out .= '<div style="background:' . $grad . ';padding:12px 24px;display:flex;align-items:center;gap:9px;">';
+                $out .= $icon;
+                $out .= '<span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.95);">' . esc_html($heading) . '</span>';
+                $out .= '</div>';
+                $out .= '<ul style="margin:0;padding:16px 24px;list-style:none;display:flex;flex-direction:column;gap:10px;">';
+                foreach ($links as $i => $link) {
+                    $out .= '<li style="display:flex;align-items:baseline;gap:8px;">';
+                    $out .= '<span style="color:' . $accent . ';font-size:12px;font-weight:700;min-width:18px;flex-shrink:0;">' . ($i + 1) . '.</span>';
+                    $out .= '<a href="' . esc_url($link['url']) . '" class="cs-rc-link" style="color:' . $accent . ';font-size:14px;font-weight:500;text-decoration:none;line-height:1.5;">' . esc_html($link['title']) . '</a>';
+                    $out .= '</li>';
+                }
+                $out .= '</ul></div>';
+                return $out;
         }
-        $out .= '</ul>';
-        $out .= '</div>';
-
-        return $out;
     }
     /**
      * Enqueues the minimal frontend CSS needed by the Related Articles blocks.
@@ -149,7 +265,25 @@ trait CS_SEO_Related_Articles {
         if ( ! (int) ( $this->opts['rc_enable'] ?? 1 ) ) return;
         wp_register_style( 'cs-rc-styles', false ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- inline-only handle; no external file or version needed
         wp_enqueue_style( 'cs-rc-styles' );
-        wp_add_inline_style( 'cs-rc-styles', '.cs-rc-link:hover{text-decoration:underline}' );
+        wp_add_inline_style( 'cs-rc-styles', implode('', [
+            '.cs-rc-link:hover{text-decoration:underline}',
+            '.cs-rc-style-2 .cs-rc-link:hover,.cs-rc-style-8 .cs-rc-link:hover{color:#fff!important}',
+            '.cs-rc-style-3 .cs-rc-link:hover{color:#2563eb!important}',
+            '.cs-rc-style-4 .cs-rc-link:hover{color:#059669!important}',
+            '.cs-rc-style-5 .cs-rc-link:hover{color:#64748b!important}',
+            '.cs-rc-style-6 .cs-rc-link:hover{color:#dc2626!important}',
+            '.cs-rc-style-9 .cs-rc-link:hover{color:#1e40af!important}',
+            '.cs-rc-style-10 .cs-rc-link:hover{color:#374151!important}',
+            '.cs-rc-style-11 .cs-rc-link:hover{color:#16a34a!important}',
+            '.cs-rc-style-12 .cs-rc-link:hover{color:#e11d48!important}',
+            '.cs-rc-style-13 .cs-rc-link:hover{color:#ea580c!important}',
+            '.cs-rc-style-14 .cs-rc-link:hover,.cs-rc-style-15 .cs-rc-link:hover{color:#fff!important}',
+            '.cs-rc-style-16 .cs-rc-link:hover{color:#0d9488!important}',
+            '.cs-rc-style-17 .cs-rc-link:hover{color:#e11d48!important}',
+            '.cs-rc-style-18 .cs-rc-link:hover{color:#d97706!important}',
+            '.cs-rc-style-19 .cs-rc-link:hover{color:#475569!important}',
+            '.cs-rc-style-20 .cs-rc-link:hover{color:#7c3aed!important}',
+        ]) );
     }
 
     /**
@@ -298,10 +432,6 @@ trait CS_SEO_Related_Articles {
     }
 
     /**
-     * Executes exactly one step of the RC generation pipeline for one post.
-     * Saves state after each step and returns the updated status.
-     */
-    /**
      * AJAX handler: runs one step of the multi-step Related Articles generation pipeline for a post.
      *
      * @since 4.10.0
@@ -378,9 +508,6 @@ trait CS_SEO_Related_Articles {
         ]);
     }
 
-    /**
-     * Resets RC meta for one or all posts so they can be regenerated.
-     */
     /**
      * AJAX handler: single server-side pass that both generates missing Related
      * Articles AND syncs counts for existing ones.
@@ -546,7 +673,6 @@ trait CS_SEO_Related_Articles {
      * @return void
      */
     private function rc_step_load(int $pid): void {
-        $post = get_post($pid);
         $fp   = $this->rc_fingerprint($pid);
         update_post_meta($pid, self::META_RC_FINGERPRINT, $fp);
         update_post_meta($pid, self::META_RC_STATUS,      'processing');

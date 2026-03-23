@@ -99,6 +99,9 @@ trait CS_SEO_Batch_Scheduler {
             }
             try {
                 $saved = $this->batch_generate_alt_for_post($p->ID, $images);
+                if ($saved > 0) {
+                    $log[] = ['status' => 'alt_ok', 'title' => get_the_title($p->ID), 'count' => $saved];
+                }
                 $alt_done += $saved;
             } catch (\Throwable $e) {
                 $log[] = ['status' => 'alt_err', 'title' => get_the_title($p->ID), 'message' => $e->getMessage()];
@@ -249,7 +252,8 @@ trait CS_SEO_Batch_Scheduler {
         }
 
         if ($content_changed) {
-            wp_update_post(['ID' => $post_id, 'post_content' => $new_content]);
+            // wp_slash() required — see trait-ai-alt-text.php for explanation.
+            wp_update_post(['ID' => $post_id, 'post_content' => wp_slash( $new_content )]);
         }
 
         return $saved;

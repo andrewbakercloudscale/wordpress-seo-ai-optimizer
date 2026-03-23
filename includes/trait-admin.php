@@ -209,6 +209,125 @@ trait CS_SEO_Admin {
                 });
             });'
         );
+
+        // Related Articles style preview (was an inline <script> tag — moved to comply with PCP).
+        wp_add_inline_script( 'cs-seo-admin-js', <<<'JS'
+        (function(){
+            var links = [
+                'How to optimise your WordPress site for speed',
+                'Top 10 SEO mistakes and how to fix them',
+                'Complete guide to schema markup'
+            ];
+            var pal = {
+                '1':  {fmt:'gradient',accent:'#4f46e5',grad:'linear-gradient(120deg,#4338ca 0%,#6366f1 60%,#818cf8 100%)'},
+                '2':  {fmt:'dark',    accent:'#fbbf24',dk:'#1e1b4b'},
+                '3':  {fmt:'minimal', accent:'#2563eb'},
+                '4':  {fmt:'cards',   accent:'#059669'},
+                '5':  {fmt:'stripe',  accent:'#64748b'},
+                '6':  {fmt:'magazine',accent:'#dc2626',grad:'linear-gradient(120deg,#7f1d1d 0%,#dc2626 60%,#f87171 100%)'},
+                '7':  {fmt:'gradient',accent:'#0891b2',grad:'linear-gradient(120deg,#0c4a6e 0%,#0891b2 60%,#38bdf8 100%)'},
+                '8':  {fmt:'dark',    accent:'#f59e0b',dk:'#1c1917'},
+                '9':  {fmt:'gradient',accent:'#1e40af',grad:'linear-gradient(120deg,#0f172a 0%,#1e40af 60%,#3b82f6 100%)'},
+                '10': {fmt:'minimal', accent:'#374151'},
+                '11': {fmt:'gradient',accent:'#16a34a',grad:'linear-gradient(120deg,#14532d 0%,#16a34a 60%,#4ade80 100%)'},
+                '12': {fmt:'gradient',accent:'#e11d48',grad:'linear-gradient(120deg,#881337 0%,#e11d48 60%,#fb7185 100%)'},
+                '13': {fmt:'gradient',accent:'#ea580c',grad:'linear-gradient(120deg,#7c2d12 0%,#ea580c 60%,#fb923c 100%)'},
+                '14': {fmt:'dark',    accent:'#38bdf8',dk:'#020617'},
+                '15': {fmt:'dark',    accent:'#a78bfa',dk:'#2d1b69'},
+                '16': {fmt:'minimal', accent:'#0d9488'},
+                '17': {fmt:'minimal', accent:'#e11d48'},
+                '18': {fmt:'stripe',  accent:'#d97706'},
+                '19': {fmt:'bordered',accent:'#475569'},
+                '20': {fmt:'pill',    accent:'#7c3aed'}
+            };
+            function preview(style) {
+                var p = pal[style] || pal['1'];
+                var a = p.accent, g = p.grad||'', dk = p.dk||'';
+                var items = links.map(function(t,i){ return item(i+1,t,p); }).join('');
+                if (p.fmt==='dark') {
+                    return '<div style="background:'+dk+';border-radius:10px;padding:14px 16px;">'
+                        +'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:'+a+';margin:0 0 10px;">Related Articles</div>'
+                        +'<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;">'+items+'</ul></div>';
+                }
+                if (p.fmt==='minimal') {
+                    return '<div style="background:#fff;border-top:3px solid '+a+';padding:12px 16px;">'
+                        +'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:'+a+';margin:0 0 8px;">Related Articles</div>'
+                        +'<ul style="margin:0;padding:0;list-style:none;">'+items+'</ul></div>';
+                }
+                if (p.fmt==='cards') {
+                    return '<div>'
+                        +'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:'+a+';margin:0 0 8px;">Related Articles</div>'
+                        +'<div style="display:flex;flex-direction:column;gap:6px;">'+items+'</div></div>';
+                }
+                if (p.fmt==='stripe') {
+                    return '<div style="border-left:4px solid '+a+';padding:12px 16px;background:#fafafa;">'
+                        +'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:'+a+';margin:0 0 8px;">Related Articles</div>'
+                        +'<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;">'+items+'</ul></div>';
+                }
+                if (p.fmt==='magazine') {
+                    return '<div style="background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">'
+                        +'<div style="background:'+g+';padding:8px 14px;"><span style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fff;">Related Articles</span></div>'
+                        +items+'</div>';
+                }
+                if (p.fmt==='bordered') {
+                    return '<div style="background:#fff;border:1.5px solid '+a+';border-radius:10px;padding:14px 16px;">'
+                        +'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:'+a+';margin:0 0 10px;">Related Articles</div>'
+                        +'<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;">'+items+'</ul></div>';
+                }
+                if (p.fmt==='pill') {
+                    return '<div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.08);">'
+                        +'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6b7280;margin:0 0 10px;">Related Articles</div>'
+                        +'<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;">'+items+'</ul></div>';
+                }
+                return '<div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">'
+                    +'<div style="background:'+g+';padding:10px 16px;"><span style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fff;">Related Articles</span></div>'
+                    +'<ul style="margin:0;padding:12px 16px;list-style:none;display:flex;flex-direction:column;gap:8px;">'+items+'</ul></div>';
+            }
+            function item(n,title,p) {
+                var a=p.accent,g=p.grad||'',dk=p.dk||'';
+                if (p.fmt==='dark')
+                    return '<li style="display:flex;align-items:baseline;gap:8px;margin:0;padding:0;">'
+                        +'<span style="font-size:11px;font-weight:700;color:'+a+';min-width:16px;flex-shrink:0;">'+n+'.</span>'
+                        +'<span style="color:#fff;font-size:12px;">'+title+'</span></li>';
+                if (p.fmt==='minimal')
+                    return '<li style="display:flex;align-items:baseline;gap:7px;padding:5px 0;border-bottom:1px solid #f3f4f6;">'
+                        +'<span style="font-size:10px;color:#9ca3af;min-width:14px;flex-shrink:0;">'+n+'.</span>'
+                        +'<span style="color:#374151;font-size:12px;">'+title+'</span></li>';
+                if (p.fmt==='cards')
+                    return '<div style="display:flex;align-items:stretch;border:1px solid #e5e7eb;border-left:3px solid '+a+';border-radius:5px;overflow:hidden;">'
+                        +'<span style="background:'+a+';color:#fff;font-size:11px;font-weight:700;padding:7px 9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+n+'</span>'
+                        +'<span style="color:#1f2937;font-size:12px;padding:7px 10px;line-height:1.3;">'+title+'</span></div>';
+                if (p.fmt==='stripe')
+                    return '<li style="display:flex;align-items:baseline;gap:7px;">'
+                        +'<span style="color:'+a+';font-weight:700;font-size:12px;min-width:16px;flex-shrink:0;">'+n+'.</span>'
+                        +'<span style="color:#374151;font-size:12px;">'+title+'</span></li>';
+                if (p.fmt==='magazine') {
+                    var bg=(n%2===0)?'#f9fafb':'#fff';
+                    return '<div style="display:flex;align-items:stretch;background:'+bg+';border-bottom:1px solid #f3f4f6;">'
+                        +'<span style="background:'+g+';color:#fff;font-size:12px;font-weight:800;width:36px;min-width:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+n+'</span>'
+                        +'<span style="color:#111827;font-size:12px;padding:8px 12px;line-height:1.3;">'+title+'</span></div>';
+                }
+                if (p.fmt==='bordered')
+                    return '<li style="display:flex;align-items:baseline;gap:8px;">'
+                        +'<span style="font-size:11px;font-weight:700;color:'+a+';min-width:16px;flex-shrink:0;">'+n+'.</span>'
+                        +'<span style="color:#1f2937;font-size:12px;">'+title+'</span></li>';
+                if (p.fmt==='pill')
+                    return '<li style="display:flex;align-items:center;gap:10px;">'
+                        +'<span style="background:'+a+';color:#fff;font-size:10px;font-weight:700;border-radius:20px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0 6px;">'+n+'</span>'
+                        +'<span style="color:#1f2937;font-size:12px;">'+title+'</span></li>';
+                return '<li style="display:flex;align-items:baseline;gap:7px;margin:0;padding:0;">'
+                    +'<span style="color:'+a+';font-size:11px;font-weight:700;min-width:16px;flex-shrink:0;">'+n+'.</span>'
+                    +'<span style="color:'+a+';font-size:12px;">'+title+'</span></li>';
+            }
+            var sel = document.getElementById('rc-style-select');
+            var box = document.getElementById('rc-style-preview');
+            if (!sel || !box) return;
+            function update(){ box.innerHTML = preview(sel.value); }
+            sel.addEventListener('change', update);
+            update();
+        })();
+        JS
+        );
     }
 
     /**
@@ -339,9 +458,6 @@ trait CS_SEO_Admin {
             $h_total     = (int) $health['total'];
             $h_built     = (int) $health['built_at'];
             $h_date      = gmdate('d M y', $h_built);
-            $h_nonce     = wp_create_nonce('cs_seo_nonce');
-            $h_ajax      = admin_url('admin-ajax.php');
-
             // Compute colour for each metric pill.
             // Posts pill is always slate — it is the baseline, not a health signal.
             // All other pills: green >= 90%, amber >= 60%, red < 60%.
@@ -621,6 +737,9 @@ trait CS_SEO_Admin {
         } else {
             $out['rc_exclude_cats'] = $existing['rc_exclude_cats'] ?? $d['rc_exclude_cats'];
         }
+        // RC display style — one of '1'–'20'
+        $rc_style_in = sanitize_text_field(wp_unslash($in['rc_style'] ?? ''));
+        $out['rc_style'] = in_array($rc_style_in, ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20'], true) ? $rc_style_in : '1';
         // Sitemap post types — array of sanitized strings
         $allowed_types = array_map(fn($pt) => $pt->name, get_post_types(['public' => true], 'objects'));
         if (array_key_exists('sitemap_post_types', $in)) {
