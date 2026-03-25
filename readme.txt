@@ -1,9 +1,9 @@
 === CloudScale SEO AI Optimizer ===
 Contributors: andrewjbaker
-Tags: seo, meta description, ai, opengraph, schema
+Tags: seo, meta description, ai, opengraph, schema, sitemap, related posts
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.19.64
+Stable tag: 4.19.66
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -14,7 +14,7 @@ AI-powered SEO & AEO: meta descriptions, auto linking, category management, ALT 
 
 CloudScale SEO AI Optimizer is a completely free SEO plugin built for technical bloggers and site owners who want full control without the overhead of Yoast or RankMath. There is no Pro version, no upsells, no feature gates, and no licence keys.
 
-It handles the essentials cleanly and adds an AI Meta Writer that uses either the Anthropic Claude API or the Google Gemini API to generate, fix, and bulk process meta descriptions and ALT text across your entire site directly from WP Admin.
+It handles the essentials cleanly and adds a full AI toolkit that uses either the Anthropic Claude API or the Google Gemini API to generate meta descriptions, ALT text, summaries, SEO scores, focus keywords, internal links, and related articles — all from WP Admin, with no extra subscriptions required.
 
 = Core SEO Features =
 
@@ -24,37 +24,59 @@ It handles the essentials cleanly and adds an AI Meta Writer that uses either th
 * Twitter/X Card tags
 * JSON-LD structured data: Person schema for author pages, Article/BlogPosting schema for posts, WebSite schema for the homepage, Breadcrumb schema
 * Configurable site name, locale, Twitter handle, and default OG image
-* XML sitemap generation with configurable post types and taxonomy support
+* XML sitemap generation (sitemap.xml index + child sitemaps) with configurable post types and taxonomy support
+* Plain-text sitemap at /sitemap.txt (one URL per line) for AI crawlers and simple scrapers
 * Custom robots.txt editor with AI bot blocking (GPTBot, CCBot, Claude-Web, anthropic-ai and others)
 * llms.txt support for AI crawler guidance
 * noindex controls for search results, 404 pages, attachment pages, author archives, and tag archives
 * UTM parameter stripping in canonical URLs
 
+= AI Auto Pipeline =
+
+* Automatically runs all AI operations in a separate background process the moment a post is published — no WP-Cron dependency
+* Steps run per publish: meta description, SEO score, focus keyword, ALT text for all post images, AI-suggested internal links, AI summary box, and Related Articles
+* Re-run on update toggle: re-triggers the full pipeline whenever a published post is saved
+* Gutenberg-safe internal link injection using block-level parsing; classic editor fallback via str_replace
+* Minimum 50-word content guard prevents meaningless output on stub or test posts
+* HMAC-authenticated async request (120-second TTL) keeps the pipeline secure
+* "Re-run AI Automation" button in the post metabox with live log output
+* Auto Pipeline settings live in a dedicated card at the top of the AI Tools tab
+
+= AI Meta Writer =
+
+* Choose your AI provider: Anthropic Claude or Google Gemini
+* Model selector: Automatic (always resolves to the current recommended model), Claude 3.5/3.7 Sonnet, Claude Haiku, Gemini 2.0 Flash, Gemini 1.5 Pro, or a Custom model string
+* Generate meta descriptions for individual posts or in bulk across your entire site
+* Fix existing descriptions that are too short or too long
+* Fix titles that are outside the optimal 50 to 60 character range
+* Inline edit button on each post row — opens a textarea to manually enter or correct a description without leaving the panel
+* Configurable character range (min/max) injected into the prompt automatically
+* Automatic retry if the AI returns a description outside your target range
+* Rate limit handling with automatic backoff on HTTP 429 responses
+* Fully editable system prompt with reset to default
+* Sortable post table: sort by title, date, SEO score, description length, title length, or ALT status
+* Live progress log with timestamps during bulk runs
+* Stop button for interrupting bulk runs
+* Scheduled batch generation via WP Cron with per-day scheduling
+* Test Key button to verify your API key before running
+
+= AI SEO Scoring =
+
+* AI rates each post from 0 to 100 with a one-sentence strengths or weaknesses note
+* Calculate SEO Scores button runs a bulk scoring pass across all posts
+* Generate Missing automatically scores any post that lacks a score after descriptions are written
+* Per post score badges shown in the AI Tools post table and dashboard widget
+* Scores stored in post meta (_cs_seo_score, _cs_seo_notes) and survive plugin deactivation
+
 = AI Summary Box =
 
-* AI generated article summary box automatically prepended to post content
+* AI-generated article summary box automatically prepended to post content
 * Three fields generated per post: What it is, Why it matters, Key takeaway
 * Bulk generation panel with progress tracking, stop button, and paginated post list
 * Force regenerate option to overwrite all existing summaries
 * Summary fields written to Article JSON-LD schema: description, abstract, and disambiguatingDescription
 * Collapsible display with modern card styling including gradient header and drop shadow
 * Toggle to show or hide the summary box globally without deleting generated content
-
-= AI Meta Writer =
-
-* Choose your AI provider: Anthropic Claude or Google Gemini
-* Model selector: Claude Sonnet, Claude Haiku, Gemini Flash, or Gemini Pro
-* Generate meta descriptions for individual posts or in bulk across your entire site
-* Fix existing descriptions that are too short or too long
-* Fix titles that are outside the optimal 50 to 60 character range
-* Configurable character range (min/max) injected into the prompt automatically
-* Automatic retry if the AI returns a description outside your target range
-* Rate limit handling with automatic backoff on HTTP 429 responses
-* Fully editable system prompt with reset to default
-* Live progress log with timestamps during bulk runs
-* Stop button for interrupting bulk runs
-* Scheduled batch generation via WP Cron with per day scheduling
-* Test Key button to verify your API key before running
 
 = ALT Text Generator =
 
@@ -64,24 +86,44 @@ It handles the essentials cleanly and adds an AI Meta Writer that uses either th
 * Bulk generation with progress tracking
 * Show All toggle to display images that already have ALT text
 
+= Related Articles =
+
+* Automatically injects contextually related post links at the top and bottom of every post
+* AI-scored candidate pool built across the full post library; top and bottom counts configurable (2 to 5 top, 3 to 10 bottom)
+* Separate top and bottom toggles — enable or disable each block independently
+* Generate Missing button runs the scoring pipeline for unprocessed posts
+* Refresh Stale button re-runs previously completed posts when content has changed
+* Sync Counts button trims or fills all posts to match updated count settings without full regeneration
+* Post Status table shows per-post pipeline state (pending, complete, failed) with filter tabs
+* All injection is block-safe and works with both Gutenberg and classic editor posts
+* Related Articles links are also generated automatically via the Auto Pipeline on publish
+
 = Performance Features =
 
 * Font display optimization with font-display: swap to eliminate Flash of Invisible Text (FOIT)
 * Font metric overrides (size-adjust, ascent-override, descent-override) to reduce Cumulative Layout Shift (CLS)
 * Defer font CSS loading using media="print" swap technique
 * Auto-download CDN fonts (Google Fonts) to local server for faster loading and GDPR compliance
-* Font CSS file scanner with terminal style console output
+* Font CSS file scanner with terminal-style console output
 * Auto-Fix All with backup and undo capability
 * Defer render-blocking JavaScript with configurable exclusions
 * HTML, CSS, and JS minification (5 to 15 percent page size reduction)
-* HTTPS mixed content scanner and one click fixer across posts, pages, metadata, options, and comments
+* HTTPS mixed content scanner and one-click fixer across posts, pages, metadata, options, and comments
+
+= SEO Health Dashboard =
+
+* Dashboard widget shows five health pillars: Posts (meta coverage), SEO (score coverage), Images (ALT coverage), Links (related articles coverage), Summaries (AI summary coverage)
+* Colour-coded pills: green >= 90%, amber >= 60%, red < 60%
+* Refresh link rebuilds the health cache on demand; cache auto-rebuilds after any bulk AI run completes
+* "Posts need AI auto run" and "pipeline jobs queued" counters keep you informed of pending work
 
 = Dashboard Integration =
 
-* WordPress dashboard widget with SEO status overview
+* WordPress dashboard widget with SEO health overview and per-pillar coverage pills
 * Post editor metabox with custom title, description, OG image, and inline AI generation
-* Gutenberg sidebar panel (CloudScale Meta Boxes) with custom title, description, OG image, AI summary fields, and one click generation without leaving the editor
-* Per post status badges showing description length and health
+* Gutenberg sidebar panel (CloudScale Meta Boxes) with custom title, description, OG image, AI summary fields, and one-click generation without leaving the editor
+* Per-post status badges showing description length, title length, SEO score, and ALT status
+* Tab state persists across page reloads — the settings page returns to your last active tab
 
 = Category Fixer =
 
@@ -89,13 +131,21 @@ It handles the essentials cleanly and adds an AI Meta Writer that uses either th
 * Uses Claude to analyse post title, slug, tags, and AI summary box against your full category list
 * Proposes up to four categories per post — only from categories that already exist in WordPress
 * Never assigns Uncategorized
-* Colour coded review table: green for additions, red for removals, grey for kept categories
+* Colour-coded review table: green for additions, red for removals, grey for kept categories
 * Per post Apply and Skip buttons, plus bulk Apply All Changed
 * Filter bar: All, Changed, Unchanged, Low Confidence, Missing
 * Reload button re-analyses all posts with fresh AI calls
 * Per row re-analyse button for individual posts
 * AI analysis badge shows confidence score
 * No categories are changed until you explicitly click Apply
+
+= Category Health and Drift Detection =
+
+* Category Health tab shows post counts per category with a pass/fail coverage indicator
+* Category Drift Detection uses AI to identify categories that have drifted from their original focus or become catch-all buckets
+* Drift analysis returns a verdict (drifting or catch-all) with a confidence score and AI reasoning for each flagged category
+* Results sorted by verdict type then confidence so the most actionable items appear first
+* Elapsed time counter and Stop button during long analysis runs
 
 = What This Plugin Does Not Do =
 
@@ -198,20 +248,34 @@ Adding the defer attribute to script tags allows them to download in parallel wi
 
 Yes. The Scheduled Batch tab lets you select which days of the week to run automatic generation. The batch runs at midnight server time and only processes posts that do not yet have a meta description. It never overwrites existing ones.
 
+= What does Auto Pipeline do? =
+
+Auto Pipeline fires a background process the moment a post is published. It runs every AI step in sequence: meta description, SEO score, focus keyword, ALT text for all post images, AI-suggested internal links, AI summary box, and Related Articles. The process runs in a separate PHP request so it does not slow down the publish action. You can also trigger a re-run manually from the post metabox using the "Re-run AI Automation" button.
+
+= What is the Automatic model option? =
+
+Selecting Automatic tells the plugin to always use the current recommended model for your chosen provider (currently claude-sonnet-4-6 for Anthropic and gemini-2.0-flash for Google). When Anthropic or Google release a better default model the plugin will automatically switch without any settings change on your part. Users who have already pinned a specific model are not affected.
+
+= How does Related Articles work? =
+
+The plugin scores all posts against each other using shared categories, tags, and content signals, then stores a ranked candidate pool per post. The top two to five links appear above the post content and three to ten appear below. You control the counts from the Related Articles settings. The Generate Missing button processes unscored posts; Sync Counts adjusts existing results to match updated count settings without running the full pipeline again.
+
 == Screenshots ==
 
 1. SEO Settings tab showing site identity, OG tags, and schema configuration
-2. AI Meta Writer with provider selection, API key, model chooser, and system prompt
-3. Generate Descriptions panel with summary cards, bulk action buttons, and live log
-4. Post table showing per post description status badges and individual Generate buttons
-5. Post editor metabox with custom title, description field, and Generate with AI button
+2. AI Tools tab with Auto Pipeline card, provider selection, API key, and model chooser
+3. Generate Descriptions panel with summary cards, bulk action buttons, and live progress log
+4. Post table showing per-post description, title, SEO score, and ALT status badges
+5. Post editor metabox with custom title, description field, and Re-run AI Automation button
 6. Performance tab with font optimization, JavaScript deferral, and minification settings
 7. ALT Text Generator with image audit table and bulk generation
-8. Scheduled Batch configuration with day selector and last run status
+8. Related Articles Post Status table with pipeline state filters and Sync Counts button
+9. Category Fixer review table with colour-coded category pills and Apply/Skip controls
+10. Dashboard widget showing SEO health pills with colour-coded coverage scores
 
 == Changelog ==
 
-= 4.19.64 =
+= 4.19.66 =
 * Update: version bump
 
 = 4.19.50 =
