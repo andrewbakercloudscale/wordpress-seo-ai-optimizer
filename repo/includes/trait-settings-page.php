@@ -3059,7 +3059,10 @@ trait CS_SEO_Settings_Page {
             post._processing = true;
             abRenderTable();
 
-            abPost('cs_seo_ai_generate_one', {post_id: postId}).then(data => {
+            const seoNotes = (post._seo_notes !== undefined ? post._seo_notes : (post.seo_notes || ''));
+            const oldScore = (post._seo_score !== undefined ? post._seo_score : (post.seo_score || 0)) || 0;
+            abLog('→ Sending: score=' + (oldScore || 'none') + (seoNotes ? ', feedback="' + seoNotes + '"' : ', feedback=none'), 'info');
+            abPost('cs_seo_ai_generate_one', {post_id: postId, seo_notes: seoNotes, seo_score: oldScore}).then(data => {
                 post._processing = false;
                 if (data.success) {
                     const d = data.data;
@@ -3070,10 +3073,15 @@ trait CS_SEO_Settings_Page {
                     if (d.alts_saved > 0) {
                         post._alts_saved = (post._alts_saved || 0) + d.alts_saved;
                     }
-                    if (d.seo_score !== undefined) { post._seo_score = d.seo_score; post._seo_notes = d.seo_notes || ''; }
+                    if (d.seo_score !== null && d.seo_score !== undefined) {
+                        post._seo_score = d.seo_score;
+                        post._seo_notes = d.seo_notes || '';
+                    }
                     const altNote = d.alts_saved > 0 ? ' + ' + d.alts_saved + ' ALT(s)' : '';
-                    const scoreNote = d.seo_score !== undefined ? ' · SEO ' + d.seo_score + '%' : '';
-                    abLog('✓ Description → ' + d.chars + 'c' + altNote + scoreNote + ': ' + d.description, 'ok');
+                    const newScore = (d.seo_score !== null && d.seo_score !== undefined) ? d.seo_score : 'none';
+                    const scoreDelta = (oldScore && newScore !== 'none') ? ' (' + (newScore >= oldScore ? '+' : '') + (newScore - oldScore) + ')' : '';
+                    abLog('← Returned: score=' + newScore + scoreDelta + ', notes="' + (d.seo_notes || '') + '"', 'info');
+                    abLog('✓ Description → ' + d.chars + 'c' + altNote + ': ' + d.description, 'ok');
 
                     // ── Title ─────────────────────────────────────────────────
                     if (d.title_status === 'fixed' || d.title_status === 'fixed_imperfect') {
@@ -3094,6 +3102,8 @@ trait CS_SEO_Settings_Page {
                     abLog('✗ "' + post.title.slice(0,45) + '": ' + (data.data || 'Unknown error'), 'err');
                 }
                 abRenderTable();
+                const scoreCell = document.querySelector('#ab-row-' + postId + ' .ab-score-cell');
+                if (scoreCell) { scoreCell.style.transition = 'background 0.3s'; scoreCell.style.background = '#d1e7dd'; setTimeout(() => { scoreCell.style.background = ''; }, 1200); }
             }).catch(e => {
                 post._processing = false;
                 abLog('✗ Network error: ' + e.message, 'err');
@@ -3287,9 +3297,18 @@ trait CS_SEO_Settings_Page {
                 abSetProgress(done, targets.length);
 
                 try {
+                    const local = abState.posts.find(p => p.id === post.id);
+                    const bulkSeoNotes = local
+                        ? (local._seo_notes !== undefined ? local._seo_notes : (local.seo_notes || ''))
+                        : (post.seo_notes || '');
+                    const bulkOldScore = local
+                        ? ((local._seo_score !== undefined ? local._seo_score : (local.seo_score || 0)) || 0)
+                        : (post.seo_score || 0);
                     const data = await abPost('cs_seo_ai_generate_all', {
                         post_id:   post.id,
                         overwrite: overwrite ? 1 : 0,
+                        seo_notes: bulkSeoNotes,
+                        seo_score: bulkOldScore,
                     });
 
                     if (data.success) {
@@ -3307,7 +3326,6 @@ trait CS_SEO_Settings_Page {
                                 abLog(tq + ' Title fixed ' + r.title_chars + 'c: ' + r.title, r.title_status === 'fixed' ? 'ok' : 'warn');
                                 if (r.title_was) abLog('  was: ' + r.title_was, 'info');
                             }
-                            const local = abState.posts.find(p => p.id === post.id);
                             if (local) {
                                 local._gen = r.description; local.has_desc = true; local.desc = r.description;
                                 if (r.alts_saved > 0) local._alts_saved = (local._alts_saved || 0) + r.alts_saved;
