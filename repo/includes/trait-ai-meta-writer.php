@@ -92,12 +92,17 @@ trait CS_SEO_AI_Meta_Writer {
             ? "\n\nSEO IMPROVEMENT GUIDANCE:{$score_context} A previous analysis flagged: \"{$seo_feedback}\". Address this directly when writing the meta description and title. Your seo_score should reflect the improvements you are making."
             : '';
 
+        $is_front_page = ( 'page' === get_option('show_on_front') && (int) get_option('page_on_front') === $post_id );
+        $score_criteria = $is_front_page
+            ? "Rate this homepage's SEO from 0-100 (integer). Criteria: meta description clarity and brand messaging, title keyword alignment, value proposition strength, and overall site identity clarity. Do NOT penalise for absence of article body content — this is a homepage, not an article."
+            : "Rate this article's search engine optimisation from 0-100 (integer). Consider: title keyword clarity and length, meta description quality, content depth and specificity, clear search intent alignment, and overall article quality.";
+
         $system = $prompt . $site_context
             . "\n\nDESCRIPTION: The meta description MUST be between {$min} and {$max} characters including spaces. Count carefully."
             . $title_instruction
             . $image_instruction
             . $feedback_instruction
-            . "\n\nSEO SCORE: Rate this article's search engine optimisation from 0-100 (integer). Consider: title keyword clarity and length, meta description quality, content depth and specificity, clear search intent alignment, and overall article quality. Set seo_notes to one concise sentence naming the single biggest strength or weakness."
+            . "\n\nSEO SCORE: {$score_criteria} Set seo_notes to one concise sentence naming the single biggest strength or weakness."
             . "\n\nRespond ONLY with valid JSON in exactly this format, no other text, no markdown fences:\n{$json_shape}";
 
         $user_msg = "Article title: \"{$post->post_title}\"\n\nArticle content:\n{$content}"
