@@ -3,7 +3,7 @@ Contributors: andrewjbaker
 Tags: seo, ai, meta description, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.19.67
+Stable tag: 4.19.71
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -275,7 +275,7 @@ The plugin scores all posts against each other using shared categories, tags, an
 
 == Changelog ==
 
-= 4.19.67 =
+= 4.19.71 =
 * Update: version bump
 
 = 4.19.50 =

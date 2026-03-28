@@ -16,7 +16,7 @@ trait CS_SEO_AI_Meta_Writer {
      * @return array Associative array with keys 'description', 'title', 'title_was', 'title_chars', 'title_status', 'alts_saved', 'seo_score', 'seo_notes'.
      * @throws \RuntimeException If the post is not found or no API key is configured.
      */
-    private function call_ai_generate_all(int $post_id): array {
+    private function call_ai_generate_all(int $post_id, string $seo_feedback = '', int $old_score = 0): array {
         $post = get_post($post_id);
         if (!$post) throw new \RuntimeException( "Post {$post_id} not found" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 
@@ -87,10 +87,16 @@ trait CS_SEO_AI_Meta_Writer {
             $image_instruction = '';
         }
 
+        $score_context = $old_score > 0 ? " The previous SEO score was {$old_score}%." : '';
+        $feedback_instruction = $seo_feedback
+            ? "\n\nSEO IMPROVEMENT GUIDANCE:{$score_context} A previous analysis flagged: \"{$seo_feedback}\". Address this directly when writing the meta description and title. Your seo_score should reflect the improvements you are making."
+            : '';
+
         $system = $prompt . $site_context
             . "\n\nDESCRIPTION: The meta description MUST be between {$min} and {$max} characters including spaces. Count carefully."
             . $title_instruction
             . $image_instruction
+            . $feedback_instruction
             . "\n\nSEO SCORE: Rate this article's search engine optimisation from 0-100 (integer). Consider: title keyword clarity and length, meta description quality, content depth and specificity, clear search intent alignment, and overall article quality. Set seo_notes to one concise sentence naming the single biggest strength or weakness."
             . "\n\nRespond ONLY with valid JSON in exactly this format, no other text, no markdown fences:\n{$json_shape}";
 
@@ -371,7 +377,8 @@ trait CS_SEO_AI_Meta_Writer {
             $changed     = true;
         }
         if ($changed) {
-            wp_update_post(['ID' => $post_id, 'post_content' => $new_content]);
+            // wp_slash() required — see trait-ai-alt-text.php for explanation.
+            wp_update_post(['ID' => $post_id, 'post_content' => wp_slash( $new_content )]);
         }
     }
 
@@ -383,11 +390,13 @@ trait CS_SEO_AI_Meta_Writer {
      */
     public function ajax_generate_one(): void {
         $this->ajax_check();
-        $post_id = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
+        $post_id      = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
+        $seo_feedback = sanitize_text_field( wp_unslash( $_POST['seo_notes'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        $old_score    = absint( wp_unslash( $_POST['seo_score'] ?? 0 ) );               // phpcs:ignore WordPress.Security.NonceVerification.Missing
         if (!$post_id) wp_send_json_error('Missing post_id');
 
         try {
-            $result = $this->call_ai_generate_all($post_id);
+            $result = $this->call_ai_generate_all($post_id, $seo_feedback, $old_score);
             update_post_meta($post_id, self::META_DESC, sanitize_textarea_field($result['description']));
             if ($result['seo_score'] !== null) {
                 update_post_meta($post_id, self::META_SEO_SCORE, $result['seo_score']);
@@ -678,7 +687,15 @@ trait CS_SEO_AI_Meta_Writer {
         }
 
         try {
-            $result = $this->call_ai_generate_all($post_id);
+            $seo_feedback_raw = sanitize_text_field( wp_unslash( $_POST['seo_notes'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            $seo_feedback     = $seo_feedback_raw !== ''
+                ? $seo_feedback_raw
+                : sanitize_text_field( (string) get_post_meta( $post_id, self::META_SEO_NOTES, true ) );
+            $old_score_raw = absint( wp_unslash( $_POST['seo_score'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            $old_score     = $old_score_raw > 0
+                ? $old_score_raw
+                : (int) get_post_meta( $post_id, self::META_SEO_SCORE, true );
+            $result = $this->call_ai_generate_all($post_id, $seo_feedback, $old_score);
             update_post_meta($post_id, self::META_DESC, sanitize_textarea_field($result['description']));
             if ($result['seo_score'] !== null) {
                 update_post_meta($post_id, self::META_SEO_SCORE, $result['seo_score']);
