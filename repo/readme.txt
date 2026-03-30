@@ -3,7 +3,7 @@ Contributors: andrewjbaker
 Tags: seo, ai, meta description, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.19.85
+Stable tag: 4.19.91
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -274,6 +274,17 @@ The plugin scores all posts against each other using shared categories, tags, an
 10. Dashboard widget showing SEO health pills with colour-coded coverage scores
 
 == Changelog ==
+
+= 4.19.91 =
+* Fix: PCP critical — raw script tag in redirects admin moved to wp_add_inline_script to comply with WordPress.org standards
+* Fix: delete-redirect and clear-all-redirects fetch calls now have catch handlers for network errors
+
+= 4.19.90 =
+* Fix: Settings save broken for all checkbox fields — added hidden fallback inputs so unchecked checkboxes correctly save 0
+* Fix: Redirects zone-header white-on-white — added teal background colour to redirects card header
+* Fix: Manual redirect form and stored redirects table were rendering outside the card container
+* Fix: Save button left padding corrected across all admin cards
+* Add: Playwright settings-save tests covering all panels
 
 = 4.19.85 =
 * Add: Automatic Redirects — 301 redirect automatically captured and served when a published post or page slug is renamed
