@@ -275,6 +275,15 @@ The plugin scores all posts against each other using shared categories, tags, an
 
 == Changelog ==
 
+= 4.19.85 =
+* Add: Automatic Redirects — 301 redirect automatically captured and served when a published post or page slug is renamed
+* Add: Manual redirect form — add custom path→URL redirects for any resource including image paths and arbitrary old paths
+* Add: Hit counter and last-hit timestamp on every redirect entry, displayed inline next to the old path
+* Add: Clickable old-path links in the redirect table for one-click testing
+* Fix: Save Changes on the Redirects tab was silently ignored — enable_redirects added to sanitize_opts known-fields guard
+* Fix: 301 redirects not firing — moved hook to template_redirect priority 0 to run before cs_pcr_maybe_custom_404 which exits at priority 1
+* Fix: enable_redirects default changed to enabled (1) for fresh installs
+
 = 4.19.72 =
 * Update: version bump
 

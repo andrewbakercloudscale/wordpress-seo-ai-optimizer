@@ -3,6 +3,20 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.19.85] - 2026-03-30
+### Added
+- **Automatic Redirects** — new `trait-redirects.php`; when a published post or page slug is renamed, a 301 redirect from the old path to the new URL is automatically captured and served on any matching 404 request
+- **Manual redirect form** — admin card to add custom path→URL redirects for any resource including image paths (`/wp-content/uploads/old.jpg`), arbitrary old paths, or external destinations; overwrites duplicate `from` entries
+- **Hit counter + last-hit timestamp** — every redirect records total serve count and the datetime of the most recent hit; displayed inline in the table next to the old path
+- **Clickable old-path links** — old path in the redirect table is now a hyperlink for one-click testing
+- **"Manual" badge** — hand-entered redirects display a blue Manual label instead of a post link in the Post column
+- **"Delete All Redirects" button** — red destructive-action button to clear the entire redirect list
+- **Playwright E2E test** (`tests/e2e/redirects.spec.js`) — enable → slug rename via REST API → 301 fires → hit counter increments → cleanup
+### Fixed
+- **Save-bug** — `enable_redirects` was missing from the `sanitize_opts` known-fields guard, causing the Save Changes button on the Redirects tab to silently do nothing; added to the guard list (`trait-admin.php`)
+- **301 not firing** — `cs_pcr_maybe_custom_404` (crash-recovery plugin) was hooked to `template_redirect` at priority 1 and called `exit` before our hook ran; moved `redirect_serve` to priority 0 so it fires first
+- **Default enabled** — `enable_redirects` default changed from 0 → 1 for fresh installs (`trait-options.php`)
+
 ## [4.19.46] - 2026-03-21
 ### Fixed
 - **Model selection reverting to Automatic on page load** — `abProviderChanged()` runs on initial page load to sync provider UI; it now only resets the model selector when the current selection belongs to a different provider, preserving saved pinned model on load while still defaulting to Automatic on an active provider switch (`trait-settings-page.php`)

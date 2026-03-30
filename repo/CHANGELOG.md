@@ -3,6 +3,174 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.19.85] - 2026-03-30
+### Added
+- **Automatic Redirects** — new `trait-redirects.php`; when a published post or page slug is renamed, a 301 redirect from the old path to the new URL is automatically captured and served on any matching 404 request
+- **Manual redirect form** — admin card to add custom path→URL redirects for any resource including image paths (`/wp-content/uploads/old.jpg`), arbitrary old paths, or external destinations; overwrites duplicate `from` entries
+- **Hit counter + last-hit timestamp** — every redirect records total serve count and the datetime of the most recent hit; displayed inline in the table next to the old path
+- **Clickable old-path links** — old path in the redirect table is now a hyperlink for one-click testing
+- **"Manual" badge** — hand-entered redirects display a blue Manual label instead of a post link in the Post column
+- **"Delete All Redirects" button** — red destructive-action button to clear the entire redirect list
+- **Playwright E2E test** (`tests/e2e/redirects.spec.js`) — enable → slug rename via REST API → 301 fires → hit counter increments → cleanup
+### Fixed
+- **Save-bug** — `enable_redirects` was missing from the `sanitize_opts` known-fields guard, causing the Save Changes button on the Redirects tab to silently do nothing; added to the guard list (`trait-admin.php`)
+- **301 not firing** — `cs_pcr_maybe_custom_404` (crash-recovery plugin) was hooked to `template_redirect` at priority 1 and called `exit` before our hook ran; moved `redirect_serve` to priority 0 so it fires first
+- **Default enabled** — `enable_redirects` default changed from 0 → 1 for fresh installs (`trait-options.php`)
+
+## [4.19.46] - 2026-03-21
+### Fixed
+- **Model selection reverting to Automatic on page load** — `abProviderChanged()` runs on initial page load to sync provider UI; it now only resets the model selector when the current selection belongs to a different provider, preserving saved pinned model on load while still defaulting to Automatic on an active provider switch (`trait-settings-page.php`)
+
+## [4.19.45] - 2026-03-21
+### Added
+- **Automatic model option** — new `_auto` model setting (now the default) always resolves to the current recommended model for the active provider at runtime (`claude-sonnet-4-6` / `gemini-2.0-flash`); pinned model selections are unaffected (`trait-options.php`, `trait-ai-engine.php`, `trait-settings-page.php`, all AI call sites)
+- **`recommended_model(string $provider)`** — static method on the plugin class; single source of truth for the recommended model per provider (`trait-options.php`)
+- **`resolve_model(string $model, string $provider)`** — private method; maps `_auto` or empty string to `recommended_model()`; all 14 AI dispatch call sites updated (`trait-ai-engine.php`)
+
+## [4.19.35] - 2026-03-18
+### Fixed
+- **Provider switch model reset** — switching AI provider (Anthropic ↔ Gemini) now always resets the model selector to the first option for the new provider using `option.selected = true` for reliable cross-browser behaviour; previously the old provider's model remained selected (`trait-settings-page.php`)
+- **Duplicate "Custom" option** — the model dropdown was showing "Custom (enter below)…" twice (once per provider); replaced with a single entry at the bottom of the list (`trait-settings-page.php`)
+- **Silent `catch(e) {}` in `abGenAll`** — page-fetch pagination loop using variable `d2` was missed by the earlier batch fix; now logs via `console.error` (`trait-settings-page.php`)
+- **`const VERSION` drift in `repo/`** — `repo/cloudscale-seo-ai-optimizer.php` had `const VERSION = '4.19.5'`; corrected to current version; `build.sh` now also patches the constant on every bump
+
+## [4.19.34] - 2026-03-18
+### Fixed
+- **Provider switch** — first fix attempt; superseded by 4.19.35
+
+## [4.19.33] - 2026-03-18
+### Fixed
+- **`repo/` version sync** — `build.sh` now updates both `* Version:` header and `const VERSION` constant in `repo/PLUGIN.php` on every version bump, and also syncs `readme.txt`; previously `repo/` drifted from the main plugin file between SVN deployments
+- **`const VERSION` in `repo/`** — corrected stale value to match current version
+
+## [4.19.32] - 2026-03-18
+### Fixed
+- **PCP: hidden files in zip** — `.svn-working-copy/` directory (containing hundreds of `.svn/` hidden files) was being bundled into the distribution zip; WordPress.org would reject with `hidden_files` error. Added `.svn-working-copy`, `.svn`, `.svn-credentials.sh`, `docs/`, `generate-help-docs.sh`, `build-review.sh`, `MANUAL-deploy-svn.sh`, `CloudScaleSEOAI.jpg` to `build.sh` rsync exclusions (`build.sh`)
+- **PCP: version bump reading wrong file** — `build.sh` was finding `.svn-working-copy/tags/*/cloudscale-seo-ai-optimizer.php` before the real plugin file, silently bumping versions inside the SVN working copy instead of the plugin header. Fixed by excluding `.svn-working-copy` from both the `MAIN_PHP` grep and the version bump sed loop (`build.sh`)
+- **PCP: inline `onchange` in PHP-rendered HTML** — removed `onchange="abModelSelectChanged()"` attribute from the `<select>` element; handler is already wired via `addEventListener` in the JS setup block (`trait-settings-page.php`)
+- **CHANGELOG** — added entries for v4.19.30 and v4.19.31 (`CHANGELOG.md`)
+
+## [4.19.31] - 2026-03-18
+### Fixed
+- **Gemini deprecated model** — replaced `gemini-2.0-flash` (no longer available to new users) with `gemini-2.5-flash-preview-04-17` as the default fallback across all AI traits (`trait-ai-meta-writer.php`, `trait-ai-scoring.php`, `trait-ai-summary.php`, `trait-ai-alt-text.php`, `trait-auto-pipeline.php`, `trait-batch-scheduler.php`, `trait-category-fixer.php`)
+- **Inline `onchange` event handler** — removed `onchange="abModelSelectChanged()"` from PHP-rendered `<select>` tag; handler already wired via `addEventListener` in the JS setup block (`trait-settings-page.php`)
+- **Hidden files in zip** — added `.svn-working-copy`, `.svn`, `docs/`, `generate-help-docs.sh`, `build-review.sh`, `MANUAL-deploy-svn.sh`, and `CloudScaleSEOAI.jpg` to the `build.sh` rsync exclusion list; these were being bundled into the distribution zip and would have caused WordPress.org `hidden_files` rejection
+- **Blog category filter** — `wp:latest-posts` block on the Blog page was filtering to only 5 categories, excluding AWS Cloud, AI, Banking, Cyber, Databases and others; filter removed so all published posts appear
+- **S3 public access** — added bucket policy to `andrewninjawordpress` S3 bucket to allow public-read on all objects
+### Added
+- **Custom model input** — "Custom (enter below)…" option in the AI model dropdown reveals a text field for entering any model ID, with examples for both Claude and Gemini and links to each provider's model docs (`trait-settings-page.php`)
+- **Updated Gemini model list** — dropdown now lists Gemini 2.5 Flash Preview, 2.0 Flash 001 (stable), 2.0 Flash Lite, and 2.5 Pro Preview; removed deprecated `gemini-2.0-flash` and `gemini-1.5-pro` (`trait-settings-page.php`)
+- **"View latest models" links** — provider-specific docs links shown below the model selector, switching automatically when the provider changes (`trait-settings-page.php`)
+
+## [4.19.30] - 2026-03-18
+### Added
+- **WordPress.org SVN support** — `MANUAL-deploy-svn.sh` script syncs `repo/` to trunk, commits trunk, and tags the release; `shared-help-docs/help-runner.sh` shared library for help doc generation across all plugins
+- **Help documentation system** — `generate-help-docs.sh` + `tests/generate-help-docs.js` take panel-level screenshots of every admin section, upload to WordPress Media Library, and create/update the "Help & Documentation" page under `/wordpress-plugin-help/seo-ai-optimizer/`; pages survive temp-user deletion via `--reassign` fix
+- **"CloudScale WordPress Plugins" nav dropdown** — added to site navigation with dropdown items for all 6 CloudScale plugins
+- **Batch run history in seconds** — `elapsed` field changed from minutes to integer seconds in `trait-batch-scheduler.php`
+### Fixed
+- **`readme.txt` Contributors field** — changed `andrewbaker007` to `andrewjbaker` to match WordPress.org SVN username
+- **Short description** — trimmed to exactly 150 characters (`and` → `&`)
+- **`build.sh` syntax error** — removed orphaned `else/fi` block that was causing `syntax error near unexpected token 'else'`
+- **`repo/readme.txt` sync** — `build.sh` now copies `readme.txt` into `repo/` after every version bump so SVN trunk always has the correct `Stable tag`
+
+## [4.19.29] - 2026-03-17
+### Fixed
+- **`rcRunOne`** — `fetch` and `r.json()` inside the `while` step-loop were not wrapped in `try/catch`; a network error or non-JSON response silently rejected the Promise, halting the run with no user feedback. Both are now guarded; errors surface via `rcUpdateRow` with the error message (`trait-settings-page.php`)
+- **`rcBatch`** — `await rcRunOne(postId)` was not wrapped per-iteration; a single failing post rejected the entire batch loop, leaving the progress bar stuck and `rcBatchRunning = true`. Each call is now wrapped in `try/catch` so the batch continues to the next post on failure (`trait-settings-page.php`)
+- **`cdMoveAll`** — entire function body had no `try/catch`; any runtime error inside the move loop silently rejected the Promise with no user feedback and the button stayed disabled. Added outer `try/catch` with button re-enable on failure (`trait-settings-page.php`)
+- **Silent `catch(e) {}`** in page-fetch pagination loops inside `abScoreAll`, `abGenAll`, `abFixAll`, `abFixTitles`, and `abRegenStatic` — failures were swallowed with no developer or user visibility; all five now call `console.error('[cs-seo] page-fetch failed', e)` (`trait-settings-page.php`)
+- **Silent `catch(e) {}`** in `rcBatch` page-fetch pagination and `rcRunOne` row-refresh loop — same fix; both now log to console (`trait-settings-page.php`)
+- **`rcRunOne`** — `row.querySelector('td:nth-child(2)')` result was used without a null-check before `.innerHTML` assignment; the result is now stored in a variable and guarded (`trait-settings-page.php`)
+
+## [4.19.28] - 2026-03-17
+### Fixed
+- **Category Drift** — AI was occasionally suggesting "Uncategorized" as a move destination. Added explicit `NEVER suggest moving posts to the "Uncategorized" category` instruction to both drift prompts (`ajax_catfix_drift` and `ajax_catfix_drift_analyse_remaining`), client-side filter that skips any merged move group whose `to` value is "uncategorized" (case-insensitive), and server-side guard in `ajax_catfix_drift_move` that rejects such requests with an error (`trait-category-fixer.php`, `trait-settings-page.php`)
+
+## [4.19.27] - 2026-03-17
+### Fixed
+- **Category Drift** — after using "Move" or "Move all", refreshing the page reloaded the cached drift results and showed moved posts as if they had not been moved. `ajax_catfix_drift_move` now updates the `cs_seo_drift_cache` option after each successful move, removing the post from the relevant entry's `posts` list and from every move group's `post_ids` array (`trait-category-fixer.php`)
+
+## [4.19.26] - 2026-03-17
+### Fixed
+- **Category Drift** — "Move all" button was absent from move groups containing only one matched post (condition was `postCount > 1`); changed to `postCount > 0` so every non-empty group gets the button (`trait-settings-page.php`)
+- **Category Drift** — the same post could appear in multiple move buckets (different destinations); moving it in one bucket left stale "→ Move" buttons active in the others. Added `cdMovedPostIds` (a session-level `Set`) that is populated on every successful move; on move success, all `.cd-move-btn[data-post-id="N"]` elements across the entire table are found and dimmed simultaneously (`trait-settings-page.php`)
+- **Category Drift** — "Move all N posts" button was rendered inside the collapsible post list div, so it was hidden until the list was expanded. Moved outside the collapsible div to sit inline next to the "▼ N posts" toggle (`trait-settings-page.php`)
+
+## [4.19.25] - 2026-03-17
+### Fixed
+- **Category Drift** — the AI sometimes returns multiple move groups with the same `to` destination for a single category. These are now merged client-side before rendering: groups sharing the same destination (case-insensitive) are collapsed into one bucket with deduplicated post IDs (`trait-settings-page.php`)
+
+## [4.19.24] - 2026-03-17
+### Fixed
+- **Category Health filter pills** — label and count were rendering on separate lines because the `<button>` template literal contained newlines between the `<span>` dot, the label text, and the `<strong>` count, creating whitespace text nodes inside the flex container. Collapsed to a single line with `white-space:nowrap` (`trait-settings-page.php`)
+
+## [4.19.23] - 2026-03-17
+### Added
+- **Category Drift — Move Post / Move all** — each matched post in a drift move group now has a "→ Move" button that moves it from the drift-flagged category to the AI-suggested destination. Groups with multiple posts get a "→ Move all N" button. Moving is done via the new `cs_catfix_drift_move` AJAX endpoint which resolves the target category by name (creating it if absent) and removes the post from the source category. The button turns green and shows "✓ Moved" on success. New PHP method `ajax_catfix_drift_move` registered at `wp_ajax_cs_catfix_drift_move` (`trait-category-fixer.php`, `trait-settings-page.php`, `cloudscale-seo-ai-optimizer.php`)
+- **Category Health — clickable filter pills** — the static legend row (● Strong ● Moderate…) and the separate stats row (Strong: 5, Moderate: 3…) were merged into a single row of clickable filter buttons. Each pill shows the colour dot, grade label, and count; clicking it filters the table to show only that grade. An "All N" pill resets the filter. Active pill is highlighted. Filter resets to "All" on each reload (`trait-settings-page.php`)
+### Fixed
+- **Category Health filter pills** — the static legend is removed from the HTML; `chLoad()` no longer references the removed `ch-legend` element (`trait-settings-page.php`)
+
+## [4.19.22] - 2026-03-17
+### Added
+- **Category Health — per-category progress** — loading now runs in two phases: a fast `cs_catfix_health_list` call returns all category IDs/names (no post queries), then JS processes each category individually via `cs_catfix_health_cat`, showing "Processing category N of M: [name]" so stuck queries are immediately visible. New PHP methods `ajax_catfix_health_list` and `ajax_catfix_health_cat` registered at `wp_ajax_cs_catfix_health_list` and `wp_ajax_cs_catfix_health_cat`. `ajax_catfix_health` retained but marked deprecated (`trait-category-fixer.php`, `cloudscale-seo-ai-optimizer.php`)
+- **Category Health — sort and filter** — `chLoad()` resets `chCurrentFilter` to `'all'` on each reload; client-side grade sort mirrors the original server-side order (`trait-settings-page.php`)
+### Fixed
+- **Category Health — Reload button** — `chLoad()` was a single blocking request; when it stalled the Reload button appeared to do nothing because reloading produced the same stalled state. The batched approach makes each category independently observable. Added `chLoading` guard to prevent parallel loads (`trait-settings-page.php`)
+- **Font Optimizer — path traversal** — `ajax_font_undo` accepted a raw `file_path` from `$_POST` and passed it directly to `$wp_filesystem->put_contents()`; an attacker with `manage_options` could write arbitrary files outside ABSPATH. Added `realpath()` validation to confirm the resolved path is within `ABSPATH` before any write (`trait-font-optimizer.php`)
+
+## [4.19.21] - 2026-03-17
+### Fixed
+- **Category Fixer** — posts were sorted by title ascending in `ajax_catfix_list_ids` and `ajax_catfix_load`; changed to `date DESC` so the scan and table display newest posts first (`trait-category-fixer.php`)
+
+## [4.19.20] - 2026-03-16
+### Added
+- **Category Fixer — batched scan** — "Scan Posts" now fetches post IDs in a single fast call then processes configurable-sized batches with live progress ("Scanning post N of M"), matching the existing AI analysis loop pattern; individual batch failures are caught and logged without aborting the full scan
+- **Playwright UI tests** — end-to-end test suite covering login, admin navigation, and Category Fixer scan flow added under `tests/`
+### Fixed
+- Error handling hardened across Category Fixer AJAX paths
+
+## [4.19.7] - 2026-03-16
+### Fixed
+- **Scan Posts** button (Categories tab) not responding to clicks — button had no `id` after the PCP refactor removed its `onclick`; added `id="cf-scan-btn"` and replaced broken `querySelector('[onclick=...]')` with `on('cf-scan-btn', fn)` (`trait-settings-page.php`)
+- **Analyse Categories** button had the same issue — added `id="ch-analyse-btn"` and wired via `on()` (`trait-settings-page.php`)
+- **↻ Refresh** (Robots live preview) not responding — same root cause; added `id="ab-robots-refresh-btn"` and wired via `on()` (`trait-settings-page.php`)
+- **Reset to default** (Robots textarea) not responding — same root cause; added `id="ab-robots-reset-btn"` and wired via `on()` (`trait-settings-page.php`)
+
+## [4.19.6] - 2026-03-16
+### Added
+- SEO Score badge click now opens a modal showing the AI feedback notes with a **Copy Feedback** button and a **Re-score** button; unscored badges still trigger scoring directly (`trait-settings-page.php`)
+- Per-row **✦ Generate** button added to AI Summary Box Generator table — calls `cs_seo_summary_generate_one` with `force: 1` for targeted single-article regeneration (`trait-settings-page.php`)
+- Per-row **✦ Generate** button now shown on every row in the AI Image ALT Text Generator table (previously hidden for posts with no missing ALT); always calls with `force: 1` (`trait-settings-page.php`)
+### Fixed
+- Tab selection no longer resets to "AI Tools" on every page refresh — the `DOMContentLoaded` tab click handler in `trait-admin.php` now delegates to `abTab()` so `localStorage` is updated on every tab click (`trait-admin.php`)
+- Show/Hide Details buttons broken on all admin screens — `getElementById` replaced with `querySelector('.' + cardId)`; auto-load logic for update-posts, alt, and summary cards restored (`trait-admin.php`)
+- `sumGenOne` activity-log line produced `"✓ undefined"` when `querySelector` returned `null`; now falls back to `"Post #N"` (`trait-settings-page.php`)
+- Inline `onmouseover`/`onmouseout` event handlers removed from `render_rc_block()` frontend output; replaced with `.cs-rc-link` CSS class delivered via `wp_add_inline_style()` (`trait-related-articles.php`)
+- PHPCS `NonceVerification.Missing` false-positive suppressions added to `$_POST` reads in `ajax_summary_generate_one()`, `ajax_summary_generate_all()`, `ajax_https_fix()`, `ajax_https_delete()`, and `ajax_sitemap_preview()` — nonce verified by `ajax_check()` in every case
+- PHPCS `NonPrefixedHooknameFound` false-positive suppression added to `apply_filters('https_local_ssl_verify',…)` — WordPress core filter, not a plugin-owned hook (`trait-auto-pipeline.php`)
+- DocBlocks completed (missing `@since`/`@param`/`@return`) for private methods in `trait-font-optimizer.php`, `trait-https-fixer.php`, `trait-related-articles.php`, `trait-sitemap.php`, and `trait-seo-health.php`
+- Redundant `[CloudScale SEO]` prefix removed from all `debug_log()` call-site strings in `trait-font-optimizer.php` — `Utils::log()` already prepends it
+### Changed
+- `readme.txt` `Tested up to` restored to `6.9` after an incorrect downgrade to `6.8` during a prior standards review
+
+## [4.19.5] - 2026-03-15
+### Added
+- `sitemap.txt` endpoint — plain-text sitemap (one URL per line) now served at `/sitemap.txt` alongside the existing XML sitemap; reuses the cached URL list built for `sitemap.xml`
+
+## [4.19.4] - 2026-03-14
+### Fixed
+- Critical: `debug_log()` missing from main class — font optimizer and OG letterbox AJAX handlers threw fatal `Call to undefined method` errors; method added and delegated to `Utils::log()` for a single logging code path
+- Medium: Orphaned duplicate DocBlock before `ajax_fix_title()` and `ajax_get_posts()` in `trait-ai-meta-writer.php` removed
+- Medium: Missing DocBlocks added to `call_ai_generate_desc()`, `collect_images_needing_alt()`, `call_ai_generate_all()`, trait-level declarations, and main class `__construct()` / `register_rest_meta()`
+- Medium: `@package` tag added to `trait-settings-assets.php` file DocBlock
+
+## [4.19.3] - 2026-03-14
+### Fixed
+- PCP: `post__not_in` phpcs:ignore comments moved to same line as violation in trait-auto-pipeline.php, trait-ai-meta-writer.php, and trait-sitemap.php — PHPCS only recognises inline suppression
+- Standards reference `references/performance.md` updated with `post__not_in` guidance
+
 ## [4.19.2] - 2026-03-14
 ### Fixed
 - Critical: Echoed `<script>` tag in `render_auto_run_metabox()` replaced with `wp_add_inline_script('cs-seo-metabox-js', ...)` via `ob_start` capture
