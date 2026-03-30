@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.19.72
+ * Version:     4.19.85
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -63,6 +63,7 @@ require_once __DIR__ . '/includes/trait-sitemap.php';
 require_once __DIR__ . '/includes/trait-llms-txt.php';
 require_once __DIR__ . '/includes/trait-seo-health.php';
 require_once __DIR__ . '/includes/trait-auto-pipeline.php';
+require_once __DIR__ . '/includes/trait-redirects.php';
 
 /**
  * Main plugin class. Composes all feature traits and wires up WordPress hooks.
@@ -98,6 +99,7 @@ final class CloudScale_SEO_AI_Optimizer {
     use CS_SEO_LLMS_Txt;
     use CS_SEO_SEO_Health;
     use CS_SEO_Auto_Pipeline;
+    use CS_SEO_Redirects;
 
     const OPT        = 'cs_seo_options';
     const META_TITLE    = '_cs_seo_title';
@@ -147,7 +149,7 @@ final class CloudScale_SEO_AI_Optimizer {
     // Related Articles generator version — bump when scoring logic changes
     const RC_VERSION = '1.0';
 
-    const VERSION    = '4.19.72';
+    const VERSION    = '4.19.85';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -313,6 +315,12 @@ final class CloudScale_SEO_AI_Optimizer {
 
         // SEO Health cache rebuild
         add_action('wp_ajax_cs_seo_rebuild_health', [$this, 'ajax_rebuild_health_cache']);
+
+        // Redirects
+        $this->init_redirects();
+        add_action('wp_ajax_cs_seo_delete_redirect', [$this, 'ajax_delete_redirect']);
+        add_action('wp_ajax_cs_seo_clear_redirects',  [$this, 'ajax_clear_redirects']);
+        add_action('wp_ajax_cs_seo_add_redirect',     [$this, 'ajax_add_redirect']);
     }
 
     // =========================================================================

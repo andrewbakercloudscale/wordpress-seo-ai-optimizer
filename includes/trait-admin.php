@@ -686,7 +686,7 @@ trait CS_SEO_Admin {
         // call (e.g. plugin reinstall touching the option). Preserve existing data.
         $known_fields = ['site_name','enable_og','robots_txt','sitemap_post_types','enable_sitemap','enable_llms_txt',
                          'home_title','person_name','block_ai_bots','noindex_search','title_suffix','defer_js',
-                         'rc_enable','rc_top_count','rc_bottom_count'];
+                         'rc_enable','rc_top_count','rc_bottom_count','enable_redirects'];
         $has_known = false;
         foreach ($known_fields as $f) {
             if (array_key_exists($f, $in)) { $has_known = true; break; }
@@ -723,6 +723,7 @@ trait CS_SEO_Admin {
             'noindex_search','noindex_404','noindex_attachment','noindex_author_archives','noindex_tag_archives',
             'block_ai_bots','sitemap_taxonomies','defer_js','minify_html','defer_fonts',
             'rc_enable','rc_top_enabled','rc_bottom_enabled','rc_use_categories','rc_use_tags','rc_use_summary',
+            'enable_redirects',
         ] as $k) {
             $out[$k] = array_key_exists($k, $in) ? (empty($in[$k]) ? 0 : 1) : (int)($existing[$k] ?? $d[$k]);
         }

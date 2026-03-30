@@ -69,6 +69,7 @@ trait CS_SEO_Options {
             'rc_use_summary'          => 1,
             'rc_exclude_cats'         => [],
             'rc_style'                => '1',
+            'enable_redirects'        => 1,
         ];
     }
 

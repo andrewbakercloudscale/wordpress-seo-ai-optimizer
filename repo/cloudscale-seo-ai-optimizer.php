@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.19.72
+ * Version:     4.19.85
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -13,18 +13,21 @@
  * Requires PHP: 8.0
  */
 
-if (!defined('ABSPATH')) exit;
+if ( ! defined( 'ABSPATH' ) ) exit;
 
 // PHP version guard — before any PHP 8-only syntax so older versions get a clean message.
 if (version_compare(PHP_VERSION, '8.0', '<')) {
     add_action('admin_notices', function(): void {
         echo '<div class="notice notice-error"><p>';
-        printf(
-            /* translators: 1: plugin name, 2: required PHP version, 3: server PHP version */
-            esc_html__( '%1$s requires PHP %2$s or higher. Your server is running PHP %3$s. Please upgrade PHP or contact your host.', 'cloudscale-seo-ai-optimizer' ),
-            '<strong>CloudScale SEO AI Optimizer</strong>',
-            '8.0',
-            esc_html( PHP_VERSION )
+        echo wp_kses(
+            sprintf(
+                /* translators: 1: plugin name, 2: required PHP version, 3: server PHP version */
+                esc_html__( '%1$s requires PHP %2$s or higher. Your server is running PHP %3$s. Please upgrade PHP or contact your host.', 'cloudscale-seo-ai-optimizer' ),
+                '<strong>CloudScale SEO AI Optimizer</strong>',
+                '8.0',
+                esc_html( PHP_VERSION )
+            ),
+            array( 'strong' => array() )
         );
         echo '</p></div>';
     });
@@ -60,7 +63,14 @@ require_once __DIR__ . '/includes/trait-sitemap.php';
 require_once __DIR__ . '/includes/trait-llms-txt.php';
 require_once __DIR__ . '/includes/trait-seo-health.php';
 require_once __DIR__ . '/includes/trait-auto-pipeline.php';
+require_once __DIR__ . '/includes/trait-redirects.php';
 
+/**
+ * Main plugin class. Composes all feature traits and wires up WordPress hooks.
+ *
+ * @package CloudScale_SEO_AI_Optimizer
+ * @since   1.0.0
+ */
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 final class CloudScale_SEO_AI_Optimizer {
 
@@ -89,6 +99,7 @@ final class CloudScale_SEO_AI_Optimizer {
     use CS_SEO_LLMS_Txt;
     use CS_SEO_SEO_Health;
     use CS_SEO_Auto_Pipeline;
+    use CS_SEO_Redirects;
 
     const OPT        = 'cs_seo_options';
     const META_TITLE    = '_cs_seo_title';
@@ -138,7 +149,7 @@ final class CloudScale_SEO_AI_Optimizer {
     // Related Articles generator version — bump when scoring logic changes
     const RC_VERSION = '1.0';
 
-    const VERSION    = '4.19.72';
+    const VERSION    = '4.19.85';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -153,8 +164,12 @@ final class CloudScale_SEO_AI_Optimizer {
     private array $ai_opts;
 
     /**
-     * Log debug messages only when WP_DEBUG is enabled.
+     * Writes a message to the log via the shared Utils logger (requires WP_DEBUG_LOG).
      *
+     * Delegates to CloudScale_SEO_AI_Optimizer_Utils::log() so all plugin logging
+     * goes through a single code path with a consistent prefix.
+     *
+     * @since 4.19.4
      * @param string $message The message to log.
      * @return void
      */
@@ -162,6 +177,11 @@ final class CloudScale_SEO_AI_Optimizer {
         CloudScale_SEO_AI_Optimizer_Utils::log($message);
     }
 
+    /**
+     * Initialises plugin options and registers all WordPress action/filter hooks.
+     *
+     * @since 1.0.0
+     */
     public function __construct() {
         $this->opts    = $this->get_opts();
         $this->ai_opts = $this->get_ai_opts();
@@ -187,6 +207,7 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('deleted_post', function() { delete_transient('cs_seo_llms_txt'); delete_transient(self::SITEMAP_URLS_CACHE); });
         add_filter('the_content',    [$this, 'prepend_summary_box']);
         add_filter('the_content',    [$this, 'inject_related_links'], 20);
+        add_action('wp_enqueue_scripts', [$this, 'enqueue_rc_front_styles']);
         // Clear stale custom OG image when the featured image is changed.
         add_action('updated_post_meta', [$this, 'on_thumbnail_updated'], 10, 4);
         add_action('added_post_meta',   [$this, 'on_thumbnail_updated'], 10, 4);
@@ -220,7 +241,9 @@ final class CloudScale_SEO_AI_Optimizer {
         add_action('before_delete_post',     [$this, 'on_post_delete'],  10, 1);
         add_action('cs_seo_cleanup_pipeline',            [$this, 'run_cleanup_pipeline']);
         add_action('wp_ajax_cs_seo_pipeline_run',        [$this, 'ajax_pipeline_run']);
-        add_action('wp_ajax_nopriv_cs_seo_pipeline_run', [$this, 'ajax_pipeline_run']);
+        // nopriv is intentional — the handler authenticates via a single-use HMAC token
+        // (stored as a transient, expiring after 120 s) generated at fire time. No session needed.
+        add_action('wp_ajax_nopriv_cs_seo_pipeline_run', [$this, 'ajax_pipeline_run']); // phpcs:ignore WordPressVIPMinimum.Hooks.RestrictedHooks.wp_ajax_nopriv -- secured by HMAC token; see ajax_pipeline_run() in trait-auto-pipeline.php.
         add_action('wp_ajax_cs_seo_auto_rerun',          [$this, 'ajax_auto_rerun']);
         add_action('add_meta_boxes', [$this, 'add_auto_run_metabox']);
 
@@ -292,12 +315,24 @@ final class CloudScale_SEO_AI_Optimizer {
 
         // SEO Health cache rebuild
         add_action('wp_ajax_cs_seo_rebuild_health', [$this, 'ajax_rebuild_health_cache']);
+
+        // Redirects
+        $this->init_redirects();
+        add_action('wp_ajax_cs_seo_delete_redirect', [$this, 'ajax_delete_redirect']);
+        add_action('wp_ajax_cs_seo_clear_redirects',  [$this, 'ajax_clear_redirects']);
+        add_action('wp_ajax_cs_seo_add_redirect',     [$this, 'ajax_add_redirect']);
     }
 
     // =========================================================================
     // REST meta registration
     // =========================================================================
 
+    /**
+     * Registers all plugin-managed post meta fields with the REST API.
+     *
+     * @since 4.0.0
+     * @return void
+     */
     public function register_rest_meta(): void {
         foreach (['post', 'page'] as $post_type) {
             register_post_meta($post_type, self::META_TITLE, [
@@ -348,17 +383,24 @@ register_activation_hook(__FILE__, function(): void {
     if (version_compare(PHP_VERSION, '8.0', '<')) {
         deactivate_plugins(plugin_basename(__FILE__));
         wp_die(
-            'CloudScale SEO AI Optimizer requires PHP 8.0 or higher. Your server is running PHP ' . esc_html(PHP_VERSION) . '.',
-            'Plugin Activation Error',
-            ['back_link' => true]
+            wp_kses(
+                sprintf(
+                    /* translators: %s: current PHP version on the server */
+                    __( 'CloudScale SEO AI Optimizer requires PHP 8.0 or higher. Your server is running PHP %s.', 'cloudscale-seo-ai-optimizer' ),
+                    esc_html( PHP_VERSION )
+                ),
+                array()
+            ),
+            esc_html__( 'Plugin Activation Error', 'cloudscale-seo-ai-optimizer' ),
+            array( 'back_link' => true )
         );
     }
     if (version_compare(get_bloginfo('version'), '6.0', '<')) {
         deactivate_plugins(plugin_basename(__FILE__));
         wp_die(
-            'CloudScale SEO AI Optimizer requires WordPress 6.0 or higher.',
-            'Plugin Activation Error',
-            ['back_link' => true]
+            esc_html__( 'CloudScale SEO AI Optimizer requires WordPress 6.0 or higher.', 'cloudscale-seo-ai-optimizer' ),
+            esc_html__( 'Plugin Activation Error', 'cloudscale-seo-ai-optimizer' ),
+            array( 'back_link' => true )
         );
     }
     // If a physical robots.txt exists in the WordPress root, rename it so
@@ -368,14 +410,14 @@ register_activation_hook(__FILE__, function(): void {
     $physical  = $root . 'robots.txt';
     $backup    = $root . 'robots.txt.bak';
     if (file_exists($physical) && wp_is_writable($physical)) {
-        // Save the old content into plugin options so the user can review it.
-        $old_content = file_get_contents($physical); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-        update_option('cs_seo_robots_bak', $old_content);
         global $wp_filesystem;
         if (empty($wp_filesystem)) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
             WP_Filesystem();
         }
+        // Save the old content into plugin options so the user can review it.
+        $old_content = $wp_filesystem->get_contents($physical);
+        update_option('cs_seo_robots_bak', $old_content);
         $wp_filesystem->move($physical, $backup, true);
     }
     // Register rewrites first so flush has something to work with.
@@ -423,6 +465,7 @@ register_deactivation_hook(__FILE__, function(): void {
 // Version change detector: cleans stale assets on upgrade (even via FTP)
 // and resets OPcache so PHP serves the new code immediately.
 add_action('admin_init', function(): void {
+    if ( ! current_user_can( 'manage_options' ) ) return;
     $cached = get_option('cs_seo_loaded_version', '');
     if ($cached !== CloudScale_SEO_AI_Optimizer::VERSION) {
         if (function_exists('opcache_reset')) {

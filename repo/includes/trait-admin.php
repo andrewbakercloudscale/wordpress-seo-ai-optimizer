@@ -18,8 +18,8 @@ trait CS_SEO_Admin {
         // Show post-rename confirmation if the backup flag is set
         $bak = get_option('cs_seo_robots_bak');
         if ($bak !== false) {
-            // Dismiss handler
-            if (isset($_GET['_cs_dismiss_robotsbak']) && check_admin_referer('cs_dismiss_robotsbak')) {
+            // Dismiss handler — requires both capability and valid nonce.
+            if (isset($_GET['_cs_dismiss_robotsbak']) && current_user_can('manage_options') && check_admin_referer('cs_dismiss_robotsbak')) {
                 delete_option('cs_seo_robots_bak');
             } else {
                 echo '<div class="notice notice-success is-dismissible">';
@@ -75,6 +75,7 @@ trait CS_SEO_Admin {
         // Pass PHP values needed by inline scripts as a JS object.
         wp_localize_script('cs-seo-admin-js', 'csSeoAdmin', [
             'defaultPrompt'   => self::default_prompt(),
+            'defaultRobotsTxt' => self::default_robots_txt(),
             'ajaxUrl'         => admin_url('admin-ajax.php'),
             'nonce'           => wp_create_nonce('cs_seo_nonce'),
             'sitemapIndexUrl' => home_url('/sitemap.xml'),
@@ -343,7 +344,8 @@ trait CS_SEO_Admin {
         $modal_id = 'ab-explain-modal-' . $id;
         ?>
         <button type="button" id="<?php echo esc_attr($btn_id); ?>"
-            onclick="document.getElementById('<?php echo esc_attr($modal_id); ?>').style.display='flex'"
+            class="ab-explain-btn"
+            data-modal-id="<?php echo esc_attr($modal_id); ?>"
             style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-size:12px;font-weight:600;padding:5px 14px;cursor:pointer">
             Explain...
         </button>
@@ -351,7 +353,7 @@ trait CS_SEO_Admin {
             <div style="background:#fff;border-radius:10px;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4)">
                 <div style="background:#1a4a7a;border-radius:10px 10px 0 0;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
                     <strong style="color:#fff;font-size:15px"><?php echo esc_html($title); ?></strong>
-                    <button type="button" onclick="document.getElementById('<?php echo esc_attr($modal_id); ?>').style.display='none'"
+                    <button type="button" class="ab-modal-close" data-modal-id="<?php echo esc_attr($modal_id); ?>"
                         style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-size:16px;font-weight:700;padding:2px 10px;cursor:pointer;line-height:1">✕</button>
                 </div>
                 <div style="padding:20px 24px;font-size:13px;line-height:1.6;color:#1d2327">
@@ -373,7 +375,7 @@ trait CS_SEO_Admin {
                     <?php endforeach; ?>
                 </div>
                 <div style="padding:12px 24px 20px;text-align:right">
-                    <button type="button" onclick="document.getElementById('<?php echo esc_attr($modal_id); ?>').style.display='none'"
+                    <button type="button" class="ab-modal-close" data-modal-id="<?php echo esc_attr($modal_id); ?>"
                         style="background:#1a4a7a;border:none;border-radius:6px;color:#fff;font-size:13px;font-weight:600;padding:8px 24px;cursor:pointer">
                         Got it
                     </button>
@@ -523,9 +525,8 @@ trait CS_SEO_Admin {
             <p style="margin:0 0 10px;font-size:11px;color:#9ca3af">
                 Health data from <?php echo esc_html($h_date); ?> &middot;
                 <a href="#" id="cs-health-refresh"
-                   style="color:#6366f1;text-decoration:none;font-weight:600"
-                   onmouseover="this.style.textDecoration='underline'"
-                   onmouseout="this.style.textDecoration='none'">Refresh</a>
+                   class="cs-hover-underline"
+                   style="color:#6366f1;text-decoration:none;font-weight:600">Refresh</a>
                 <span id="cs-health-refresh-status" style="margin-left:6px;color:#9ca3af"></span>
             </p>
             <?php ob_start(); ?>
@@ -544,8 +545,7 @@ trait CS_SEO_Admin {
                 })
                 .then(function(r) { return r.json(); })
                 .then(function(d) {
-                    if (d.success) { location.reload(); }
-                    else { status.textContent = '✗ Failed'; }
+                    if (d.success) { location.reload(); } else { status.textContent = '✗ Failed'; }
                 })
                 .catch(function() { status.textContent = '✗ Error'; });
             });
@@ -576,8 +576,7 @@ trait CS_SEO_Admin {
                 })
                 .then(function(r) { return r.json(); })
                 .then(function(d) {
-                    if (d.success) { location.reload(); }
-                    else { status.textContent = '✗ Failed'; btn.disabled = false; }
+                    if (d.success) { location.reload(); } else { status.textContent = '✗ Failed'; btn.disabled = false; }
                 })
                 .catch(function() { status.textContent = '✗ Error'; btn.disabled = false; });
             });
@@ -598,35 +597,32 @@ trait CS_SEO_Admin {
             </p>
             <div style="display:flex;flex-direction:column;gap:10px">
                 <a href="<?php echo esc_url(admin_url('tools.php?page=cs-seo-optimizer&tab=batch')); ?>"
+                   class="cs-widget-link"
                    style="display:flex;align-items:center;justify-content:center;gap:8px;
                           <?php echo esc_attr($batch_style); ?>
                           color:#fff;font-weight:700;font-size:12px;padding:10px 16px;
                           border-radius:8px;text-decoration:none;
-                          transition:filter 0.15s,transform 0.15s"
-                   onmouseover="this.style.filter='brightness(1.15)';this.style.transform='scale(1.02)'"
-                   onmouseout="this.style.filter='';this.style.transform=''">
+                          transition:filter 0.15s,transform 0.15s">
                     <?php echo esc_html($batch_line); ?>
                 </a>
                 <a href="https://andrewbaker.ninja" target="_blank" rel="noopener"
+                   class="cs-widget-link"
                    style="display:flex;align-items:center;justify-content:center;gap:8px;
                           background:linear-gradient(135deg,#f953c6 0%,#b91d73 40%,#4f46e5 100%);
                           color:#fff;font-weight:700;font-size:13px;padding:10px 16px;
                           border-radius:8px;text-decoration:none;
                           box-shadow:0 3px 10px rgba(249,83,198,0.4);
-                          transition:filter 0.15s,transform 0.15s"
-                   onmouseover="this.style.filter='brightness(1.15)';this.style.transform='scale(1.02)'"
-                   onmouseout="this.style.filter='';this.style.transform=''">
+                          transition:filter 0.15s,transform 0.15s">
                     <span style="font-size:15px">🥷</span> Visit AndrewBaker.Ninja
                 </a>
                 <a href="<?php echo esc_url(admin_url('tools.php?page=cs-seo-optimizer')); ?>"
+                   class="cs-widget-link"
                    style="display:flex;align-items:center;justify-content:center;gap:8px;
                           background:linear-gradient(135deg,#0ea5e9 0%,#0369a1 100%);
                           color:#fff;font-weight:700;font-size:13px;padding:10px 16px;
                           border-radius:8px;text-decoration:none;
                           box-shadow:0 3px 10px rgba(14,165,233,0.35);
-                          transition:filter 0.15s,transform 0.15s"
-                   onmouseover="this.style.filter='brightness(1.15)';this.style.transform='scale(1.02)'"
-                   onmouseout="this.style.filter='';this.style.transform=''">
+                          transition:filter 0.15s,transform 0.15s">
                     <span style="font-size:15px">🔭</span> View SEO AI Optimizer
                 </a>
             </div>
@@ -642,7 +638,7 @@ trait CS_SEO_Admin {
     public function admin_menu(): void {
         add_management_page(
             'CloudScale SEO AI Optimizer v' . self::VERSION,
-            'CloudScale SEO AI',
+            '🤖 CloudScale SEO AI',
             'manage_options',
             'cs-seo-optimizer',
             [$this, 'settings_page']
@@ -690,7 +686,7 @@ trait CS_SEO_Admin {
         // call (e.g. plugin reinstall touching the option). Preserve existing data.
         $known_fields = ['site_name','enable_og','robots_txt','sitemap_post_types','enable_sitemap','enable_llms_txt',
                          'home_title','person_name','block_ai_bots','noindex_search','title_suffix','defer_js',
-                         'rc_enable','rc_top_count','rc_bottom_count'];
+                         'rc_enable','rc_top_count','rc_bottom_count','enable_redirects'];
         $has_known = false;
         foreach ($known_fields as $f) {
             if (array_key_exists($f, $in)) { $has_known = true; break; }
@@ -727,6 +723,7 @@ trait CS_SEO_Admin {
             'noindex_search','noindex_404','noindex_attachment','noindex_author_archives','noindex_tag_archives',
             'block_ai_bots','sitemap_taxonomies','defer_js','minify_html','defer_fonts',
             'rc_enable','rc_top_enabled','rc_bottom_enabled','rc_use_categories','rc_use_tags','rc_use_summary',
+            'enable_redirects',
         ] as $k) {
             $out[$k] = array_key_exists($k, $in) ? (empty($in[$k]) ? 0 : 1) : (int)($existing[$k] ?? $d[$k]);
         }

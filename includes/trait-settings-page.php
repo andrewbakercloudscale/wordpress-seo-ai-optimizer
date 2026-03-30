@@ -73,6 +73,7 @@ trait CS_SEO_Settings_Page {
             <button class="ab-tab"        data-tab="perf">⚡ <?php esc_html_e( 'Performance', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="catfix">🏷 <?php esc_html_e( 'Categories', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="batch">🔄 <?php esc_html_e( 'Scheduled Batch', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="redirects">🔀 <?php esc_html_e( 'Redirects', 'cloudscale-seo-ai-optimizer' ); ?></button>
         </div>
         </div>
 
@@ -1891,6 +1892,11 @@ trait CS_SEO_Settings_Page {
             </div><!-- /ab-card-catdrift -->
 
         </div><!-- /ab-pane-catfix -->
+
+        <?php /* ══════════════════ REDIRECTS PANE ══════════════════ */ ?>
+        <div class="ab-pane" id="ab-pane-redirects">
+            <?php $this->render_redirects_tab(); ?>
+        </div><!-- /ab-pane-redirects -->
 
         <?php ob_start(); ?>
         function abFontLog(type, text) {
