@@ -278,6 +278,11 @@ The plugin scores all posts against each other using shared categories, tags, an
 * Fix: PCP critical — raw script tag in redirects admin moved to wp_add_inline_script to comply with WordPress.org standards
 * Fix: delete-redirect and clear-all-redirects fetch calls now have catch handlers for network errors
 
+= 4.19.93 =
+* Fix: PCP NonceVerification.Missing — all AJAX handlers now call check_ajax_referer() directly in scope (was delegated via helper wrapper)
+* Fix: esc_attr() added to colour ternary expression in batch history table
+* Fix: removed stale "No redirect management" line from readme
+
 = 4.19.90 =
 * Fix: Settings save broken for all checkbox fields — added hidden fallback inputs so unchecked checkboxes correctly save 0
 * Fix: Redirects zone-header white-on-white — added teal background colour to redirects card header
