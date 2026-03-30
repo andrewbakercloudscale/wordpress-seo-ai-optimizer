@@ -59,15 +59,37 @@ echo ""
 # PRE-FLIGHT 1 — WordPress plugin standards review
 # ═════════════════════════════════════════════════════════════════════════════
 if [[ "$FORCE" -eq 1 ]]; then
-    echo "⚠️  --force passed — skipping standards review."
+    echo -e "\033[1;33m⚠️  --force passed — skipping standards review.\033[0m"
     echo ""
 elif [[ ! -x "$CLAUDE" ]]; then
-    echo "ERROR: claude CLI not found at $CLAUDE."
+    echo -e "\033[1;31mERROR: claude CLI not found at $CLAUDE.\033[0m"
     echo "       Install claude CLI or pass --force to skip the review."
     exit 1
 else
-    echo "Running WordPress plugin standards review..."
-    echo "All Critical, High, and Medium findings block release."
+    # ── Colour helpers ────────────────────────────────────────────────────────
+    _print_review() {
+        # Print review text with colour coding:
+        #   section headers  → bold cyan
+        #   FAIL lines       → bold red
+        #   PASS lines       → bold green
+        #   everything else  → white (bright)
+        while IFS= read -r line; do
+            if [[ "$line" =~ ^---.*---$ ]]; then
+                echo -e "\033[1;36m$line\033[0m"
+            elif echo "$line" | grep -qiE 'BUILD_STATUS: FAIL|critical|high severity|medium severity'; then
+                echo -e "\033[1;31m$line\033[0m"
+            elif echo "$line" | grep -q 'BUILD_STATUS: PASS'; then
+                echo -e "\033[1;32m$line\033[0m"
+            else
+                echo -e "\033[0;97m$line\033[0m"
+            fi
+        done <<< "$1"
+    }
+
+    echo -e "\033[1;36m════════════════════════════════════════════════════════════════\033[0m"
+    echo -e "\033[1;36m  WordPress Plugin Standards Review\033[0m"
+    echo -e "\033[1;36m  Critical, High, and Medium findings all block release\033[0m"
+    echo -e "\033[1;36m════════════════════════════════════════════════════════════════\033[0m"
     echo ""
 
     REVIEW_TMPDIR=$(mktemp -d)
@@ -116,30 +138,33 @@ End your response with EXACTLY one of: BUILD_STATUS: PASS or BUILD_STATUS: FAIL"
     REVIEW=$(cat "$REVIEW_TMPDIR"/*.txt)
     rm -rf "$REVIEW_TMPDIR"
 
-    echo "$REVIEW"
+    # Print the review in colour
+    _print_review "$REVIEW"
+    echo ""
+    echo -e "\033[1;36m════════════════════════════════════════════════════════════════\033[0m"
     echo ""
 
     # API/model error — review did not run
     if echo "$REVIEW" | grep -qiE 'API Error|invalid.*model|model.*invalid'; then
-        echo "ERROR: Standards review failed — model API error."
-        echo "       Check CLAUDE_REVIEW_MODEL in .claude-config.sh or pass --force."
+        echo -e "\033[1;31m✖  Standards review failed — model API error.\033[0m"
+        echo "   Check CLAUDE_REVIEW_MODEL in .claude-config.sh or pass --force."
         exit 1
     fi
 
     # Must have at least one BUILD_STATUS line — missing means model did not complete
     if ! echo "$REVIEW" | grep -qE 'BUILD_STATUS: (PASS|FAIL)'; then
-        echo "ERROR: Standards review did not return BUILD_STATUS — model output incomplete."
-        echo "       Pass --force to bypass (emergency only)."
+        echo -e "\033[1;31m✖  Standards review did not return BUILD_STATUS — model output incomplete.\033[0m"
+        echo "   Pass --force to bypass (emergency only)."
         exit 1
     fi
 
     if echo "$REVIEW" | grep -q 'BUILD_STATUS: FAIL'; then
-        echo "ERROR: Standards review found Critical, High, or Medium issues."
-        echo "       Fix all findings before releasing to WordPress.org."
+        echo -e "\033[1;31m✖  RELEASE BLOCKED — standards review found Critical, High, or Medium issues.\033[0m"
+        echo -e "\033[1;31m   Fix all findings above before releasing to WordPress.org.\033[0m"
         exit 1
     fi
 
-    echo "✅ Standards review passed — no Critical, High, or Medium findings."
+    echo -e "\033[1;32m✔  Standards review passed — no Critical, High, or Medium findings.\033[0m"
     echo ""
 fi
 
@@ -148,11 +173,11 @@ fi
 # ═════════════════════════════════════════════════════════════════════════════
 echo "Checking CHANGELOG.md for v$VERSION entry..."
 if ! grep -q "\[$VERSION\]" "$SCRIPT_DIR/CHANGELOG.md"; then
-    echo "ERROR: CHANGELOG.md has no entry for v$VERSION."
-    echo "       Add a '## [$VERSION]' section before releasing."
+    echo -e "\033[1;31m✖  RELEASE BLOCKED — CHANGELOG.md has no entry for v$VERSION.\033[0m"
+    echo "   Add a '## [$VERSION]' section before releasing."
     exit 1
 fi
-echo "✅ CHANGELOG.md: entry found."
+echo -e "\033[1;32m✔  CHANGELOG.md: entry found.\033[0m"
 echo ""
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -160,17 +185,17 @@ echo ""
 # ═════════════════════════════════════════════════════════════════════════════
 echo "Checking readme.txt for v$VERSION entry..."
 if ! grep -q "= $VERSION =" "$SCRIPT_DIR/readme.txt"; then
-    echo "ERROR: readme.txt has no changelog entry for v$VERSION."
-    echo "       Add a '= $VERSION =' section under == Changelog == before releasing."
+    echo -e "\033[1;31m✖  RELEASE BLOCKED — readme.txt has no changelog entry for v$VERSION.\033[0m"
+    echo "   Add a '= $VERSION =' section under == Changelog == before releasing."
     exit 1
 fi
-echo "✅ readme.txt: entry found."
+echo -e "\033[1;32m✔  readme.txt: entry found.\033[0m"
 echo ""
 
 # ═════════════════════════════════════════════════════════════════════════════
 # SVN SYNC
 # ═════════════════════════════════════════════════════════════════════════════
-echo "All pre-flight checks passed. Proceeding with SVN release..."
+echo -e "\033[1;32m✔  All pre-flight checks passed. Proceeding with SVN release...\033[0m"
 echo ""
 
 # ── Checkout or update working copy ──────────────────────────────────────────
