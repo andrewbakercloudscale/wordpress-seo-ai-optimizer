@@ -3,6 +3,38 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.19.91] - 2026-03-30
+### Fixed
+- **PCP Critical: raw `<script>` tag** — `render_redirects_tab()` was emitting a `<script>` tag directly into HTML output; moved to `ob_start()` / `wp_add_inline_script('cs-seo-admin-js', ...)` to comply with PCP (`WordPress.WP.EnqueuedResources.NonEnqueuedScript`) (`trait-redirects.php`)
+- **Silent fetch failures** — delete-redirect and clear-all-redirects `fetch()` calls lacked `.catch()` handlers; network errors were silently swallowed; added `.catch()` with `console.error()` to both (`trait-redirects.php`)
+
+## [4.19.90] - 2026-03-30
+### Fixed
+- **Settings save broken for all checkbox fields** — unchecked HTML checkboxes are not submitted by browsers; `sanitize_opts` preserve-logic was treating the missing key as "other tab's field — keep existing" instead of "this box was unchecked — save 0". Added hidden fallback `value="0"` inputs to every form: Features & Robots (13 fields), Robots.txt, llms.txt, Redirects, Related Articles (6 fields), Schedule/Batch (4 fields) — same pattern the Performance tab already used for `defer_js` / `minify_html` (`trait-settings-page.php`, `trait-redirects.php`)
+### Added
+- **Playwright settings-save tests** — 12 tests covering Sitemap (6 fields), Performance (2), Batch (1), AI Tools (1), SEO tab (2); all pass via temp admin account; settings restored to original values after each test (`tests/e2e/settings-save.spec.js`)
+
+## [4.19.89] - 2026-03-30
+### Fixed
+- **Redirects zone-header white-on-white** — `ab-zone-card.ab-card-redirects` had no `background` defined for its zone-header, causing white text on the default white card background; added teal `#0a7e8c` header colour (`trait-settings-assets.php`)
+- **Add Manual Redirect / Stored Redirects outside the card** — both sections were rendered as separate `ab-card` divs after the zone-card closed; moved inside the `ab-zone-body` so they are contained within the redirects card (`trait-redirects.php`)
+- **Button left padding** — `.ab-zone-body p.submit` had no left indent, causing Save buttons to appear flush against the card edge; added `padding-left:20px` to align with form-table column (`trait-settings-assets.php`)
+
+## [4.19.88] - 2026-03-30
+### Changed
+- **Sitemap tab renamed** — "Sitemap & Robots" → "Sitemap, Robots & Redirects" (`trait-settings-page.php`)
+- **Redirects section location** — moved from Optimise SEO tab bottom to the bottom of the Sitemap, Robots & Redirects tab (`trait-settings-page.php`)
+
+## [4.19.87] - 2026-03-30
+### Changed
+- **Redirects moved to Optimise SEO tab** — rendered inline at the bottom of the SEO pane instead of a dedicated tab (`trait-settings-page.php`)
+### Fixed
+- **Redirects card styling** — converted to `ab-zone-card` pattern with coloured header, Hide Details toggle, and Explain button matching all other admin cards (`trait-redirects.php`)
+
+## [4.19.86] - 2026-03-30
+### Fixed
+- **Manual redirect row inserted into wrong element** — `querySelector('#ab-pane-redirects tbody')` matched the implicit tbody inside the settings `form-table` instead of the widefat redirects table; added `id="cs-redirects-tbody"` to the correct tbody and updated the JS selector (`trait-redirects.php`)
+
 ## [4.19.85] - 2026-03-30
 ### Added
 - **Automatic Redirects** — new `trait-redirects.php`; when a published post or page slug is renamed, a 301 redirect from the old path to the new URL is automatically captured and served on any matching 404 request
