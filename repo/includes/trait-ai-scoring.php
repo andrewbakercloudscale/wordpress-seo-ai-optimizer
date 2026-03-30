@@ -13,10 +13,15 @@ trait CS_SEO_AI_Scoring {
     // =========================================================================
 
     /**
-     * Score a single post's SEO effectiveness without touching its description.
-     * Uses a lightweight AI call — sends title, meta description, and a content excerpt.
+     * Scores a single post's SEO effectiveness using a lightweight AI call.
      *
+     * Sends the post title, meta description, and a content excerpt to the configured
+     * AI provider. Does not modify any post data.
+     *
+     * @since 4.12.2
+     * @param int $post_id The post ID to score.
      * @return array{seo_score: int, seo_notes: string}
+     * @throws \RuntimeException If the post is not found or no API key is configured.
      */
     private function call_ai_score_post(int $post_id): array {
         $post = get_post($post_id);
@@ -30,7 +35,7 @@ trait CS_SEO_AI_Scoring {
 
         if (!$key) throw new \RuntimeException($provider === 'gemini' ? 'No Gemini API key configured' : 'No Anthropic API key configured'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 
-        $content   = mb_substr($this->text_from_html((string) $post->post_content), 0, 3000);
+        $content   = mb_substr(CloudScale_SEO_AI_Optimizer_Utils::text_from_html((string) $post->post_content), 0, 3000);
         $desc      = trim((string) get_post_meta($post_id, self::META_DESC, true));
         $custom    = trim((string) get_post_meta($post_id, self::META_TITLE, true));
         $title     = $custom !== '' ? $custom : get_the_title($post_id);
@@ -59,17 +64,15 @@ trait CS_SEO_AI_Scoring {
     }
 
     /**
-     * AJAX: score a single post and store the result.
-     */
-    /**
      * AJAX handler: runs an AI SEO score for a single post and stores the result.
      *
      * @since 4.12.2
      * @return void
      */
     public function ajax_score_one(): void {
-        $this->ajax_check();
-        $post_id = (int) sanitize_key(wp_unslash($_POST['post_id'] ?? 0)); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+        $post_id = absint( wp_unslash( $_POST['post_id'] ?? 0 ) );
         if (!$post_id) wp_send_json_error('Missing post_id');
 
         try {

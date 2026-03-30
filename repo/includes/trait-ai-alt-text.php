@@ -15,7 +15,8 @@ trait CS_SEO_AI_Alt_Text {
      * @return void
      */
     public function ajax_alt_get_posts(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         $posts = [];
         $page  = 1;
@@ -136,8 +137,9 @@ trait CS_SEO_AI_Alt_Text {
      * @return void
      */
     public function ajax_alt_generate_one(): void {
-        $this->ajax_check();
-        $post_id = (int) sanitize_key( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+        $post_id = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
         if (!$post_id) wp_send_json_error('Missing post_id');
         $force = (int) sanitize_text_field( wp_unslash( $_POST['force'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in ajax_check() above
 
@@ -245,7 +247,7 @@ trait CS_SEO_AI_Alt_Text {
                 $updated++;
             } catch (\Throwable $e) {
                 // Skip this image on error — continue with remaining images.
-                $warnings[] = sprintf( '%s: %s', esc_url( $src ), $e->getMessage() );
+                $warnings[] = sprintf( '%s: %s', esc_url( $src ), esc_html( $e->getMessage() ) );
             }
         }
 
@@ -289,16 +291,21 @@ trait CS_SEO_AI_Alt_Text {
                         $updated++;
                     }
                 } catch (\Throwable $e) {
-                    $warnings[] = sprintf( 'Featured image %s: %s', esc_url( $thumb_url ), $e->getMessage() );
+                    $warnings[] = sprintf( 'Featured image %s: %s', esc_url( $thumb_url ), esc_html( $e->getMessage() ) );
                 }
             }
         }
 
         if ($updated > 0 && $new_content !== $content) {
             // Save updated post content only if content images were changed.
+            // wp_slash() is required for programmatic wp_update_post() calls: WordPress's
+            // content_save_pre filter chain calls stripslashes() internally, which would
+            // strip backslashes from block comment JSON (e.g. \" → " and \n → n),
+            // corrupting Gutenberg block attributes. The REST API always uses wp_slash()
+            // before wp_update_post() for the same reason.
             wp_update_post([
                 'ID'           => $post_id,
-                'post_content' => $new_content,
+                'post_content' => wp_slash( $new_content ),
             ]);
         }
 

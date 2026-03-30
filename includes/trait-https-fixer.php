@@ -15,7 +15,8 @@ trait CS_SEO_HTTPS_Fixer {
      * @return void
      */
     public function ajax_https_scan(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         try {
             global $wpdb;
@@ -303,7 +304,8 @@ trait CS_SEO_HTTPS_Fixer {
      * @return void
      */
     public function ajax_https_fix(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
 
         try {
@@ -414,7 +416,8 @@ trait CS_SEO_HTTPS_Fixer {
      * @return void
      */
     public function ajax_https_delete(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
         $domain = isset($_POST['domain']) ? sanitize_text_field(wp_unslash($_POST['domain'])) : '';

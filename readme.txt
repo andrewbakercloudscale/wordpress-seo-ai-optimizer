@@ -3,7 +3,7 @@ Contributors: andrewjbaker
 Tags: seo, ai, meta description, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.19.92
+Stable tag: 4.19.93
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -149,7 +149,6 @@ It handles the essentials cleanly and adds a full AI toolkit that uses either th
 
 = What This Plugin Does Not Do =
 
-* No redirect management
 * No keyword analysis or readability scoring
 * No paid tiers, no upsells, no tracking
 
@@ -275,7 +274,7 @@ The plugin scores all posts against each other using shared categories, tags, an
 
 == Changelog ==
 
-= 4.19.92 =
+= 4.19.93 =
 * Fix: PCP critical — raw script tag in redirects admin moved to wp_add_inline_script to comply with WordPress.org standards
 * Fix: delete-redirect and clear-all-redirects fetch calls now have catch handlers for network errors
 

@@ -54,7 +54,7 @@ trait CS_SEO_Sitemap {
     /**
      * Outputs a plain-text sitemap (one URL per line) at /sitemap.txt.
      *
-     * @since 4.19.5
+     * @since 4.19.11
      * @return void
      */
     public function maybe_render_sitemap_txt(): void {
@@ -70,6 +70,15 @@ trait CS_SEO_Sitemap {
         exit;
     }
 
+    /**
+     * Returns the complete ordered list of URLs for the sitemap, using a transient cache.
+     *
+     * Includes the homepage, all published posts/pages of the configured post types,
+     * and optionally public taxonomy term URLs. Results are cached for one hour.
+     *
+     * @since 4.10.3
+     * @return array List of URL records, each with keys: loc, lastmod, type, title.
+     */
     private function get_all_sitemap_urls(): array {
         $cached = get_transient(self::SITEMAP_URLS_CACHE);
         if ($cached !== false) return $cached;
@@ -146,6 +155,15 @@ trait CS_SEO_Sitemap {
         return $urls;
     }
 
+    /**
+     * Builds the sitemap index XML document, listing all child sitemap files.
+     *
+     * Each child sitemap covers up to SITEMAP_PER_FILE URLs. The number of
+     * <sitemap> entries is derived from the total URL count.
+     *
+     * @since 4.10.3
+     * @return string Complete sitemap index XML string.
+     */
     private function build_sitemap_index(): string {
         $all        = $this->get_all_sitemap_urls();
         $total      = count($all);
@@ -164,6 +182,16 @@ trait CS_SEO_Sitemap {
         return $xml;
     }
 
+    /**
+     * Builds a child sitemap XML document for the given page number.
+     *
+     * Slices SITEMAP_PER_FILE URL records starting at the correct offset and
+     * outputs a standard <urlset> document with <loc> and optional <lastmod> per URL.
+     *
+     * @since 4.10.3
+     * @param int $pg 1-based page index corresponding to sitemap-{pg}.xml.
+     * @return string Complete child sitemap XML string.
+     */
     private function build_sitemap_page(int $pg): string {
         $all      = $this->get_all_sitemap_urls();
         $per_page = self::SITEMAP_PER_FILE;
@@ -191,15 +219,14 @@ trait CS_SEO_Sitemap {
      * @return void
      */
     public function ajax_sitemap_preview(): void {
-        check_ajax_referer('cs_seo_nonce', 'nonce');
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorised');
-        }
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         // Preview works regardless of enable_sitemap so you can check before enabling
         $all      = $this->get_all_sitemap_urls();
         $total    = count($all);
         $per_page = self::SITEMAP_PREVIEW_PER;
         $pages    = max(1, (int) ceil($total / $per_page));
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
         $pg       = max(1, min($pages, absint(wp_unslash($_POST['sitemap_pg'] ?? 1))));
         $slice    = array_slice($all, ($pg - 1) * $per_page, $per_page);
 
