@@ -1,9 +1,11 @@
 <?php
 /**
- * Settings page static asset delivery — CSS and JS strings returned for wp_add_inline_style()
- * and wp_add_inline_script(). Extracted from trait-settings-page.php to reduce file size.
+ * Settings page static asset delivery — CSS and JS strings returned for inline injection.
  *
- * @since 4.13.1
+ * Extracted from trait-settings-page.php to reduce file size.
+ *
+ * @package CloudScale_SEO_AI_Optimizer
+ * @since   4.13.1
  */
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
@@ -136,6 +138,8 @@ table.ab-sitemap-tbl tr:nth-child(even) td { background:#fafafa; }
 table.ab-sitemap-tbl tr:nth-child(even):hover td { background:#e8f0fa; }
 .ab-sitemap-count { font-size:13px; color:#1d2327; margin:0 0 12px; font-weight:500; }
 .ab-sitemap-count strong { color:#1d2327; }
+.cs-rc-link:hover { text-decoration:underline !important; }
+.cs-hover-underline:hover { text-decoration:underline !important; }
 .ab-zone-card.ab-card-update-posts .ab-zone-header { background:#1d2327; font-size:17px; padding:16px 22px; }
 .ab-zone-card.ab-card-update-posts .ab-zone-header .ab-zone-icon { color:#f0c040; font-size:20px; }
 .ab-load-cta { display:flex; align-items:center; gap:18px; background:linear-gradient(135deg, #1d2327 0%, #2c3338 100%); border-radius:6px; padding:20px 24px; margin-bottom:20px; border-left:5px solid #f0c040; }
@@ -160,6 +164,8 @@ textarea[name="cs_seo_options[home_desc]"], textarea[name="cs_seo_options[defaul
 .ab-api-key-warning .ab-warn-body { font-size:13px; color:#1d2327; }
 .ab-api-key-warning .ab-warn-body strong { display:block; margin-bottom:4px; font-size:14px; }
 .ab-api-key-warning .ab-warn-body a { color:#2271b1; font-weight:600; }
+.ab-zone-card.ab-card-redirects .ab-zone-header { background:#0a7e8c; }
+.ab-zone-body p.submit { padding-left:20px; margin-bottom:0; }
 CSS;
     }
 
@@ -173,6 +179,7 @@ CSS;
     private function llms_preview_js(): string {
         return <<<'JS'
 (function() {
+    function escHtml(s){var d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
     var _ajax  = csSeoAdmin.ajaxUrl;
     var _nonce = csSeoAdmin.nonce;
     document.addEventListener('DOMContentLoaded', function() {
@@ -215,7 +222,7 @@ CSS;
             .catch(function(e) {
                 btn.disabled = false;
                 btn.textContent = '\u21bb Reload Preview';
-                wrap.innerHTML = '<div style="color:#c3372b;background:#fef0f0;border:1px solid #f5bcbb;padding:12px;border-radius:4px">Network error: ' + e.message + '</div>';
+                wrap.innerHTML = '<div style="color:#c3372b;background:#fef0f0;border:1px solid #f5bcbb;padding:12px;border-radius:4px">Network error: ' + escHtml(e.message) + '</div>';
             });
         });
     });
@@ -233,6 +240,8 @@ JS;
     private function sitemap_preview_js(): string {
         return <<<'JS'
 (function() {
+    function escHtml(s){var d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
+    function safeHref(url){var s=String(url).replace(/\s/g,'').toLowerCase();return(s.indexOf('javascript:')===0||s.indexOf('data:')===0||s.indexOf('vbscript:')===0)?'#':escHtml(url);}
     var _ajax  = csSeoAdmin.ajaxUrl;
     var _nonce = csSeoAdmin.nonce;
     function loadSitemapPreview(pg) {
@@ -257,7 +266,7 @@ JS;
                     return;
                 }
                 if (!data.success) {
-                    wrap.innerHTML = '<div style="color:#c3372b;background:#fef0f0;border:1px solid #f5bcbb;padding:12px;border-radius:4px">Error: '+(data.data||'unknown')+'</div>';
+                    wrap.innerHTML = '<div style="color:#c3372b;background:#fef0f0;border:1px solid #f5bcbb;padding:12px;border-radius:4px">Error: '+escHtml(data.data||'unknown')+'</div>';
                     return;
                 }
                 var d=data.data, entries=d.entries, total=d.total, page=d.page, pages=d.pages, per=d.per_page;
@@ -266,9 +275,9 @@ JS;
                 var labels={home:'Home',post:'Post',page:'Page',tax:'Taxonomy',cpt:'CPT'};
                 var rows=entries.map(function(e){
                     return '<tr style="border-bottom:1px solid #f0f0f0">'+
-                        '<td style="padding:6px 8px"><a href="'+e.loc+'" target="_blank" style="font-size:12px;color:#2271b1">'+e.loc+'</a>'+(e.title?'<br><small style="color:#888;font-size:11px">'+e.title+'</small>':'')+'</td>'+
-                        '<td style="padding:6px 8px"><span style="background:'+(cols[e.type]||'#444')+';color:#fff;border-radius:3px;padding:2px 8px;font-size:11px;white-space:nowrap">'+(labels[e.type]||e.type)+'</span></td>'+
-                        '<td style="padding:6px 8px;color:#888;font-size:12px;white-space:nowrap">'+(e.lastmod||'\u2014')+'</td></tr>';
+                        '<td style="padding:6px 8px"><a href="'+safeHref(e.loc)+'" target="_blank" style="font-size:12px;color:#2271b1">'+escHtml(e.loc)+'</a>'+(e.title?'<br><small style="color:#888;font-size:11px">'+escHtml(e.title)+'</small>':'')+'</td>'+
+                        '<td style="padding:6px 8px"><span style="background:'+(cols[e.type]||'#444')+';color:#fff;border-radius:3px;padding:2px 8px;font-size:11px;white-space:nowrap">'+(labels[e.type]||escHtml(e.type))+'</span></td>'+
+                        '<td style="padding:6px 8px;color:#888;font-size:12px;white-space:nowrap">'+(e.lastmod?escHtml(e.lastmod):'\u2014')+'</td></tr>';
                 }).join('');
                 var pager='';
                 if(pages>1){
@@ -281,7 +290,7 @@ JS;
                 }
                 wrap.innerHTML=
                     '<p style="font-size:13px;margin:0 0 12px;color:#1d2327"><strong>'+total+'</strong> total URLs across <strong>'+pages+'</strong> sitemap file'+(pages>1?'s':'')+
-                    ' &nbsp;\u00b7&nbsp; <a href="' + csSeoAdmin.sitemapIndexUrl + '" target="_blank" style="color:#2271b1">View live sitemap \u2197</a></p>'+
+                    ' &nbsp;\u00b7&nbsp; <a href="' + safeHref(csSeoAdmin.sitemapIndexUrl) + '" target="_blank" style="color:#2271b1">View live sitemap \u2197</a></p>'+
                     '<table style="width:100%;border-collapse:collapse;font-size:13px;background:#fff;border:1px solid #e0e0e0;border-radius:4px;overflow:hidden">'+
                     '<thead><tr style="background:#f6f7f7;border-bottom:2px solid #e0e0e0">'+
                     '<th style="text-align:left;padding:8px;font-size:12px;color:#50575e;font-weight:600">URL</th>'+
@@ -291,7 +300,7 @@ JS;
             })
             .catch(function(e){
                 btn.disabled=false; btn.textContent='\u21bb Reload'; btn.style.background='#f0b429';
-                wrap.innerHTML='<div style="color:#c3372b;background:#fef0f0;border:1px solid #f5bcbb;padding:12px;border-radius:4px">Network error: '+e.message+'</div>';
+                wrap.innerHTML='<div style="color:#c3372b;background:#fef0f0;border:1px solid #f5bcbb;padding:12px;border-radius:4px">Network error: '+escHtml(e.message)+'</div>';
             });
     }
     window.abLoadSitemap  = loadSitemapPreview;

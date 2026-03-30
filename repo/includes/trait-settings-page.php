@@ -69,11 +69,10 @@ trait CS_SEO_Settings_Page {
         <div class="ab-tabs">
             <button class="ab-tab active" data-tab="seo">📊 <?php esc_html_e( 'Optimise SEO', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="aitools">✨ <?php esc_html_e( 'AI Tools', 'cloudscale-seo-ai-optimizer' ); ?></button>
-            <button class="ab-tab"        data-tab="sitemap">🗺 <?php esc_html_e( 'Sitemap &amp; Robots', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="sitemap">🗺 <?php esc_html_e( 'Sitemap, Robots &amp; Redirects', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="perf">⚡ <?php esc_html_e( 'Performance', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="catfix">🏷 <?php esc_html_e( 'Categories', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="batch">🔄 <?php esc_html_e( 'Scheduled Batch', 'cloudscale-seo-ai-optimizer' ); ?></button>
-            <button class="ab-tab"        data-tab="redirects">🔀 <?php esc_html_e( 'Redirects', 'cloudscale-seo-ai-optimizer' ); ?></button>
         </div>
         </div>
 
@@ -608,6 +607,12 @@ trait CS_SEO_Settings_Page {
 
             <form method="post" action="options.php">
                 <?php settings_fields('cs_seo_group'); ?>
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[rc_enable]"          value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[rc_top_enabled]"     value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[rc_bottom_enabled]"  value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[rc_use_categories]"  value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[rc_use_tags]"        value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[rc_use_summary]"     value="0">
 
                 <!-- Related Articles Settings Card -->
                 <div class="ab-zone-card ab-card-rc-settings-card" style="margin-top:24px;">
@@ -810,6 +815,22 @@ trait CS_SEO_Settings_Page {
         <div class="ab-pane" id="ab-pane-sitemap">
             <form method="post" action="options.php">
                 <?php settings_fields('cs_seo_group'); ?>
+                <?php /* Hidden fallback: unchecked checkboxes aren't submitted, so these ensure 0 is saved when unchecked */ ?>
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[enable_og]"                   value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_website]"     value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_person]"      value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_article]"     value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_breadcrumbs]" value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[show_summary_box]"          value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[strip_tracking_params]"     value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[noindex_search]"            value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[noindex_404]"               value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[noindex_attachment]"        value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[noindex_author_archives]"   value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[noindex_tag_archives]"      value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[block_ai_bots]"             value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[enable_sitemap]"            value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[sitemap_taxonomies]"        value="0">
 
                 <?php
                 $pub_types = get_post_types(['public' => true], 'objects');
@@ -929,6 +950,7 @@ trait CS_SEO_Settings_Page {
 
             <form method="post" action="options.php">
                 <?php settings_fields('cs_seo_group'); ?>
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[block_ai_bots]" value="0">
 
                 <div class="ab-zone-card ab-card-robots">
                 <div class="ab-zone-header" style="justify-content:space-between">
@@ -1103,6 +1125,7 @@ trait CS_SEO_Settings_Page {
             <div class="ab-zone-body" style="padding:20px 24px 24px">
                 <form method="post" action="options.php">
                     <?php settings_fields('cs_seo_group'); ?>
+                    <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[enable_llms_txt]" value="0">
                     <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[_partial]" value="1">
                     <table class="form-table" role="presentation" style="margin-top:0">
                         <tr>
@@ -1465,6 +1488,11 @@ trait CS_SEO_Settings_Page {
             })();
             <?php wp_add_inline_script('cs-seo-admin-js', ob_get_clean()); ?>
 
+        <?php /* ══════════════════ REDIRECTS (bottom of Sitemap pane) ══════════════════ */ ?>
+        <div style="margin-top:32px">
+            <?php $this->render_redirects_tab(); ?>
+        </div>
+
         </div><!-- /ab-pane-sitemap -->
 
         <div class="ab-pane" id="ab-pane-perf">
@@ -1598,7 +1626,10 @@ trait CS_SEO_Settings_Page {
         <div class="ab-pane" id="ab-pane-batch">
             <form method="post" action="options.php">
                 <?php settings_fields('cs_seo_ai_group'); ?>
-
+                <input type="hidden" name="<?php echo esc_attr(self::AI_OPT); ?>[schedule_enabled]"   value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::AI_OPT); ?>[auto_run_enabled]"   value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::AI_OPT); ?>[auto_run_on_update]" value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::AI_OPT); ?>[overwrite]"          value="0">
 
                 <div class="ab-zone-card ab-card-schedule">
                 <div class="ab-zone-header" style="justify-content:space-between">
@@ -1894,9 +1925,6 @@ trait CS_SEO_Settings_Page {
         </div><!-- /ab-pane-catfix -->
 
         <?php /* ══════════════════ REDIRECTS PANE ══════════════════ */ ?>
-        <div class="ab-pane" id="ab-pane-redirects">
-            <?php $this->render_redirects_tab(); ?>
-        </div><!-- /ab-pane-redirects -->
 
         <?php ob_start(); ?>
         function abFontLog(type, text) {

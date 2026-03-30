@@ -7,7 +7,7 @@
  * serves those redirects on any 404 that matches a stored path.
  *
  * @package CloudScale_SEO_AI_Optimizer
- * @since   4.19.84
+ * @since   4.19.89
  */
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
@@ -20,7 +20,7 @@ trait CS_SEO_Redirects {
     /**
      * Registers all redirect hooks. Called from __construct.
      *
-     * @since 4.19.84
+     * @since 4.19.89
      * @return void
      */
     private function init_redirects(): void {
@@ -42,7 +42,7 @@ trait CS_SEO_Redirects {
      * Captures the current permalink before a post is saved so we can compare
      * after the update and record a redirect if the slug changed.
      *
-     * @since 4.19.84
+     * @since 4.19.89
      * @param int   $post_id Post ID being updated.
      * @param array $data    New post data (unused here).
      * @return void
@@ -63,7 +63,7 @@ trait CS_SEO_Redirects {
      * After a post is saved, if the slug changed, records a 301 redirect from
      * the old URL path to the new permalink.
      *
-     * @since 4.19.84
+     * @since 4.19.89
      * @param int       $post_id     Post ID.
      * @param \WP_Post  $post_after  Post object after the update.
      * @param \WP_Post  $post_before Post object before the update.
@@ -90,7 +90,7 @@ trait CS_SEO_Redirects {
     /**
      * Persists a redirect mapping to the wp_options store.
      *
-     * @since 4.19.84
+     * @since 4.19.89
      * @param string $from_url Full old URL.
      * @param string $to_url   Full new URL.
      * @param int    $post_id  Associated post ID.
@@ -128,7 +128,7 @@ trait CS_SEO_Redirects {
      * On a WordPress 404, checks stored redirects and issues a 301 if matched.
      * Records the hit count and last-hit timestamp before redirecting.
      *
-     * @since 4.19.84
+     * @since 4.19.89
      * @return void
      */
     public function redirect_serve(): void {
@@ -165,7 +165,7 @@ trait CS_SEO_Redirects {
     /**
      * AJAX: deletes the redirect matching the submitted 'from' path.
      *
-     * @since 4.19.84
+     * @since 4.19.89
      * @return void
      */
     public function ajax_delete_redirect(): void {
@@ -184,7 +184,7 @@ trait CS_SEO_Redirects {
     /**
      * AJAX: adds or updates a manually entered redirect.
      *
-     * @since 4.19.84
+     * @since 4.19.89
      * @return void
      */
     public function ajax_add_redirect(): void {
@@ -229,7 +229,7 @@ trait CS_SEO_Redirects {
     /**
      * AJAX: deletes all stored redirects.
      *
-     * @since 4.19.84
+     * @since 4.19.89
      * @return void
      */
     public function ajax_clear_redirects(): void {
@@ -247,7 +247,7 @@ trait CS_SEO_Redirects {
     /**
      * Renders the Redirects settings tab content.
      *
-     * @since 4.19.84
+     * @since 4.19.89
      * @return void
      */
     private function render_redirects_tab(): void {
@@ -257,11 +257,26 @@ trait CS_SEO_Redirects {
         if ( ! is_array( $redirects ) ) $redirects = [];
         $nonce = wp_create_nonce( 'cs_seo_nonce' );
         ?>
-        <div class="ab-card">
-            <h2>🔀 <?php esc_html_e( 'Automatic Redirects', 'cloudscale-seo-ai-optimizer' ); ?></h2>
-            <p><?php esc_html_e( 'When enabled, a 301 redirect is automatically created whenever you rename a published post or page slug. Old URLs continue to work — visitors and search engines are redirected to the new location.', 'cloudscale-seo-ai-optimizer' ); ?></p>
+        <div class="ab-zone-card ab-card-redirects">
+        <div class="ab-zone-header" style="justify-content:space-between">
+            <span><span class="ab-zone-icon">🔀</span> <?php esc_html_e( 'Automatic Redirects', 'cloudscale-seo-ai-optimizer' ); ?></span>
+            <span style="display:flex;align-items:center;gap:8px;">
+                <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-redirects" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                <?php $this->explain_btn( 'redirects', '🔀 Automatic Redirects — How it works', [
+                    ['rec' => '✅ Recommended', 'name' => 'Enable automatic redirects', 'desc' => 'When a published post or page slug is renamed, the old URL is automatically captured and stored as a 301 redirect. Visitors and search engines following the old URL are sent to the new location. Without this, any link pointing to the old slug — from Google, other sites, or your own internal links — returns a 404.'],
+                    ['rec' => '✅ Recommended', 'name' => 'Why 301 and not 302', 'desc' => 'A 301 is a permanent redirect. It tells Google to transfer all ranking signals (PageRank, backlinks, cached content) from the old URL to the new one. A 302 is temporary — Google keeps the old URL in its index and does not transfer signals. Always use 301 for slug renames.'],
+                    ['rec' => 'ℹ️ Info', 'name' => 'When the redirect is created', 'desc' => 'The redirect is captured at the moment the post is saved in the editor. The old slug is recorded before the save, the new slug after — if they differ, a redirect entry is stored. The redirect is served on the next 404 request to the old path.'],
+                    ['rec' => 'ℹ️ Info', 'name' => 'Hit counter and last hit', 'desc' => 'Each time a visitor or crawler follows a stored redirect, the hit counter increments and the last-hit timestamp is updated. Use this to see which old URLs are still receiving traffic and whether it is safe to eventually retire the redirect.'],
+                    ['rec' => 'ℹ️ Info', 'name' => 'Manual redirects', 'desc' => 'Use the Add Manual Redirect form to redirect any path — not just renamed posts. This covers old image URLs (/wp-content/uploads/old.jpg), pages moved to a new domain, or any legacy path you want to send somewhere specific. The "from" field must be a path starting with /.'],
+                    ['rec' => '⬜ Optional', 'name' => 'When to delete a redirect', 'desc' => 'Once the old URL has zero hits for several months and you are confident no external links still point to it, it is safe to delete. Keep redirects with active hits in place — removing them while traffic still arrives will send those visitors to a 404.'],
+                ] ); ?>
+            </span>
+        </div>
+        <div class="ab-zone-body">
+            <p style="margin:16px 20px 0;color:#50575e"><?php esc_html_e( 'When enabled, a 301 redirect is automatically created whenever you rename a published post or page slug. Old URLs continue to work — visitors and search engines are redirected to the new location.', 'cloudscale-seo-ai-optimizer' ); ?></p>
             <form method="post" action="options.php">
                 <?php settings_fields( 'cs_seo_group' ); ?>
+                <input type="hidden" name="<?php echo esc_attr( self::OPT ); ?>[enable_redirects]" value="0">
                 <table class="form-table" role="presentation">
                     <tr>
                         <th><?php esc_html_e( 'Enable automatic redirects', 'cloudscale-seo-ai-optimizer' ); ?></th>
@@ -279,37 +294,38 @@ trait CS_SEO_Redirects {
                     <button type="submit" class="button button-primary"><?php esc_html_e( 'Save Changes', 'cloudscale-seo-ai-optimizer' ); ?></button>
                 </p>
             </form>
-        </div>
 
-        <div class="ab-card" style="margin-top:16px">
-            <h3><?php esc_html_e( 'Add Manual Redirect', 'cloudscale-seo-ai-optimizer' ); ?></h3>
-            <p><?php esc_html_e( 'Manually redirect any path — posts, pages, images, or any old URL — to a new destination.', 'cloudscale-seo-ai-optimizer' ); ?></p>
-            <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;max-width:900px">
-                <div style="flex:1;min-width:200px">
-                    <label style="display:block;margin-bottom:4px;font-weight:600;font-size:12px"><?php esc_html_e( 'From (old path)', 'cloudscale-seo-ai-optimizer' ); ?></label>
-                    <input id="cs-add-from" type="text" class="regular-text" style="width:100%"
-                           placeholder="/old-path/ or /wp-content/uploads/old-image.jpg">
+            <hr style="border:none;border-top:1px solid #dcdcde;margin:8px 20px 20px">
+
+            <div style="padding:0 20px">
+                <h3 style="margin-top:0"><?php esc_html_e( 'Add Manual Redirect', 'cloudscale-seo-ai-optimizer' ); ?></h3>
+                <p style="color:#50575e;margin-top:0"><?php esc_html_e( 'Manually redirect any path — posts, pages, images, or any old URL — to a new destination.', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;max-width:900px">
+                    <div style="flex:1;min-width:200px">
+                        <label style="display:block;margin-bottom:4px;font-weight:600;font-size:12px"><?php esc_html_e( 'From (old path)', 'cloudscale-seo-ai-optimizer' ); ?></label>
+                        <input id="cs-add-from" type="text" class="regular-text" style="width:100%"
+                               placeholder="/old-path/ or /wp-content/uploads/old-image.jpg">
+                    </div>
+                    <div style="flex:1;min-width:200px">
+                        <label style="display:block;margin-bottom:4px;font-weight:600;font-size:12px"><?php esc_html_e( 'To (new URL)', 'cloudscale-seo-ai-optimizer' ); ?></label>
+                        <input id="cs-add-to" type="text" class="regular-text" style="width:100%"
+                               placeholder="https://example.com/new-page/">
+                    </div>
+                    <div style="padding-top:20px">
+                        <button id="cs-add-redirect" class="button button-primary"
+                                data-nonce="<?php echo esc_attr( $nonce ); ?>">
+                            <?php esc_html_e( 'Add Redirect', 'cloudscale-seo-ai-optimizer' ); ?>
+                        </button>
+                    </div>
                 </div>
-                <div style="flex:1;min-width:200px">
-                    <label style="display:block;margin-bottom:4px;font-weight:600;font-size:12px"><?php esc_html_e( 'To (new URL)', 'cloudscale-seo-ai-optimizer' ); ?></label>
-                    <input id="cs-add-to" type="text" class="regular-text" style="width:100%"
-                           placeholder="https://example.com/new-page/">
-                </div>
-                <div style="padding-top:20px">
-                    <button id="cs-add-redirect" class="button button-primary"
-                            data-nonce="<?php echo esc_attr( $nonce ); ?>">
-                        <?php esc_html_e( 'Add Redirect', 'cloudscale-seo-ai-optimizer' ); ?>
-                    </button>
-                </div>
+                <p id="cs-add-redirect-msg" style="margin-top:8px;display:none"></p>
             </div>
-            <p id="cs-add-redirect-msg" style="margin-top:8px;display:none"></p>
-        </div>
 
-        <div class="ab-card" style="margin-top:16px">
-            <h3>
-                <?php esc_html_e( 'Stored Redirects', 'cloudscale-seo-ai-optimizer' ); ?>
-                <span style="font-weight:400;color:#999;font-size:13px;margin-left:6px">(<?php echo count( $redirects ); ?>)</span>
-            </h3>
+            <div style="padding:0 20px 20px">
+                <h3>
+                    <?php esc_html_e( 'Stored Redirects', 'cloudscale-seo-ai-optimizer' ); ?>
+                    <span style="font-weight:400;color:#999;font-size:13px;margin-left:6px">(<?php echo count( $redirects ); ?>)</span>
+                </h3>
             <?php if ( empty( $redirects ) ) : ?>
                 <p style="color:#999"><?php esc_html_e( 'No redirects stored yet. Rename a published post or page slug and an entry will appear here.', 'cloudscale-seo-ai-optimizer' ); ?></p>
             <?php else : ?>
@@ -332,7 +348,7 @@ trait CS_SEO_Redirects {
                             <th></th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="cs-redirects-tbody">
                         <?php foreach ( $redirects as $r ) : ?>
                         <tr>
                             <td><a href="<?php echo esc_url( home_url( $r['from'] ) ); ?>" target="_blank" rel="noopener"><code><?php echo esc_html( $r['from'] ); ?></code></a></td>
@@ -368,7 +384,9 @@ trait CS_SEO_Redirects {
                     </tbody>
                 </table>
             <?php endif; ?>
-        </div>
+            </div><!-- /stored redirects -->
+        </div><!-- /ab-zone-body -->
+        </div><!-- /ab-zone-card ab-card-redirects -->
         <script>
         (function () {
             var addBtn = document.getElementById('cs-add-redirect');
@@ -406,8 +424,8 @@ trait CS_SEO_Redirects {
                             msg.style.cssText = 'display:block;color:#d63638';
                             return;
                         }
-                        // Insert new row into the table (or create table if first entry)
-                        var tbody = document.querySelector('#ab-pane-redirects tbody');
+                        // Insert new row into the widefat table; reload if table not yet rendered (empty state).
+                        var tbody = document.getElementById('cs-redirects-tbody');
                         if (!tbody) { location.reload(); return; }
                         var r = d.data;
                         var tr = document.createElement('tr');
