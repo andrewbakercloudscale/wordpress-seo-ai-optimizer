@@ -164,6 +164,8 @@ textarea[name="cs_seo_options[home_desc]"], textarea[name="cs_seo_options[defaul
 .ab-api-key-warning .ab-warn-body { font-size:13px; color:#1d2327; }
 .ab-api-key-warning .ab-warn-body strong { display:block; margin-bottom:4px; font-size:14px; }
 .ab-api-key-warning .ab-warn-body a { color:#2271b1; font-weight:600; }
+.ab-zone-card.ab-card-redirects .ab-zone-header { background:#0a7e8c; }
+.ab-zone-body p.submit { padding-left:20px; margin-bottom:0; }
 CSS;
     }
 
