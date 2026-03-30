@@ -3,7 +3,7 @@ Contributors: andrewjbaker
 Tags: seo, ai, meta description, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.19.91
+Stable tag: 4.19.92
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -275,7 +275,7 @@ The plugin scores all posts against each other using shared categories, tags, an
 
 == Changelog ==
 
-= 4.19.91 =
+= 4.19.92 =
 * Fix: PCP critical — raw script tag in redirects admin moved to wp_add_inline_script to comply with WordPress.org standards
 * Fix: delete-redirect and clear-all-redirects fetch calls now have catch handlers for network errors
 
@@ -285,6 +285,21 @@ The plugin scores all posts against each other using shared categories, tags, an
 * Fix: Manual redirect form and stored redirects table were rendering outside the card container
 * Fix: Save button left padding corrected across all admin cards
 * Add: Playwright settings-save tests covering all panels
+
+= 4.19.89 =
+* Fix: Redirects zone-header white-on-white — added background colour to redirects card header
+* Fix: Add Manual Redirect and Stored Redirects sections moved inside the card container
+* Fix: Save button left padding corrected across all admin cards
+
+= 4.19.88 =
+* Change: Sitemap & Robots tab renamed to Sitemap, Robots & Redirects
+* Change: Redirects section moved to Sitemap, Robots & Redirects tab
+
+= 4.19.87 =
+* Change: Redirects section moved to bottom of Optimise SEO tab with zone-card styling and Explain button
+
+= 4.19.86 =
+* Fix: Manual redirect row was inserting into wrong table element — fixed tbody selector
 
 = 4.19.85 =
 * Add: Automatic Redirects — 301 redirect automatically captured and served when a published post or page slug is renamed

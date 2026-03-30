@@ -3,6 +3,10 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.19.92] - 2026-03-30
+### Fixed
+- **readme.txt changelog** — backfilled missing entries for versions 4.19.86 through 4.19.89 in the WordPress.org `== Changelog ==` section (`readme.txt`)
+
 ## [4.19.91] - 2026-03-30
 ### Fixed
 - **PCP Critical: raw `<script>` tag** — `render_redirects_tab()` was emitting a `<script>` tag directly into HTML output; moved to `ob_start()` / `wp_add_inline_script('cs-seo-admin-js', ...)` to comply with PCP (`WordPress.WP.EnqueuedResources.NonEnqueuedScript`) (`trait-redirects.php`)
