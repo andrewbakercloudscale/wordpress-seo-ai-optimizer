@@ -16,7 +16,7 @@ PLUGIN_NAME="cloudscale-seo-ai-optimizer"
 SVN_URL="https://plugins.svn.wordpress.org/$PLUGIN_NAME"
 SVN_USERNAME="andrewjbaker"
 SVN_WORKING="$SCRIPT_DIR/.svn-working-copy"
-CLAUDE="/opt/homebrew/bin/claude"
+CLAUDE="${CLAUDE_CLI:-/Users/cp363412/.local/bin/claude}"
 
 # ── Flags ─────────────────────────────────────────────────────────────────────
 FORCE=0
