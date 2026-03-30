@@ -3,6 +3,13 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.19.93] - 2026-03-30
+### Fixed
+- **PCP `NonceVerification.Missing`** — replaced all `$this->ajax_check()` and `$this->catfix_nonce_check()` helper delegations with direct `check_ajax_referer( 'cs_seo_nonce', 'nonce' )` calls in the same handler scope across 13 traits (~40 call sites); PHPCS and WordPress.org Plugin Check require the direct call in scope and cannot trace through helper wrappers (`trait-ai-alt-text.php`, `trait-ai-summary.php`, `trait-ai-scoring.php`, `trait-ai-meta-writer.php`, `trait-related-articles.php`, `trait-category-fixer.php`, `trait-https-fixer.php`, `trait-sitemap.php`, `trait-seo-health.php`, `trait-batch-scheduler.php`, `trait-auto-pipeline.php`, `trait-llms-txt.php`)
+- **`EscapeOutput.OutputNotEscaped`** — wrapped colour ternary expression in `esc_attr()` at `trait-settings-page.php:1763`
+- **Stale readme copy** — removed "No redirect management" from the "What This Plugin Does Not Do" section; automatic 301 redirects were added in 4.19.85 (`readme.txt`)
+- **claude CLI path** — updated from `/opt/homebrew/bin/claude` to `~/.local/bin/claude` in `build.sh` and `MANUAL-deploy-svn.sh`
+
 ## [4.19.92] - 2026-03-30
 ### Fixed
 - **readme.txt changelog** — backfilled missing entries for versions 4.19.86 through 4.19.89 in the WordPress.org `== Changelog ==` section (`readme.txt`)
