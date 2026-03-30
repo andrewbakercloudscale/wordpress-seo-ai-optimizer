@@ -13,8 +13,12 @@ trait CS_SEO_AI_Summary {
     // =========================================================================
 
     /**
-     * Generate a 3-field AI summary for a post: what it is, why it matters, key takeaway.
-     * Returns an array with keys 'what', 'why', 'takeaway', or throws on failure.
+     * Generates a 3-field AI summary for a post: what it is, why it matters, key takeaway.
+     *
+     * @since 4.0.0
+     * @param int $post_id The post ID to summarise.
+     * @return array Associative array with keys 'what', 'why', 'takeaway'.
+     * @throws \RuntimeException If the post is not found, no API key is configured, or the AI response is invalid.
      */
     private function call_ai_generate_summary(int $post_id): array {
         $post = get_post($post_id);
@@ -28,7 +32,7 @@ trait CS_SEO_AI_Summary {
 
         if (!$key) throw new \RuntimeException($provider === 'gemini' ? 'No Gemini API key configured' : 'No Anthropic API key configured'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 
-        $content = $this->text_from_html((string) $post->post_content);
+        $content = CloudScale_SEO_AI_Optimizer_Utils::text_from_html((string) $post->post_content);
         $content = mb_substr($content, 0, 6000);
 
         $system = 'You are a technical writing assistant. Given an article title and content, write a concise 3-part summary.' . "\n\n"
@@ -61,22 +65,21 @@ trait CS_SEO_AI_Summary {
     }
 
     /**
-     * AJAX: generate summary for a single post.
-     */
-    /**
      * AJAX handler: generates the three-field AI summary for a single post.
      *
      * @since 4.10.47
      * @return void
      */
     public function ajax_summary_generate_one(): void {
-        check_ajax_referer('cs_seo_nonce', 'nonce');
-        if (!current_user_can('edit_posts')) wp_send_json_error('Forbidden', 403);
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
         $post_id = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
         if (!$post_id) wp_send_json_error('Missing post_id');
 
         $force = !empty($_POST['force']);
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         // Skip if already generated and not forced.
         if (!$force) {
@@ -103,17 +106,14 @@ trait CS_SEO_AI_Summary {
     }
 
     /**
-     * AJAX: count posts with/without AI summaries for the bulk panel.
-     */
-    /**
      * AJAX handler: returns all posts with their AI summary status for the bulk generator panel.
      *
      * @since 4.10.48
      * @return void
      */
     public function ajax_summary_load(): void {
-        check_ajax_referer('cs_seo_nonce', 'nonce');
-        if (!current_user_can('edit_posts')) wp_send_json_error('Forbidden', 403);
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         $total = (int) wp_count_posts('post')->publish;
 
@@ -155,19 +155,16 @@ trait CS_SEO_AI_Summary {
     }
 
     /**
-     * AJAX: generate summaries for all posts missing them (batch).
-     * Processes one post per call — JS loops until done (same pattern as ALT batch).
-     */
-    /**
      * AJAX handler: batch wrapper for ajax_summary_generate_one(), used by the bulk polling loop.
      *
      * @since 4.10.49
      * @return void
      */
     public function ajax_summary_generate_all(): void {
-        check_ajax_referer('cs_seo_nonce', 'nonce');
-        if (!current_user_can('edit_posts')) wp_send_json_error('Forbidden', 403);
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
         $force = !empty($_POST['force']);
 
         $args = [

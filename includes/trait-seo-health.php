@@ -169,7 +169,8 @@ trait CS_SEO_SEO_Health {
      * @return void
      */
     public function ajax_rebuild_health_cache(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         $cache = $this->rebuild_health_cache();
         wp_send_json_success($cache);
     }

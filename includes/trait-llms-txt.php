@@ -130,7 +130,8 @@ trait CS_SEO_LLMS_Txt {
      * @return void
      */
     public function ajax_llms_preview(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         wp_send_json_success(['content' => $this->build_llms_txt()]);
     }
 

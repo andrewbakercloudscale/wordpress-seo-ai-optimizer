@@ -15,10 +15,8 @@ trait CS_SEO_HTTPS_Fixer {
      * @return void
      */
     public function ajax_https_scan(): void {
-        check_ajax_referer('cs_seo_nonce', 'nonce');
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorised');
-        }
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         try {
             global $wpdb;
@@ -155,13 +153,17 @@ trait CS_SEO_HTTPS_Fixer {
     }
 
     /**
-     * Safely replace http:// with https:// in a value, handling PHP serialized strings
-     * by re-serializing with correct byte counts.
+     * Replaces http:// with https:// in a value, safely handling PHP-serialized strings.
      *
-     * When the serialized value contains objects with unknown classes, PHP creates
-     * __PHP_Incomplete_Class instances that cannot be traversed safely.  In that case
-     * we fall back to a regex replacement directly on the raw serialized string and
-     * fix up the byte-length prefixes so the result stays valid.
+     * When the serialized graph contains objects with unknown classes, PHP creates
+     * __PHP_Incomplete_Class instances that cannot be traversed safely. In that case
+     * falls back to a raw string replacement and fixes up the s:<len> byte-count prefixes
+     * so the result remains a valid serialized string.
+     *
+     * @since 4.10.0
+     * @param string   $value   The raw database column value (may be serialized).
+     * @param string[] $domains Optional list of domains to restrict replacement to.
+     * @return string Value with http:// replaced by https:// for the target domains.
      */
     private function https_replace_value(string $value, array $domains): string {
         if (!is_serialized($value)) {
@@ -190,7 +192,16 @@ trait CS_SEO_HTTPS_Fixer {
         return serialize($data);
     }
 
-    /** Recursively check whether $data contains any __PHP_Incomplete_Class instances. */
+    /**
+     * Recursively checks whether a value contains any __PHP_Incomplete_Class instances.
+     *
+     * Used to decide whether safe re-serialization is possible after unserializing with
+     * allowed_classes => false. Objects and arrays are traversed; scalars return false.
+     *
+     * @since 4.10.0
+     * @param mixed $data The value to inspect.
+     * @return bool True if any node in the graph is an __PHP_Incomplete_Class.
+     */
     private function has_incomplete_class(mixed $data): bool {
         if (is_object($data)) {
             if ($data instanceof \__PHP_Incomplete_Class) {
@@ -209,8 +220,15 @@ trait CS_SEO_HTTPS_Fixer {
     }
 
     /**
-     * Replace http:// URLs inside a raw serialized PHP string without deserializing.
-     * Handles the s:<len>:"<value>" format by recalculating byte lengths after substitution.
+     * Replaces http:// URLs inside a raw serialized PHP string without deserializing.
+     *
+     * Performs the substitution at the string level, then corrects every s:<len>:"…"
+     * byte-count prefix that was invalidated by the http→https length change.
+     *
+     * @since 4.10.0
+     * @param string   $value   Raw serialized PHP string.
+     * @param string[] $domains Optional list of domains to restrict replacement to.
+     * @return string Serialized string with corrected URL schemes and updated byte counts.
      */
     private function https_replace_serialized_raw(string $value, array $domains): string {
         // Do the URL substitution on the raw string first.
@@ -232,6 +250,16 @@ trait CS_SEO_HTTPS_Fixer {
         ) ?? $replaced;
     }
 
+    /**
+     * Recursively replaces http:// with https:// throughout a deserialized PHP value.
+     *
+     * Traverses strings, arrays, and objects. Non-string scalars are returned unchanged.
+     *
+     * @since 4.10.0
+     * @param mixed    $data    The value to process (string, array, object, or scalar).
+     * @param string[] $domains Optional list of domains to restrict replacement to.
+     * @return mixed The same structure with http:// replaced by https:// in all strings.
+     */
     private function https_replace_recursive(mixed $data, array $domains): mixed {
         if (is_string($data)) {
             return $this->https_replace_string($data, $domains);
@@ -248,6 +276,17 @@ trait CS_SEO_HTTPS_Fixer {
         return $data;
     }
 
+    /**
+     * Replaces http:// with https:// in a plain string, optionally scoped to specific domains.
+     *
+     * When $domains is empty every http:// occurrence is replaced. Otherwise only
+     * occurrences of http://<domain> are replaced, one domain at a time.
+     *
+     * @since 4.10.0
+     * @param string   $value   The string to process.
+     * @param string[] $domains Optional list of domains to restrict replacement to.
+     * @return string String with matching http:// schemes replaced by https://.
+     */
     private function https_replace_string(string $value, array $domains): string {
         if (empty($domains)) {
             return preg_replace('#http://#', 'https://', $value);
@@ -265,15 +304,14 @@ trait CS_SEO_HTTPS_Fixer {
      * @return void
      */
     public function ajax_https_fix(): void {
-        check_ajax_referer('cs_seo_nonce', 'nonce');
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorised');
-        }
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
 
         try {
             global $wpdb;
 
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
             $domains_raw = isset($_POST['domains']) ? sanitize_text_field(wp_unslash($_POST['domains'])) : '';
             $domains = array_filter(array_map('trim', explode(',', $domains_raw)));
 
@@ -378,11 +416,10 @@ trait CS_SEO_HTTPS_Fixer {
      * @return void
      */
     public function ajax_https_delete(): void {
-        check_ajax_referer('cs_seo_nonce', 'nonce');
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorised');
-        }
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
         $domain = isset($_POST['domain']) ? sanitize_text_field(wp_unslash($_POST['domain'])) : '';
         if (empty($domain)) {
             wp_send_json_error('No domain provided.');

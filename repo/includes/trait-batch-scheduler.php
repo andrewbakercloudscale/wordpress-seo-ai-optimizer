@@ -20,6 +20,9 @@ trait CS_SEO_Batch_Scheduler {
      *   Pass 2 — generates ALT text for images that are missing it across all posts.
      * Both passes are missing-only: existing data is never overwritten.
      * Works with both Anthropic and Gemini via dispatch_ai().
+     *
+     * @since 4.0.0
+     * @return void
      */
     public function run_scheduled_batch(): void {
         $ai = $this->get_ai_opts();
@@ -31,10 +34,6 @@ trait CS_SEO_Batch_Scheduler {
         // Check if today (server time) is a scheduled day.
         $today = strtolower(gmdate('D')); // 'mon','tue' etc.
         if (!in_array($today, $days, true)) return;
-
-        // Allow up to 30 minutes — prevents silent death from PHP's default execution limit
-        // when processing large initial batches on a slow host.
-        set_time_limit(1800); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- intentional: cron batch must not be killed mid-run by PHP's default 30s limit
 
         $log      = [];
         $done     = 0;
@@ -134,9 +133,9 @@ trait CS_SEO_Batch_Scheduler {
             if (time() >= $deadline) { $log[] = ['status' => 'timeout', 'title' => 'Pass 3 time limit reached']; break; }
             try {
                 $summary = $this->call_ai_generate_summary($p->ID);
-                update_post_meta($p->ID, self::META_SUM_WHAT, $summary['what']);
-                update_post_meta($p->ID, self::META_SUM_WHY,  $summary['why']);
-                update_post_meta($p->ID, self::META_SUM_KEY,  $summary['takeaway']);
+                update_post_meta($p->ID, self::META_SUM_WHAT, sanitize_text_field($summary['what']));
+                update_post_meta($p->ID, self::META_SUM_WHY,  sanitize_text_field($summary['why']));
+                update_post_meta($p->ID, self::META_SUM_KEY,  sanitize_text_field($summary['takeaway']));
                 $log[] = ['status' => 'sum_ok', 'title' => get_the_title($p->ID)];
                 $sum_done++;
             } catch (\Throwable $e) {
@@ -171,10 +170,11 @@ trait CS_SEO_Batch_Scheduler {
     }
 
     /**
-     * Generate ALT text for images that are missing it in a single post.
+     * Generates ALT text for images that are missing it in a single post.
      * Used by run_scheduled_batch (Pass 2). Missing-only — never overwrites existing ALT.
      * Works with both Anthropic and Gemini via dispatch_ai().
      *
+     * @since 4.0.0
      * @param int   $post_id Post to process.
      * @param array $images  Output of collect_images_needing_alt() — pass it in to avoid
      *                       a duplicate call when the caller has already run the scan.
@@ -252,15 +252,13 @@ trait CS_SEO_Batch_Scheduler {
         }
 
         if ($content_changed) {
-            wp_update_post(['ID' => $post_id, 'post_content' => $new_content]);
+            // wp_slash() required — see trait-ai-alt-text.php for explanation.
+            wp_update_post(['ID' => $post_id, 'post_content' => wp_slash( $new_content )]);
         }
 
         return $saved;
     }
 
-    /**
-     * AJAX: return the last scheduled batch result for display in the UI.
-     */
     /**
      * AJAX handler: returns the batch run history for display in the admin panel.
      *
@@ -268,7 +266,8 @@ trait CS_SEO_Batch_Scheduler {
      * @return void
      */
     public function ajax_get_batch_log(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         $history = get_option('cs_seo_batch_history', []);
         if (!empty($history) && is_array($history)) {
             wp_send_json_success($history);

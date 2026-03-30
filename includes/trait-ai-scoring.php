@@ -70,8 +70,9 @@ trait CS_SEO_AI_Scoring {
      * @return void
      */
     public function ajax_score_one(): void {
-        $this->ajax_check();
-        $post_id = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+        $post_id = absint( wp_unslash( $_POST['post_id'] ?? 0 ) );
         if (!$post_id) wp_send_json_error('Missing post_id');
 
         try {

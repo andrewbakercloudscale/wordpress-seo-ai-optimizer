@@ -71,7 +71,8 @@ trait CS_SEO_AI_Summary {
      * @return void
      */
     public function ajax_summary_generate_one(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
         $post_id = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
@@ -111,7 +112,8 @@ trait CS_SEO_AI_Summary {
      * @return void
      */
     public function ajax_summary_load(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         $total = (int) wp_count_posts('post')->publish;
 
@@ -159,7 +161,8 @@ trait CS_SEO_AI_Summary {
      * @return void
      */
     public function ajax_summary_generate_all(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
         $force = !empty($_POST['force']);

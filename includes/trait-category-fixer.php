@@ -22,7 +22,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     private function catfix_nonce_check(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
     }
 
     /**
@@ -165,7 +166,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_list_ids(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         $posts = [];
         $page  = 1;
@@ -203,7 +205,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_load(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $requested_ids = isset($_POST['post_ids'])
@@ -318,7 +321,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_apply(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid          = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
         // phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -337,7 +341,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_skip(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
         // phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -353,7 +358,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_bulk_apply(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         $items_raw = isset($_POST['items']) ? (array) wp_unslash($_POST['items']) : []; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked via catfix_nonce_check(); array items are sanitized in loop below
         $applied   = 0;
         foreach ($items_raw as $item) {
@@ -375,7 +381,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_analyse(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
         // phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -399,7 +406,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_ai_one(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
         // phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -520,7 +528,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_health_list(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         $cats = get_categories(['hide_empty' => false, 'orderby' => 'count', 'order' => 'DESC']);
         wp_send_json(['success' => true, 'categories' => array_map(fn($c) => [
@@ -541,7 +550,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_health_cat(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $cid = absint(wp_unslash($_POST['cat_id'] ?? 0));
@@ -605,7 +615,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_health(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         $all_cats = get_categories(['hide_empty' => false, 'orderby' => 'count', 'order' => 'DESC']);
         $results  = [];
@@ -687,7 +698,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_drift(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // Require configured AI provider key
         $provider = $this->ai_opts['ai_provider'] ?? 'anthropic';
@@ -890,7 +902,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_drift_cache_get(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         $cache = get_option('cs_seo_drift_cache', null);
         if (!$cache || empty($cache['drift'])) {
             wp_send_json(['success' => false, 'error' => 'No cache found.']);
@@ -934,7 +947,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_drift_analyse_remaining(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked via catfix_nonce_check(); cast to int is sufficient sanitization
         $cat_id   = (int) (wp_unslash($_POST['cat_id']   ?? 0));
@@ -1110,7 +1124,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_drift_move(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid         = isset($_POST['post_id'])     ? absint(wp_unslash($_POST['post_id']))                  : 0;

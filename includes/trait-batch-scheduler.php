@@ -266,7 +266,8 @@ trait CS_SEO_Batch_Scheduler {
      * @return void
      */
     public function ajax_get_batch_log(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         $history = get_option('cs_seo_batch_history', []);
         if (!empty($history) && is_array($history)) {
             wp_send_json_success($history);

@@ -12,13 +12,26 @@ trait CS_SEO_Category_Fixer {
     // Category Fixer AJAX
     // =========================================================================
 
+    /**
+     * Verifies the AJAX nonce and checks manage_options capability; dies on failure.
+     *
+     * Delegates to ajax_check() from trait-ai-engine.php which verifies the same
+     * cs_seo_nonce nonce and manage_options capability.
+     *
+     * @since 4.0.0
+     * @return void
+     */
     private function catfix_nonce_check(): void {
-        check_ajax_referer('cs_seo_nonce', 'nonce');
-        if (!current_user_can('manage_options')) wp_die();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
     }
 
     /**
-     * Tokenise a string into lowercase words, stripping punctuation.
+     * Tokenises a string into lowercase words, stripping punctuation and common stop words.
+     *
+     * @since 4.0.0
+     * @param string $text The input string to tokenise.
+     * @return array Array of lowercase word tokens with stop words removed.
      */
     private function catfix_tokens(string $text): array {
         $text = strtolower(wp_strip_all_tags($text));
@@ -33,8 +46,12 @@ trait CS_SEO_Category_Fixer {
     }
 
     /**
-     * Score a category against a set of token bags. Returns 0-100.
-     * Token bags: ['title'=>[], 'summary'=>[], 'tags'=>[], 'slug'=>[]]
+     * Scores a category against a set of token bags.
+     *
+     * @since 4.0.0
+     * @param string $cat_name The category name to score.
+     * @param array  $bags     Token bags keyed by source: 'title', 'summary', 'tags', 'slug'.
+     * @return int Score from 0 to 100.
      */
     private function catfix_score(string $cat_name, array $bags): int {
         $cat_tokens = $this->catfix_tokens($cat_name);
@@ -51,7 +68,11 @@ trait CS_SEO_Category_Fixer {
     }
 
     /**
-     * Analyse one post: returns proposed category ids, scores, reason, fingerprint.
+     * Analyses a single post and returns proposed category IDs with scores, reason, and fingerprint.
+     *
+     * @since 4.0.0
+     * @param int $post_id The post ID to analyse.
+     * @return array Associative array with keys 'proposed_ids', 'scores', 'reason', 'fingerprint', or empty on failure.
      */
     private function catfix_analyse_post(int $post_id): array {
         $post = get_post($post_id);
@@ -138,14 +159,15 @@ trait CS_SEO_Category_Fixer {
     /**
      * AJAX handler: returns all published post IDs and the category map.
      *
-     * Called first by the JS batch-scan flow to get the full list quickly,
-     * before the heavier per-batch analysis starts.
+     * Called first by the JS batch-scan flow so it gets the full list quickly
+     * before starting the heavier per-batch analysis.
      *
-     * @since 4.19.14
+     * @since 4.19.15
      * @return void
      */
     public function ajax_catfix_list_ids(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         $posts = [];
         $page  = 1;
@@ -177,14 +199,14 @@ trait CS_SEO_Category_Fixer {
      *
      * Accepts an optional post_ids[] parameter for batched loading. If supplied,
      * only those posts are processed — used by the JS progress-scan flow.
-     * Without it, all published posts are processed (legacy behaviour).
      *
      * @since 4.10.59
-     * @since 4.19.14 Added post_ids[] batch parameter.
+     * @since 4.19.15 Added post_ids[] batch parameter.
      * @return void
      */
     public function ajax_catfix_load(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $requested_ids = isset($_POST['post_ids'])
@@ -193,10 +215,8 @@ trait CS_SEO_Category_Fixer {
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         if (!empty($requested_ids)) {
-            // Batched mode: the JS already has the full ID list; process only this slice.
             $posts = $requested_ids;
         } else {
-            // Legacy full-load (kept for backwards compat; JS now uses batched mode).
             $posts = [];
             $page  = 1;
             $batch = 500;
@@ -301,7 +321,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_apply(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid          = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
         // phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -320,7 +341,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_skip(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
         // phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -336,7 +358,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_bulk_apply(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         $items_raw = isset($_POST['items']) ? (array) wp_unslash($_POST['items']) : []; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked via catfix_nonce_check(); array items are sanitized in loop below
         $applied   = 0;
         foreach ($items_raw as $item) {
@@ -358,7 +381,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_analyse(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
         // phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -382,7 +406,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_ai_one(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
         // phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -499,11 +524,12 @@ trait CS_SEO_Category_Fixer {
      * Used by the JS health scanner to get the category list before processing
      * each category individually via ajax_catfix_health_cat().
      *
-     * @since 4.19.21
+     * @since 4.19.43
      * @return void
      */
     public function ajax_catfix_health_list(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         $cats = get_categories(['hide_empty' => false, 'orderby' => 'count', 'order' => 'DESC']);
         wp_send_json(['success' => true, 'categories' => array_map(fn($c) => [
@@ -520,11 +546,12 @@ trait CS_SEO_Category_Fixer {
      * Accepts `cat_id` (int). Used by the JS scanner to process one category at a
      * time so the UI can show per-category progress and identify slow/stalled queries.
      *
-     * @since 4.19.21
+     * @since 4.19.43
      * @return void
      */
     public function ajax_catfix_health_cat(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $cid = absint(wp_unslash($_POST['cat_id'] ?? 0));
@@ -584,11 +611,12 @@ trait CS_SEO_Category_Fixer {
      * AJAX handler: returns category health statistics (post counts per category).
      *
      * @since 4.10.65
-     * @deprecated 4.19.21 JS now uses ajax_catfix_health_list + ajax_catfix_health_cat for progress.
+     * @deprecated 4.19.43 JS now uses ajax_catfix_health_list + ajax_catfix_health_cat for progress.
      * @return void
      */
     public function ajax_catfix_health(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         $all_cats = get_categories(['hide_empty' => false, 'orderby' => 'count', 'order' => 'DESC']);
         $results  = [];
@@ -670,7 +698,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_drift(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // Require configured AI provider key
         $provider = $this->ai_opts['ai_provider'] ?? 'anthropic';
@@ -873,7 +902,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_drift_cache_get(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         $cache = get_option('cs_seo_drift_cache', null);
         if (!$cache || empty($cache['drift'])) {
             wp_send_json(['success' => false, 'error' => 'No cache found.']);
@@ -917,7 +947,8 @@ trait CS_SEO_Category_Fixer {
      * @return void
      */
     public function ajax_catfix_drift_analyse_remaining(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked via catfix_nonce_check(); cast to int is sufficient sanitization
         $cat_id   = (int) (wp_unslash($_POST['cat_id']   ?? 0));
@@ -1089,11 +1120,12 @@ trait CS_SEO_Category_Fixer {
      * Accepts `post_id` (int), `from_cat_id` (int), and `to_cat_name` (string).
      * Resolves the target category by name; creates it if it does not yet exist.
      *
-     * @since 4.19.22
+     * @since 4.19.43
      * @return void
      */
     public function ajax_catfix_drift_move(): void {
-        $this->catfix_nonce_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via catfix_nonce_check()
         $pid         = isset($_POST['post_id'])     ? absint(wp_unslash($_POST['post_id']))                  : 0;

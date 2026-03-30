@@ -1760,7 +1760,7 @@ trait CS_SEO_Settings_Page {
                         <p style="margin:0 0 4px">
                             <strong><?php echo esc_html($batch['day'] ?? ''); ?> <?php echo esc_html($batch['date'] ?? ''); ?></strong> —
                             <?php $batch_done = (int)($batch['done'] ?? 0) + (int)($batch['alt_done'] ?? 0) + (int)($batch['sum_done'] ?? 0); ?>
-                            <span style="color:<?php echo $batch_done > 0 ? '#2271b1' : '#1a7a34'; ?>"><?php echo (int)($batch['done'] ?? 0); ?> generated</span>,
+                            <span style="color:<?php echo esc_attr( $batch_done > 0 ? '#2271b1' : '#1a7a34' ); ?>"><?php echo (int)($batch['done'] ?? 0); ?> generated</span>,
                             <?php echo (int)($batch['skipped'] ?? 0); ?> skipped<?php if (($batch['errors'] ?? 0) > 0): ?>,
                                 <span style="color:#c3372b"><?php echo (int)$batch['errors']; ?> errors</span><?php endif; ?>,
                             <?php echo (int)($batch['elapsed'] ?? 0); ?>s total

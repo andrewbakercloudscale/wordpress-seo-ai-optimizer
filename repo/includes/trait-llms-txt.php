@@ -33,13 +33,23 @@ trait CS_SEO_LLMS_Txt {
      */
     public function maybe_render_llms_txt(): void {
         if (!get_query_var('cs_seo_llms')) return;
+        status_header(200);
+        // phpcs:ignore WordPress.PHP.DiscouragedFunctions.header_header -- Content-Type text/plain has no WordPress wrapper; required for llms.txt plain-text response.
         header('Content-Type: text/plain; charset=utf-8');
+        // phpcs:ignore WordPress.PHP.DiscouragedFunctions.header_header -- Public caching directive; nocache_headers() would send the opposite instruction.
         header('Cache-Control: public, max-age=3600');
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Plain-text content; HTML escaping would corrupt the output.
         echo $this->build_llms_txt();
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Terminates template_redirect to prevent WordPress loading a theme template for this virtual URL.
         exit;
     }
 
+    /**
+     * Builds the llms.txt document content, using a transient cache for performance.
+     *
+     * @since 4.17.0
+     * @return string The complete llms.txt document as a plain-text string.
+     */
     private function build_llms_txt(): string {
         $cached = get_transient('cs_seo_llms_txt');
         if ($cached !== false) return $cached;
@@ -120,7 +130,8 @@ trait CS_SEO_LLMS_Txt {
      * @return void
      */
     public function ajax_llms_preview(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         wp_send_json_success(['content' => $this->build_llms_txt()]);
     }
 

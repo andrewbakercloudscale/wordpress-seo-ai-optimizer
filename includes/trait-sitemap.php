@@ -219,7 +219,8 @@ trait CS_SEO_Sitemap {
      * @return void
      */
     public function ajax_sitemap_preview(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         // Preview works regardless of enable_sitemap so you can check before enabling
         $all      = $this->get_all_sitemap_urls();
         $total    = count($all);
