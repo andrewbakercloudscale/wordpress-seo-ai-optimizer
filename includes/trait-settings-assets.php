@@ -29,7 +29,7 @@ trait CS_SEO_Settings_Assets {
 .ab-tab[data-tab="batch"].active  { background:#e67e00; color:#fff; }
 .ab-tab[data-tab="catfix"].active { background:#2d6a4f; color:#fff; }
 .ab-tab[data-tab="perf"].active   { background:#d946a6; color:#fff; }
-.ab-pane { display:none; padding-top:24px; }
+.ab-pane { display:none; padding-top:24px; padding-bottom:40px; padding-right:8px; }
 .ab-pane.active { display:block; }
 #ab-ai-writer { font-family: -apple-system, sans-serif; }
 .ab-ai-toolbar { display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
@@ -84,7 +84,7 @@ table.ab-posts tr:hover td { background:#f6f7f7; }
 .ab-zone-card { border-radius:8px; overflow:hidden; box-shadow:0 6px 28px rgba(30,100,200,0.55), 0 2px 8px rgba(30,100,200,0.35); margin:24px 0 0; }
 .ab-zone-header { display:flex; align-items:center; gap:10px; padding:13px 20px; font-size:15px; font-weight:700; color:#fff; letter-spacing:0.01em; }
 .ab-zone-header .ab-zone-icon { font-size:17px; }
-.ab-zone-body { background:#f4f5f7; padding:4px 0 8px; }
+.ab-zone-body { background:#f4f5f7; padding:4px 0 20px; }
 .ab-zone-body .form-table th { padding-left:20px; }
 .ab-zone-body .form-table td { padding-right:20px; }
 @media (max-width:782px) {
@@ -166,6 +166,7 @@ textarea[name="cs_seo_options[home_desc]"], textarea[name="cs_seo_options[defaul
 .ab-api-key-warning .ab-warn-body a { color:#2271b1; font-weight:600; }
 .ab-zone-card.ab-card-redirects .ab-zone-header { background:#0a7e8c; }
 .ab-zone-body p.submit { padding-left:20px; margin-bottom:0; }
+.ab-card-redirects input::placeholder { color:#bbb; opacity:1; }
 CSS;
     }
 

@@ -42,9 +42,8 @@ const PANELS = [
     { tab: 'seo',     cardClass: 'ab-card-identity',        file: 'panel-identity.png',      label: 'Site Identity & Schema',         expand: false },
     { tab: 'seo',     cardClass: 'ab-card-person',          file: 'panel-person.png',         label: 'Person Schema',                  expand: false },
     { tab: 'seo',     cardClass: 'ab-card-ai',              file: 'panel-ai.png',             label: 'AI Settings',                    expand: false },
-    // ab-card-auto-pipeline is hidden until an API key is configured — documented inline, no screenshot
-
     // AI Tools Tab — expand:true panels auto-load rows; trimRows hides rows >2; rcTrigger calls rcLoadTable
+    { tab: 'aitools', cardClass: 'ab-card-auto-pipeline',  file: 'panel-auto-pipeline.png',  label: 'Auto Pipeline',                  expand: false },
     { tab: 'aitools', cardClass: 'ab-card-update-posts',    file: 'panel-metadesc.png',       label: 'AI Meta Description Writer',     expand: true,  trimRows: true },
     { tab: 'aitools', cardClass: 'ab-card-alt',             file: 'panel-alttext.png',        label: 'AI ALT Text Generator',          expand: true,  trimRows: true },
     { tab: 'aitools', cardClass: 'ab-card-summary',         file: 'panel-summary.png',        label: 'AI Summary Box',                 expand: true,  trimRows: true },
@@ -55,6 +54,7 @@ const PANELS = [
     { tab: 'sitemap', cardClass: 'ab-card-sitemap-settings',file: 'panel-sitemap.png',        label: 'XML Sitemap Settings',           expand: false },
     { tab: 'sitemap', cardClass: 'ab-card-robots',          file: 'panel-robots.png',         label: 'Robots.txt Editor',              expand: false },
     { tab: 'sitemap', cardClass: 'ab-card-llms',            file: 'panel-llms.png',           label: 'llms.txt',                       expand: false },
+    { tab: 'sitemap', cardClass: 'ab-card-redirects',      file: 'panel-redirects.png',       label: 'Automatic Redirects',            expand: false },
     // Performance Tab
     // ab-card-https is hidden until an API key is configured — documented inline, no screenshot
 
@@ -84,7 +84,10 @@ const DOCS = {
 <li><strong>Home title</strong> — The specific SEO title for your homepage. Your homepage is usually your most important page for brand searches — write a title that includes your name or brand and your main topic area, e.g. <em>"Andrew Baker — Cloud Architecture &amp; Technology Leadership"</em>.</li>
 <li><strong>Home description</strong> — The meta description for your homepage. This is the sentence or two that appears under your homepage link in Google Search results. It should explain who you are and what value your site provides to a first-time visitor.</li>
 <li><strong>Default OG image URL</strong> — The fallback image shown when any of your pages are shared on Facebook, LinkedIn, WhatsApp, or Slack and that page has no featured image of its own. Use a branded image at 1200 × 630 pixels. A consistent, professional-looking default image makes every shared link from your site look intentional rather than blank.</li>
-</ul>`,
+<li><strong>Target audience</strong> — Who reads your site, e.g. <em>"software engineers, CTOs, freelance developers"</em> or <em>"first-time homebuyers in South Africa"</em>. This is <strong>one of the highest-impact settings in the entire plugin</strong>. Every AI request — meta descriptions, ALT text, summaries — is sent with this as part of the site context. The AI uses it to calibrate vocabulary, assumed knowledge level, and what makes a description compelling for <em>your</em> specific readers. A description written for CTOs reads very differently from one for junior developers or first-time buyers. Fill this in before running any bulk AI generation — the difference in output quality is immediately noticeable.</li>
+<li><strong>Writing tone</strong> — The voice and style of your content, e.g. <em>"direct and technical"</em>, <em>"warm and encouraging"</em>, or <em>"authoritative and concise"</em>. Combined with target audience, this gives the AI the brand context it needs to write copy that sounds like <em>you</em> rather than generic SEO filler. Without it, the AI defaults to a neutral style that may not match your site's personality at all.</li>
+</ul>
+<p style="background:#f0effe;border:2px solid #6366f1;border-radius:8px;padding:14px 18px;margin-top:20px;color:#1e1b4b"><strong>✨ Fill in Target audience and Writing tone before generating anything.</strong> These two fields are injected into every single AI request as site context. They are the single biggest quality lever available without touching the system prompt — and they cost nothing to set. Leaving them blank means the AI writes for a generic, imaginary reader rather than yours.</p>`,
 
 'ab-card-person': `
 <p>Have you ever noticed how some people have a "Knowledge Panel" on Google — the box on the right side of search results that shows their photo, title, and links to their social profiles? That's powered by Person structured data. Even if you never reach Knowledge Panel status, telling Google who you are helps it connect your articles to your identity, which strengthens your E-E-A-T signals (Experience, Expertise, Authoritativeness, Trustworthiness) — one of Google's key quality criteria for ranking content, especially in technical and professional subject areas.</p>
@@ -111,7 +114,9 @@ const DOCS = {
 <li><strong>Model</strong> — The AI model to use for generation. The plugin provides a dropdown of current, stable models for each provider. If you want to use a specific model not in the list, choose "Custom model ID" and type the model identifier. For Anthropic: <code>claude-sonnet-4-6</code> is the recommended default — use <code>claude-haiku-4-5-20251001</code> if you have a very large site and want faster, cheaper processing, or <code>claude-opus-4-6</code> for the highest quality output. For Gemini: <code>gemini-2.0-flash</code> is the stable recommended choice.</li>
 <li><strong>Meta description character range (min / max)</strong> — Google shows meta descriptions of up to approximately 155–160 characters before truncating them with "…". The plugin defaults to 140–155 characters, which reliably fits within Google's display limit. If your descriptions are being cut off in search results, lower the max. If they look too short, raise the min.</li>
 <li><strong>ALT text excerpt length</strong> — When generating image ALT text, the AI receives a short excerpt of the surrounding post content to understand what the image is illustrating. The default of 600 characters gives the AI enough context without wasting API tokens. Increase this for posts with images that are only explained later in the article.</li>
+<li><strong>System prompt</strong> — The instructions sent to the AI for every meta description request. The default prompt is carefully crafted to produce high-quality SEO copy — you don't need to change it for most sites. Importantly, the plugin <em>automatically appends your site context</em> — site name, author, description, target audience, and writing tone from the Site Identity panel — after your prompt on every request. You never need to re-state those details here. If you customise the prompt, click <strong>Reset to default</strong> to restore the original if you want to start over.</li>
 </ul>
+<p><strong>The right way to customise AI output quality:</strong> The most effective customisation is to fill in <strong>Target audience</strong> and <strong>Writing tone</strong> in the <strong>Site Identity</strong> panel — not to rewrite the system prompt. Those two fields are injected into every AI request automatically, and they produce an immediate, visible improvement in how well the generated copy matches your brand and readers. The system prompt is an advanced option for structural requirements only — writing in a language other than English, enforcing specific formatting rules, or other niche cases.</p>
 <p>Always click <strong>Test Key</strong> after adding your API key and before running any bulk operations. This makes a minimal API call to confirm the key is valid, the provider account is active, and the selected model is available.</p>`,
 
 'ab-card-auto-pipeline': `
@@ -277,6 +282,17 @@ const DOCS = {
 <li><strong>Enable /llms.txt</strong> — Activates the endpoint. Once enabled, visit <code>yoursite.com/llms.txt</code> to see exactly what AI crawlers will read. The file is generated dynamically from your live post data and AI-generated meta descriptions — which is another reason to run Generate Missing in the Meta Description Writer first. Posts with no meta description are listed without a summary, which gives AI systems less to work with.</li>
 </ul>
 <p>Use the <strong>Load Preview</strong> button to see a live preview of your llms.txt in your admin area before sharing it or submitting it to AI search indices. The <a href="https://llmstxt.org/" target="_blank" rel="noopener">llms.txt specification</a> is an open standard — you can read more about it and why it matters at llmstxt.org.</p>`,
+
+'ab-card-redirects': `
+<p>Every time you rename a post slug — something as simple as changing <code>/my-post</code> to <code>/my-better-post</code> — the old URL becomes a dead link. Any visitor who bookmarked it, any backlink pointing to it, any Google result still showing the old URL: they all land on a 404. The <strong>Automatic Redirects</strong> panel prevents this silently and automatically.</p>
+<p>When you save a post with a changed slug, the plugin records the old path and creates a permanent 301 redirect from it to the new URL. No manual step is required. The next time any visitor or crawler follows the old URL, they are instantly forwarded to the correct page. For Google, a 301 transfers all ranking signals — backlinks, PageRank, indexed content — from the old URL to the new one, so you don't lose any SEO value from the rename.</p>
+<ul>
+<li><strong>Enable automatic redirects</strong> — Master switch. When enabled, slug renames are captured automatically on every post save. Disable only if you have a separate redirects plugin and want to avoid conflicts.</li>
+<li><strong>Redirect table</strong> — Shows every stored redirect with its source path, destination URL, HTTP status code, hit count, and the date it was last followed. Use this to audit which old URLs are still receiving traffic and spot any redirect chains.</li>
+<li><strong>Add Manual Redirect</strong> — Add a redirect for any path, not just renamed posts. Useful for legacy URLs from a previous CMS, old image paths, or any URL you want to permanently forward to a new location. The "from" field must be a path starting with <code>/</code>.</li>
+<li><strong>Hit counter</strong> — Each time a visitor or crawler follows a redirect, the counter increments. A redirect with zero hits for several months is likely safe to delete. A redirect with active hits should be kept.</li>
+<li><strong>Delete</strong> — Removes the redirect entry. The old URL will return a 404 again. Only delete redirects you are confident are no longer needed.</li>
+</ul>`,
 
 'ab-card-https': `
 <p>When a site moves from HTTP to HTTPS, the server-side redirect ensures visitors always land on the secure version. But the database is full of old hardcoded <code>http://</code> links — in image URLs embedded in post content, in internal links written years ago, in theme option values. These old HTTP references cause "mixed content" browser warnings, where the browser detects that a secure page is loading resources over an insecure connection and blocks or flags them. Mixed content warnings can also suppress the padlock icon in the browser's address bar — which erodes visitor trust.</p>
@@ -557,7 +573,7 @@ ${img(panel.file, panel.label)}
     const TAB_TITLES = {
         seo:     '📊 SEO Settings',
         aitools: '✨ AI Tools',
-        sitemap: '🗺 Sitemap &amp; Robots',
+        sitemap: '🗺 Sitemap, Robots &amp; Redirects',
         perf:    '⚡ Performance',
         catfix:  '🏷 Categories',
         batch:   '🔄 Scheduled Batch',
@@ -629,6 +645,9 @@ ${img(panel.file, panel.label)}
 /* Gated panel note */
 .cs-gated-note { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; font-size: 0.92em; color: #92400e; margin-top: 16px; }
 
+/* Explain-button tip */
+.cs-tip-box { background: #f0f9ff; border: 1px solid #bae6fd; border-left: 4px solid #0284c7; border-radius: 8px; padding: 16px 20px; margin: 24px 0; font-size: 0.97em; color: #0c4a6e; }
+
 /* Section dividers */
 .cs-divider { border: none; border-top: 1px solid #e2e8f0; margin: 40px 0; }
 
@@ -657,11 +676,11 @@ ${img(panel.file, panel.label)}
     <li><a href="#ab-card-identity">Site Identity &amp; Schema</a></li>
     <li><a href="#ab-card-person">Person Schema</a></li>
     <li><a href="#ab-card-ai">AI Settings</a></li>
-    <li><a href="#ab-card-auto-pipeline">Auto Pipeline</a></li>
   </ol>
 </li>
 <li><a href="#aitools">✨ AI Tools</a>
   <ol>
+    <li><a href="#ab-card-auto-pipeline">Auto Pipeline</a></li>
     <li><a href="#ab-card-update-posts">AI Meta Description Writer</a></li>
     <li><a href="#ab-card-alt">AI ALT Text Generator</a></li>
     <li><a href="#ab-card-summary">AI Summary Box</a></li>
@@ -669,12 +688,13 @@ ${img(panel.file, panel.label)}
     <li><a href="#ab-card-rc-table">Related Articles — Management</a></li>
   </ol>
 </li>
-<li><a href="#sitemap">🗺 Sitemap &amp; Robots</a>
+<li><a href="#sitemap">🗺 Sitemap, Robots &amp; Redirects</a>
   <ol>
     <li><a href="#ab-card-features">SEO Features</a></li>
     <li><a href="#ab-card-sitemap-settings">XML Sitemap Settings</a></li>
     <li><a href="#ab-card-robots">Robots.txt Editor</a></li>
     <li><a href="#ab-card-llms">llms.txt</a></li>
+    <li><a href="#ab-card-redirects">Automatic Redirects</a></li>
   </ol>
 </li>
 <li><a href="#perf">⚡ Performance</a>
@@ -705,11 +725,16 @@ ${img(panel.file, panel.label)}
 <div class="cs-setup-title">✅ First-time setup checklist</div>
 <ol>
 <li>Go to the <strong>SEO Settings</strong> tab → <strong>Site Identity</strong> panel and fill in your Site name, Locale, and Default OG image.</li>
+<li>Still in Site Identity — fill in <strong>Target audience</strong> and <strong>Writing tone</strong>. These are injected into every AI request and have the biggest single impact on output quality.</li>
 <li>In the <strong>AI Settings</strong> panel, add your Anthropic Claude or Google Gemini API key and click <strong>Test Key</strong> to confirm it works. (<a href="https://console.anthropic.com/" target="_blank" rel="noopener">Get a Claude key</a> · <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Get a Gemini key</a>)</li>
 <li>In the <strong>SEO Features</strong> panel (Sitemap &amp; Robots tab), tick the features you want active and save.</li>
 <li>In the <strong>AI Tools</strong> tab, click <strong>Generate Missing</strong> in the Meta Description Writer to fill in all missing descriptions.</li>
 <li>Submit your sitemap URL to <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a>.</li>
 </ol>
+</div>
+
+<div class="cs-tip-box">
+<strong>💡 Explain buttons — inline help while you work.</strong> Every panel in the plugin settings has a <strong>?</strong> button in its header. Click it for a detailed pop-up explaining each field in that panel — what it does, whether it's recommended or optional, and exactly what to fill in. Use the Explain buttons when you're actively configuring a panel; use this page when you want the full context and the why behind each feature.
 </div>
 
 <hr class="cs-divider"/>
@@ -720,11 +745,7 @@ ${img(panel.file, panel.label)}
         for (const p of panels) {
             body += section(p);
             body += '\n<hr class="cs-divider"/>\n';
-            // Inject text-only sections for API-key-gated panels
-            if (p.cardClass === 'ab-card-ai') {
-                body += textSection('ab-card-auto-pipeline', 'Auto Pipeline', DOCS['ab-card-auto-pipeline']);
-                body += '\n<hr class="cs-divider"/>\n';
-            }
+            // Inject text-only section for the HTTPS fixer (hidden until API key configured)
             if (p.cardClass === 'ab-card-render') {
                 body += textSection('ab-card-https', 'HTTPS URL Fixer', DOCS['ab-card-https']);
                 body += '\n<hr class="cs-divider"/>\n';

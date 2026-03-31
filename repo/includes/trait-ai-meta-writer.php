@@ -41,14 +41,18 @@ trait CS_SEO_AI_Meta_Writer {
         $job_title = trim((string) $this->opts['person_job_title']);
         $home_desc = trim((string) $this->opts['home_desc']);
         $def_desc  = trim((string) $this->opts['default_desc']);
+        $audience  = trim((string) ($this->opts['target_audience'] ?? ''));
+        $tone      = trim((string) ($this->opts['writing_tone'] ?? ''));
 
         if ($site_name) $site_context_parts[] = "Site name: {$site_name}";
         if ($person)    $site_context_parts[] = "Author: {$person}" . ($job_title ? ", {$job_title}" : '');
         $topic = $home_desc ?: $def_desc;
-        if ($topic) $site_context_parts[] = "Site description: {$topic}";
+        if ($topic)    $site_context_parts[] = "Site description: {$topic}";
+        if ($audience) $site_context_parts[] = "Target audience: {$audience}";
+        if ($tone)     $site_context_parts[] = "Writing tone: {$tone}";
 
         $site_context = $site_context_parts
-            ? "\n\nSITE CONTEXT:\n" . implode("\n", $site_context_parts)
+            ? "\n\nSITE CONTEXT (use this to match the site's voice, audience, and niche):\n" . implode("\n", $site_context_parts)
             : '';
 
         // ── Current title ─────────────────────────────────────────────────────
@@ -244,14 +248,18 @@ trait CS_SEO_AI_Meta_Writer {
         $job_title  = trim((string) $this->opts['person_job_title']);
         $home_desc  = trim((string) $this->opts['home_desc']);
         $def_desc   = trim((string) $this->opts['default_desc']);
+        $audience   = trim((string) ($this->opts['target_audience'] ?? ''));
+        $tone       = trim((string) ($this->opts['writing_tone'] ?? ''));
 
         if ($site_name)  $site_context_parts[] = "Site name: {$site_name}";
         if ($person)     $site_context_parts[] = "Author: {$person}" . ($job_title ? ", {$job_title}" : '');
         $topic = $home_desc ?: $def_desc;
         if ($topic)      $site_context_parts[] = "Site description: {$topic}";
+        if ($audience)   $site_context_parts[] = "Target audience: {$audience}";
+        if ($tone)       $site_context_parts[] = "Writing tone: {$tone}";
 
         $site_context = $site_context_parts
-            ? "\n\nSITE CONTEXT:\n" . implode("\n", $site_context_parts)
+            ? "\n\nSITE CONTEXT (use this to match the site's voice, audience, and niche):\n" . implode("\n", $site_context_parts)
             : '';
 
         if ($has_images) {
@@ -460,14 +468,18 @@ trait CS_SEO_AI_Meta_Writer {
         $job_title = trim((string) $this->opts['person_job_title']);
         $home_desc = trim((string) $this->opts['home_desc']);
         $def_desc  = trim((string) $this->opts['default_desc']);
+        $audience  = trim((string) ($this->opts['target_audience'] ?? ''));
+        $tone      = trim((string) ($this->opts['writing_tone'] ?? ''));
 
         if ($site_name) $site_context_parts[] = "Site name: {$site_name}";
         if ($person)    $site_context_parts[] = "Author: {$person}" . ($job_title ? ", {$job_title}" : '');
         $topic = $home_desc ?: $def_desc;
-        if ($topic) $site_context_parts[] = "Site description: {$topic}";
+        if ($topic)    $site_context_parts[] = "Site description: {$topic}";
+        if ($audience) $site_context_parts[] = "Target audience: {$audience}";
+        if ($tone)     $site_context_parts[] = "Writing tone: {$tone}";
 
         $site_context = $site_context_parts
-            ? "\n\nSITE CONTEXT:\n" . implode("\n", $site_context_parts)
+            ? "\n\nSITE CONTEXT (use this to match the site's voice, audience, and niche):\n" . implode("\n", $site_context_parts)
             : '';
 
         $system   = $prompt . $site_context
