@@ -605,16 +605,6 @@ trait CS_SEO_Admin {
                           transition:filter 0.15s,transform 0.15s">
                     <?php echo esc_html($batch_line); ?>
                 </a>
-                <a href="https://andrewbaker.ninja" target="_blank" rel="noopener"
-                   class="cs-widget-link"
-                   style="display:flex;align-items:center;justify-content:center;gap:8px;
-                          background:linear-gradient(135deg,#f953c6 0%,#b91d73 40%,#4f46e5 100%);
-                          color:#fff;font-weight:700;font-size:13px;padding:10px 16px;
-                          border-radius:8px;text-decoration:none;
-                          box-shadow:0 3px 10px rgba(249,83,198,0.4);
-                          transition:filter 0.15s,transform 0.15s">
-                    <span style="font-size:15px">🥷</span> Visit AndrewBaker.Ninja
-                </a>
                 <a href="<?php echo esc_url(admin_url('tools.php?page=cs-seo-optimizer')); ?>"
                    class="cs-widget-link"
                    style="display:flex;align-items:center;justify-content:center;gap:8px;
