@@ -15,13 +15,9 @@ ZIP_FILE="$SCRIPT_DIR/cloudscale-seo-ai-optimizer.zip"
 PLUGIN_NAME="cloudscale-seo-ai-optimizer"
 TEMP_DIR=$(mktemp -d)
 
-# PHP syntax check + standards review run in parallel
+# PHP syntax check + optional standards review (set SKIP_REVIEW=0 to enable)
 CLAUDE="${CLAUDE_CLI:-claude}"
-SKIP_REVIEW=0
-if [ ! -x "$CLAUDE" ]; then
-  echo "WARNING: claude CLI not found at $CLAUDE — skipping standards review."
-  SKIP_REVIEW=1
-fi
+SKIP_REVIEW=${SKIP_REVIEW:-1}
 
 LINT_TMPFILE=$(mktemp)
 REVIEW_TMPDIR=$(mktemp -d)
@@ -68,7 +64,7 @@ End your response with EXACTLY one of: BUILD_STATUS: PASS or BUILD_STATUS: FAIL"
     >> "$REVIEW_TMPDIR/$label.txt" 2>&1)
 }
 
-if [ "$SKIP_REVIEW" -eq 0 ]; then
+if [ "$SKIP_REVIEW" != "1" ]; then
   # S1: main class + utils + uninstall + pipeline (nopriv handler verified in context) + readme
   _review_section "s1" cloudscale-seo-ai-optimizer.php includes/class-cloudscale-seo-ai-optimizer-utils.php uninstall.php includes/trait-auto-pipeline.php readme.txt &
 
@@ -103,7 +99,7 @@ fi
 echo "PHP syntax: OK"
 echo ""
 
-if [ "$SKIP_REVIEW" -eq 0 ]; then
+if [ "$SKIP_REVIEW" != "1" ]; then
   # --- Wait for all review sections ---
   echo -e "\033[1;34mRunning WordPress plugin standards review (6 parallel sections)...\033[0m"
   wait

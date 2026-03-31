@@ -3,6 +3,24 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.19.101] - 2026-03-31
+### Added
+- **Target audience & Writing tone fields** — two new Site Identity fields injected into every AI request as site context; have the largest single impact on meta description quality without touching the system prompt (`trait-options.php`, `trait-ai-meta-writer.php` ×3, `trait-settings-page.php`)
+- **AI quality callout in Site Identity** — prominent indigo banner above the new fields explaining their impact and encouraging users to fill them in before running generation (`trait-settings-page.php`)
+- **Explain button updates** — identity explain_btn now documents Target audience and Writing tone as ✅ Recommended; AI settings explain_btn updated to direct users to Site Identity fields rather than the system prompt for quality improvements (`trait-settings-page.php`)
+### Improved
+- **Default AI system prompt** — rewritten to tell the AI to use site context for niche/voice matching; added tone-matching rule; added explicit example of how niche affects output (`trait-options.php`)
+- **Site context header** — changed from passive `SITE CONTEXT:` to active `SITE CONTEXT (use this to match the site's voice, audience, and niche):` in all three AI generation call sites (`trait-ai-meta-writer.php`)
+- **Help documentation** — full refresh: Auto Pipeline and Automatic Redirects now have screenshots; Target audience and Writing tone documented with importance callout; system prompt section added to AI Settings; Explain buttons tip added to setup checklist; TOC and tab heading updated to include Redirects (`tests/generate-help-docs.js`)
+
+## [4.19.100] - 2026-03-31
+### Fixed
+- **Right-side padding too tight** — added `padding-right: 8px` to `.ab-pane` so the card box-shadow has room within WordPress's `.wrap` margin (`trait-settings-assets.php`)
+
+## [4.19.99] - 2026-03-31
+### Added
+- **Target audience & Writing tone fields** — initial implementation (superseded by 4.19.101 which added the settings UI callout and Explain button updates)
+
 ## [4.19.93] - 2026-03-30
 ### Fixed
 - **PCP `NonceVerification.Missing`** — replaced all `$this->ajax_check()` and `$this->catfix_nonce_check()` helper delegations with direct `check_ajax_referer( 'cs_seo_nonce', 'nonce' )` calls in the same handler scope across 13 traits (~40 call sites); PHPCS and WordPress.org Plugin Check require the direct call in scope and cannot trace through helper wrappers (`trait-ai-alt-text.php`, `trait-ai-summary.php`, `trait-ai-scoring.php`, `trait-ai-meta-writer.php`, `trait-related-articles.php`, `trait-category-fixer.php`, `trait-https-fixer.php`, `trait-sitemap.php`, `trait-seo-health.php`, `trait-batch-scheduler.php`, `trait-auto-pipeline.php`, `trait-llms-txt.php`)

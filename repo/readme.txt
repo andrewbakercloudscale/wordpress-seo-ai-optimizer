@@ -3,7 +3,7 @@ Contributors: andrewjbaker
 Tags: seo, ai, meta description, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.19.93
+Stable tag: 4.19.101
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -274,7 +274,20 @@ The plugin scores all posts against each other using shared categories, tags, an
 
 == Changelog ==
 
-= 4.19.93 =
+= 4.19.101 =
+* Add: Target audience and Writing tone fields in Site Identity — injected into every AI request; largest quality improvement available without editing the system prompt
+* Add: Prominent callout banner above new fields nudging users to fill them in before generating
+* Improve: Default AI system prompt rewritten to actively use site context for niche and voice matching
+* Improve: Site context header in all AI call sites updated from passive label to active instruction
+* Improve: Help documentation — Auto Pipeline and Redirects now have screenshots; new fields documented; Explain buttons tip added
+
+= 4.19.101 =
+* Fix: Right-side padding too tight — added padding-right to .ab-pane so card shadow is not clipped
+
+= 4.19.99 =
+* Add: Initial implementation of Target audience and Writing tone site context fields
+
+= 4.19.98 =
 * Fix: PCP critical — raw script tag in redirects admin moved to wp_add_inline_script to comply with WordPress.org standards
 * Fix: delete-redirect and clear-all-redirects fetch calls now have catch handlers for network errors
 * Fix: PCP NonceVerification.Missing — all AJAX handlers now call check_ajax_referer() directly in scope (was delegated via helper wrapper)

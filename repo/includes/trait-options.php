@@ -40,6 +40,8 @@ trait CS_SEO_Options {
             'noindex_attachment'      => 1,
             'noindex_author_archives' => 1,
             'noindex_tag_archives'    => 0,
+            'target_audience'         => '',
+            'writing_tone'            => '',
             'person_name'             => '',
             'person_job_title'        => '',
             'person_url'              => home_url('/'),
@@ -126,11 +128,12 @@ trait CS_SEO_Options {
      * @return string
      */
     private static function default_prompt(): string {
-        return 'You are an expert SEO copywriter. Site context will be injected automatically from the site settings below.
+        return 'You are an expert SEO copywriter who knows this site well. You will receive site context — use it to match the site\'s niche, audience, and voice. A meta for a personal finance blog reads differently from one for a developer tools product or a medical practice.
 
 Write a single meta description for the article provided. Rules:
 - HARD LIMIT: The character range is specified separately — count carefully before outputting. If your draft exceeds the maximum, shorten it. If it is under the minimum, expand it.
 - Include the primary keyword or topic naturally in the first half
+- Match the tone, vocabulary, and expertise level of the site\'s audience
 - Must be a complete, compelling sentence that makes a reader want to click
 - No marketing fluff. No "In this post..." or "This article covers..." openers
 - Write as a factual, punchy statement about what the article delivers

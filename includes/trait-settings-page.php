@@ -94,6 +94,8 @@ trait CS_SEO_Settings_Page {
                         ['rec'=>'✅ Recommended','name'=>'Home title','desc'=>'The SEO title for your homepage specifically. This is what Google shows as the blue link for your homepage in search results. Make it descriptive and keyword-rich — e.g. "Andrew Baker – CIO, Cloud Architect & Technology Leader".'],
                         ['rec'=>'✅ Recommended','name'=>'Home description','desc'=>'The meta description for your homepage. Shown as the snippet under your homepage title in Google. Aim for 140–155 characters. Write for humans — this is your elevator pitch to someone seeing your site for the first time.'],
                         ['rec'=>'✅ Recommended','name'=>'Default OG image URL','desc'=>'The fallback image used when a post is shared on social media and has no featured image. Should be 1200×630px. Use a branded image with your name/logo — this appears as the preview card on LinkedIn, Twitter/X, and WhatsApp.'],
+                        ['rec'=>'✅ Recommended','name'=>'Target audience','desc'=>'Who reads your site — e.g. "software engineers, CTOs" or "first-time homebuyers". This is injected into every AI request as site context and has the biggest single impact on output quality. The AI uses it to calibrate vocabulary, assumed knowledge level, and what makes a description compelling for your specific readers. Fill this in before running any AI generation.'],
+                        ['rec'=>'✅ Recommended','name'=>'Writing tone','desc'=>'The voice and style of your content — e.g. "direct and technical", "warm and encouraging", or "authoritative and concise". Combined with target audience, this tells the AI how to write for your brand rather than producing generic SEO copy. Fill in both this and Target audience before generating anything.'],
                         ['rec'=>'⬜ Optional','name'=>'Locale','desc'=>'BCP 47 language tag used in OpenGraph metadata. "en-US" is fine for most English sites. Use "en-ZA" if you want to signal a South African audience to Facebook/LinkedIn. Has minimal impact on Google rankings.'],
                         ['rec'=>'⬜ Optional','name'=>'Twitter handle','desc'=>'Your Twitter/X username including the @ symbol. Added to Twitter Card metadata so when your posts are shared on X, your account gets attributed as the author. Only matters if you actively use Twitter/X.'],
                     ]); ?>
@@ -130,6 +132,26 @@ trait CS_SEO_Settings_Page {
                             <textarea class="large-text" rows="3" name="<?php echo esc_attr(self::OPT); ?>[home_desc]" placeholder="A blog about technology, software development, and cloud architecture. Written for engineers and technical leaders."><?php echo esc_textarea($o['home_desc']); ?></textarea>
                             <p class="description">Meta description for your homepage. Aim for 140–155 characters.</p>
                         </td></tr>
+                    <tr>
+                        <td colspan="4" style="padding:0">
+                            <div style="display:flex;gap:14px;align-items:flex-start;background:#f0effe;border:2px solid #6366f1;border-radius:6px;padding:14px 18px;margin:4px 0 8px">
+                                <div style="font-size:22px;flex-shrink:0">✨</div>
+                                <div style="flex:1;font-size:13px;line-height:1.6;color:#1e1b4b">
+                                    <strong>Fill these in to unlock significantly better AI meta descriptions.</strong><br>
+                                    Without them the AI writes generic copy. With them it writes for <em>your</em> readers in <em>your</em> voice — the single biggest quality lever available without touching the system prompt.<br>
+                                    <span style="display:inline-block;margin-top:6px;background:#e0e7ff;border-radius:4px;padding:4px 10px;font-size:12px;font-family:monospace;color:#3730a3">Target audience: WordPress developers, agency owners &nbsp;·&nbsp; Writing tone: direct and technical</span>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="cs_seo_target_audience">Target audience:</label></th>
+                        <td><input id="cs_seo_target_audience" class="regular-text" style="width:100%" name="<?php echo esc_attr(self::OPT); ?>[target_audience]" value="<?php echo esc_attr((string)($o['target_audience'] ?? '')); ?>" placeholder="e.g. software engineers, CTOs, freelance developers">
+                        <p class="description">Who reads this site — the AI uses this to match vocabulary and assumed knowledge level.</p></td>
+                        <th><label for="cs_seo_writing_tone">Writing tone:</label></th>
+                        <td><input id="cs_seo_writing_tone" class="regular-text" style="width:100%" name="<?php echo esc_attr(self::OPT); ?>[writing_tone]" value="<?php echo esc_attr((string)($o['writing_tone'] ?? '')); ?>" placeholder="e.g. direct and technical, casual and friendly, authoritative">
+                        <p class="description">The voice of your content — the AI uses this to match your brand's tone.</p></td>
+                    </tr>
                 </table>
                 <div style="margin-top:16px;padding:0 20px;"><?php submit_button( __( 'Save SEO Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
                 </div>
@@ -197,7 +219,7 @@ trait CS_SEO_Settings_Page {
                         ['rec'=>'ℹ️ Info','name'=>'Model','desc'=>'Which model to use for generation. "Automatic" (the default) always uses the current recommended model for your provider — it updates automatically when a newer recommended model is available. If you need a specific version for cost or quality reasons, pin it manually. For Anthropic: Haiku is fast and cheap (ideal for bulk), Sonnet is higher quality. For Gemini: Flash models are fast and affordable, Pro models offer higher quality and longer context.'],
                         ['rec'=>'⬜ Optional','name'=>'Overwrite existing','desc'=>'When enabled, the AI will regenerate descriptions for posts that already have one. Leave OFF to only fill in missing descriptions — this protects any manually written descriptions you\'ve already crafted.'],
                         ['rec'=>'⬜ Optional','name'=>'Min / Max characters','desc'=>'Target character range for generated descriptions. Google typically shows 140–160 characters in search results before truncating. Descriptions shorter than 120 characters look thin; longer than 165 get cut off with an ellipsis.'],
-                        ['rec'=>'⬜ Optional','name'=>'Custom prompt','desc'=>'Advanced: override the default instructions sent to the AI. The default prompt is tuned for technical blog posts. Only change this if you want a different tone, language, or specific instructions about what to include or exclude in descriptions.'],
+                        ['rec'=>'⬜ Optional','name'=>'Custom prompt','desc'=>'Advanced: override the default AI instructions. The best way to improve output quality is to fill in Target audience and Writing tone in the Site Identity panel — those are injected automatically into every request. Only edit the prompt here if you need structural changes: writing in a language other than English, enforcing a specific format, or other niche requirements. Use Reset to default to restore the original prompt.'],
                     ]); ?>
                     </span>
                 </div>
@@ -387,7 +409,7 @@ trait CS_SEO_Settings_Page {
                             </td>
                         </tr>
                     </table>
-                    <div style="margin-top:16px;"><?php submit_button( __( 'Save Auto Pipeline Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
+                    <div style="margin-top:16px;padding:0 20px;"><?php submit_button( __( 'Save Auto Pipeline Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
                 </div>
                 </div><!-- /ab-card-auto-pipeline -->
             </form>
@@ -738,7 +760,7 @@ trait CS_SEO_Settings_Page {
                             </tr>
                             <?php endif; ?>
                         </table>
-                        <div style="margin-top:16px;"><?php submit_button( __( 'Save SEO Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
+                        <div style="margin-top:16px;padding:0 20px;"><?php submit_button( __( 'Save SEO Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
                     </div>
                 </div><!-- /ab-card-rc-settings -->
 
@@ -874,7 +896,7 @@ trait CS_SEO_Settings_Page {
                     <label class="ab-rec"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[noindex_author_archives]" value="1" <?php checked((int)($o['noindex_author_archives'] ?? 0), 1); ?>> noindex author archives</label>
                     <label class="ab-rec"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[noindex_tag_archives]" value="1" <?php checked((int)($o['noindex_tag_archives'] ?? 0), 1); ?>> noindex tag archives</label>
                 </div>
-                <div style="margin-top:16px;"><?php submit_button( __( 'Save Features &amp; Robots Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
+                <div style="margin-top:16px;padding:0 20px;"><?php submit_button( __( 'Save Features &amp; Robots Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
                 </div>
                 </div><!-- /ab-card-features -->
 
@@ -940,7 +962,7 @@ trait CS_SEO_Settings_Page {
                         </td>
                     </tr>
                 </table>
-                <div style="margin-top:16px;"><?php submit_button( __( 'Save Sitemap Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
+                <div style="margin-top:16px;padding:0 20px;"><?php submit_button( __( 'Save Sitemap Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
                 </div>
                 </div><!-- /ab-card-sitemap-settings -->
 
@@ -1072,7 +1094,7 @@ trait CS_SEO_Settings_Page {
                         </td>
                     </tr>
                 </table>
-                <div style="margin-top:16px;"><?php submit_button( __( 'Save Robots Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
+                <div style="margin-top:16px;padding:0 20px;"><?php submit_button( __( 'Save Robots Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
                 </div>
                 </div><!-- /ab-card-robots -->
 
