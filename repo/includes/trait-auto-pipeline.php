@@ -169,10 +169,10 @@ trait CS_SEO_Auto_Pipeline {
      * @return void
      */
     public function ajax_pipeline_run(): void {
-        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-        $post_id = (int) ( $_POST['post_id'] ?? 0 );
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- HMAC token authentication used instead of WP nonce; verified via hash_equals() below
+        $post_id = (int) wp_unslash( $_POST['post_id'] ?? 0 );
         $token   = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
-        // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         if ( ! $post_id || ! $token ) wp_die( '', '', [ 'response' => 403 ] );
 
@@ -207,6 +207,7 @@ trait CS_SEO_Auto_Pipeline {
             'internal_links'   => [ $this, 'auto_step_internal_links' ],
             'ai_summary'       => [ $this, 'auto_step_ai_summary' ],
             'related_articles' => [ $this, 'auto_step_related_articles' ],
+            'readability'      => [ $this, 'auto_step_readability' ],
         ];
 
         foreach ( $steps as $step_name => $callable ) {
@@ -470,7 +471,10 @@ trait CS_SEO_Auto_Pipeline {
      * @return void
      */
     private function auto_step_ai_summary( int $post_id ): void {
-        if ( trim( (string) get_post_meta( $post_id, self::META_SUM_WHAT, true ) ) ) return;
+        // Only skip if all three fields exist — matches prepend_summary_box() render logic.
+        if ( trim( (string) get_post_meta( $post_id, self::META_SUM_WHAT, true ) )
+          && trim( (string) get_post_meta( $post_id, self::META_SUM_WHY,  true ) )
+          && trim( (string) get_post_meta( $post_id, self::META_SUM_KEY,  true ) ) ) return;
 
         // Skip if content is too short to meaningfully summarise.
         $content = $this->get_clean_content( $post_id );
@@ -686,9 +690,7 @@ trait CS_SEO_Auto_Pipeline {
         check_ajax_referer( 'cs_seo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
-        // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-        $post_id = (int) ( $_POST['post_id'] ?? 0 );
-        // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+        $post_id = (int) wp_unslash( $_POST['post_id'] ?? 0 );
 
         if ( ! $post_id || get_post_status( $post_id ) !== 'publish' ) {
             wp_send_json_error( 'Invalid post.' );

@@ -41,3 +41,4 @@ MANUAL-deploy-svn.sh
 # Help docs generator
 generate-help-docs.sh
 docs/screenshots/
+.cf-deploy-token.sh

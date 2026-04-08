@@ -7,7 +7,7 @@
  * serves those redirects on any 404 that matches a stored path.
  *
  * @package CloudScale_SEO_AI_Optimizer
- * @since   4.19.125
+ * @since   4.19.126
  */
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
@@ -20,7 +20,7 @@ trait CS_SEO_Redirects {
     /**
      * Registers all redirect hooks. Called from __construct.
      *
-     * @since 4.19.125
+     * @since 4.19.126
      * @return void
      */
     private function init_redirects(): void {
@@ -42,7 +42,7 @@ trait CS_SEO_Redirects {
      * Captures the current permalink before a post is saved so we can compare
      * after the update and record a redirect if the slug changed.
      *
-     * @since 4.19.125
+     * @since 4.19.126
      * @param int   $post_id Post ID being updated.
      * @param array $data    New post data (unused here).
      * @return void
@@ -63,7 +63,7 @@ trait CS_SEO_Redirects {
      * After a post is saved, if the slug changed, records a 301 redirect from
      * the old URL path to the new permalink.
      *
-     * @since 4.19.125
+     * @since 4.19.126
      * @param int       $post_id     Post ID.
      * @param \WP_Post  $post_after  Post object after the update.
      * @param \WP_Post  $post_before Post object before the update.
@@ -90,7 +90,7 @@ trait CS_SEO_Redirects {
     /**
      * Persists a redirect mapping to the wp_options store.
      *
-     * @since 4.19.125
+     * @since 4.19.126
      * @param string $from_url Full old URL.
      * @param string $to_url   Full new URL.
      * @param int    $post_id  Associated post ID.
@@ -128,7 +128,7 @@ trait CS_SEO_Redirects {
      * On a WordPress 404, checks stored redirects and issues a 301 if matched.
      * Records the hit count and last-hit timestamp before redirecting.
      *
-     * @since 4.19.125
+     * @since 4.19.126
      * @return void
      */
     public function redirect_serve(): void {
@@ -166,7 +166,7 @@ trait CS_SEO_Redirects {
     /**
      * AJAX: deletes the redirect matching the submitted 'from' path.
      *
-     * @since 4.19.125
+     * @since 4.19.126
      * @return void
      */
     public function ajax_delete_redirect(): void {
@@ -185,7 +185,7 @@ trait CS_SEO_Redirects {
     /**
      * AJAX: adds or updates a manually entered redirect.
      *
-     * @since 4.19.125
+     * @since 4.19.126
      * @return void
      */
     public function ajax_add_redirect(): void {
@@ -230,7 +230,7 @@ trait CS_SEO_Redirects {
     /**
      * AJAX: deletes all stored redirects.
      *
-     * @since 4.19.125
+     * @since 4.19.126
      * @return void
      */
     public function ajax_clear_redirects(): void {
@@ -248,7 +248,7 @@ trait CS_SEO_Redirects {
     /**
      * Renders the Redirects settings tab content.
      *
-     * @since 4.19.125
+     * @since 4.19.126
      * @return void
      */
     private function render_redirects_tab(): void {

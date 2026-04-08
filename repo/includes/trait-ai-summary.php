@@ -32,20 +32,31 @@ trait CS_SEO_AI_Summary {
 
         if (!$key) throw new \RuntimeException($provider === 'gemini' ? 'No Gemini API key configured' : 'No Anthropic API key configured'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 
-        $content = CloudScale_SEO_AI_Optimizer_Utils::text_from_html((string) $post->post_content);
+        $content = Cs_Seo_Utils::text_from_html((string) $post->post_content);
         $content = mb_substr($content, 0, 6000);
 
-        $system = 'You are a technical writing assistant. Given an article title and content, write a concise 3-part summary.' . "\n\n"
-            . 'Rules:' . "\n"
-            . '- "what": 1-2 sentences. What is this article about? Be specific and concrete.' . "\n"
-            . '- "why": 1-2 sentences. Why does this matter to the reader? Focus on practical impact.' . "\n"
-            . '- "takeaway": 1 sentence. The single most important thing to remember.' . "\n"
-            . '- Plain language. No jargon introductions like "In this article" or "This post".' . "\n"
-            . '- Do not start any field with the article title.' . "\n"
-            . '- Respond ONLY with valid JSON in exactly this format, no other text:' . "\n"
+        $audience = trim( (string) ( $this->opts['audience'] ?? '' ) );
+        $tone     = trim( (string) ( $this->opts['writing_tone'] ?? '' ) );
+        $context  = '';
+        if ( $audience ) $context .= "\nTarget audience: {$audience}";
+        if ( $tone )     $context .= "\nWriting tone: {$tone}";
+
+        $system = 'You are an SEO content strategist. Given an article title and content, write a 3-part SEO-optimised summary.' . "\n\n"
+            . 'Critical SEO rules for every field:' . "\n"
+            . '- Front-load the primary keyword — place it in the first 5 words of each field where natural.' . "\n"
+            . '- Include 2–3 secondary keywords naturally across all three fields combined.' . "\n"
+            . '- Write for search intent: answer "what is X", "how to X", or "best X" directly.' . "\n"
+            . '- Use short, scannable sentences. Active voice. Power words (proven, essential, complete, step-by-step).' . "\n"
+            . '- No filler phrases: "In this article", "This post", "I will show you".' . "\n"
+            . '- Do not start any field with the article title.' . "\n\n"
+            . 'Field rules:' . "\n"
+            . '- "what": 1–2 sentences. State exactly what the reader will learn, with primary keyword early. Be specific.' . "\n"
+            . '- "why": 1–2 sentences. Explain the practical, real-world benefit. Include a secondary keyword.' . "\n"
+            . '- "takeaway": 1 sentence max. The single most actionable insight — make it keyword-rich and memorable.' . "\n\n"
+            . 'Respond ONLY with valid JSON in exactly this format, no other text:' . "\n"
             . '{"what": "...", "why": "...", "takeaway": "..."}';
 
-        $user_msg = "Article title: \"{$post->post_title}\"\n\nArticle content:\n{$content}";
+        $user_msg = "Article title: \"{$post->post_title}\"\n{$context}\n\nArticle content:\n{$content}";
 
         $raw = $this->dispatch_ai($provider, $key, $model, $system, $user_msg, null, 400);
         $raw = trim($raw);
@@ -74,17 +85,20 @@ trait CS_SEO_AI_Summary {
         check_ajax_referer( 'cs_seo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
         $post_id = isset($_POST['post_id']) ? absint(wp_unslash($_POST['post_id'])) : 0;
         if (!$post_id) wp_send_json_error('Missing post_id');
 
         $force = !empty($_POST['force']);
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
-        // Skip if already generated and not forced.
+        // Skip if already generated (all three fields present) and not forced.
         if (!$force) {
-            $existing_what = get_post_meta($post_id, self::META_SUM_WHAT, true);
-            if ($existing_what) {
+            if (
+                !empty(get_post_meta($post_id, self::META_SUM_WHAT, true)) &&
+                !empty(get_post_meta($post_id, self::META_SUM_WHY,  true)) &&
+                !empty(get_post_meta($post_id, self::META_SUM_KEY,  true))
+            ) {
                 wp_send_json_success(['post_id' => $post_id, 'skipped' => true]);
             }
         }
@@ -136,7 +150,10 @@ trait CS_SEO_AI_Summary {
         $posts = [];
         $has   = 0;
         foreach ($all_ids as $id) {
-            $has_sum = !empty(get_post_meta($id, self::META_SUM_WHAT, true));
+            // Require all three fields — matches prepend_summary_box() render logic.
+            $has_sum = !empty(get_post_meta($id, self::META_SUM_WHAT, true))
+                    && !empty(get_post_meta($id, self::META_SUM_WHY,  true))
+                    && !empty(get_post_meta($id, self::META_SUM_KEY,  true));
             if ($has_sum) $has++;
             $posts[] = [
                 'id'       => $id,
@@ -164,7 +181,7 @@ trait CS_SEO_AI_Summary {
         check_ajax_referer( 'cs_seo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked via ajax_check()
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
         $force = !empty($_POST['force']);
 
         $args = [

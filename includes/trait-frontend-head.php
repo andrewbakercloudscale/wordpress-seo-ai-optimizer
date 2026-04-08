@@ -219,9 +219,9 @@ trait CS_SEO_Frontend_Head {
             $post = get_post($pid);
             if ($post) {
                 if (!empty($post->post_excerpt)) {
-                    return $this->clip(CloudScale_SEO_AI_Optimizer_Utils::text_from_html((string) $post->post_excerpt), 160);
+                    return $this->clip(Cs_Seo_Utils::text_from_html((string) $post->post_excerpt), 160);
                 }
-                return $this->clip(CloudScale_SEO_AI_Optimizer_Utils::text_from_html((string) $post->post_content), 160);
+                return $this->clip(Cs_Seo_Utils::text_from_html((string) $post->post_content), 160);
             }
         }
         $d = trim((string) $this->opts['default_desc']);

@@ -159,7 +159,7 @@ ESC_VER=$(echo "$CURRENT_VER" | sed 's/\./\./g')
 echo "Version bump: $CURRENT_VER → $NEW_VER"
 while IFS= read -r vfile; do
   sed -i '' "s/$ESC_VER/$NEW_VER/g" "$vfile"
-done < <(grep -rl "$CURRENT_VER" "$REPO_DIR" --include="*.php" --include="*.js" --include="*.txt" 2>/dev/null | grep -v "\.git" | grep -v "/repo/" | grep -v ".svn-working-copy")
+done < <(grep -rl "$CURRENT_VER" "$REPO_DIR" --include="*.php" --include="*.js" --include="*.txt" 2>/dev/null | grep -v "\.git" | grep -v "/repo/" | grep -v ".svn-working-copy" | grep -v "/tests/" | grep -v "node_modules")
 # Sync readme.txt and main plugin PHP into repo/ so SVN trunk always has correct version.
 cp "$REPO_DIR/readme.txt" "$REPO_DIR/repo/readme.txt"
 sed -i '' "s/^ \* Version:.*/ * Version:     $NEW_VER/" "$REPO_DIR/repo/$PLUGIN_NAME.php"

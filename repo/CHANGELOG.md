@@ -3,6 +3,63 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.20.0] - 2026-04-08
+### Added
+- **Title Optimiser** — new "🎯 Title Optimiser" tab; AI scans all published posts and suggests SEO-optimised replacement titles; shows before/after SEO score (0–100) and identified primary keywords per post; supports single-post analyse, bulk "Analyse All" polling loop, selective apply, and "Apply All Suggested" batch; applying a title updates `post_title` + `post_name` (slug) and automatically creates a 301 redirect from the old URL in the Redirects tab (`trait-title-optimiser.php`, `trait-settings-page.php`, `trait-settings-assets.php`, `cloudscale-seo-ai-optimizer.php`)
+### Changed
+- **AI Summary Box — SEO-first prompts** — rewrote `call_ai_generate_summary()` system prompt to be keyword-first: primary keyword front-loaded in the opening sentence of each field, 2–3 secondary keywords woven in naturally, sentences written to match search intent rather than conversational reading; existing summaries are unchanged until regenerated (`trait-ai-summary.php`)
+
+## [4.19.140] - 2026-04-07
+### Added
+- **Readability scoring** — pure-PHP analysis (no AI call) of sentence length, heading density, and passive-voice rate; stored as post meta `_cs_seo_readability`; scores 0–100 with Easy / Moderate / Hard labels (`trait-readability.php`, `class-cs-seo-utils.php`)
+- **Readability badge in post metabox** — colour-coded score badge with sub-metric detail (avg sentence length, words per heading, passive-voice %); Score button for on-demand rescoring; badge auto-refreshes after generating a meta description (`trait-metabox.php`)
+- **Readability column in Meta Writer post list** — sortable Readability column with colour-coded badge; score is fetched per-post during the pipeline run and displayed inline (`trait-settings-page.php`)
+- **Auto-pipeline scores readability** — `save_post` hook and auto-pipeline both trigger readability scoring so scores stay fresh on publish/update (`cloudscale-seo-ai-optimizer.php`)
+- **`class-cs-seo-utils.php`** — new static utility class (`Cs_Seo_Utils`) replacing the old `class-cloudscale-seo-ai-optimizer-utils.php`; adds `text_from_html()` helper used by AI meta writer and readability trait
+### Fixed
+- **Settings save safety net** — any option key present in `defaults()` but not explicitly handled is now preserved as a sanitised string, preventing new options from silently dropping on save (`trait-admin.php`)
+
+## [4.19.132] - 2026-04-06
+### Fixed
+- **Migrate Categories: Apply All button text carried over** — button now resets to "Apply All" each time a new category migration is opened (`trait-settings-page.php`)
+
+## [4.19.131] - 2026-04-06
+### Changed
+- **Migrate Categories: sort order** — single-category posts (which require a swap target) now sort to the top of the migration post list (`trait-settings-page.php`)
+
+## [4.19.130] - 2026-04-06
+### Added
+- **Migrate Categories: Delete Category button** — appears automatically once a category has 0 posts; available in the category list for already-empty categories and in the migration view once all posts are migrated; server-side guard re-verifies live post count before executing `wp_delete_term()` (`trait-category-fixer.php`, `trait-settings-page.php`)
+
+## [4.19.129] - 2026-04-06
+### Added
+- **Delete Category button in Migrate panel** — appears automatically once a category has 0 posts; available in Phase 1 (category list) for already-empty categories, and in Phase 2 (migration view) the moment all posts are migrated away; server-side guard re-verifies live post count before executing `wp_delete_term()` (`trait-category-fixer.php`, `trait-settings-page.php`)
+
+## [4.19.128] - 2026-04-06
+### Added
+- **Migrate Categories panel** — new card in the Categories tab; lists all non-Uncategorized categories sorted by post count ascending (fewest first = best consolidation candidates) with a Migrate button per row (`trait-category-fixer.php`, `trait-settings-page.php`, `trait-settings-assets.php`)
+- **Post-level migration UI** — clicking Migrate opens a post table for that category; each row shows current category pills, an action select, and a per-row Apply button; single-category posts require a swap target, multi-category posts offer Remove or Swap to (`trait-settings-page.php`)
+- **Apply All** — applies every pending row in one click, showing a live counter and a done summary (`trait-settings-page.php`)
+- **3 new AJAX handlers** — `ajax_catmig_list` (category list), `ajax_catmig_posts` (posts in a category), `ajax_catmig_apply` (remove or swap a single post) (`trait-category-fixer.php`, `cloudscale-seo-ai-optimizer.php`)
+
+## [4.19.108] - 2026-04-02
+### Added
+- **Target audience & Writing tone fields** — two new Site Identity fields injected into every AI request as site context; have the largest single impact on meta description quality without touching the system prompt (`trait-options.php`, `trait-ai-meta-writer.php` ×3, `trait-settings-page.php`)
+- **AI quality callout in Site Identity** — prominent indigo banner above the new fields explaining their impact and encouraging users to fill them in before running generation (`trait-settings-page.php`)
+- **Explain button updates** — identity explain_btn now documents Target audience and Writing tone as ✅ Recommended; AI settings explain_btn updated to direct users to Site Identity fields rather than the system prompt for quality improvements (`trait-settings-page.php`)
+### Improved
+- **Default AI system prompt** — rewritten to tell the AI to use site context for niche/voice matching; added tone-matching rule; added explicit example of how niche affects output (`trait-options.php`)
+- **Site context header** — changed from passive `SITE CONTEXT:` to active `SITE CONTEXT (use this to match the site's voice, audience, and niche):` in all three AI generation call sites (`trait-ai-meta-writer.php`)
+- **Help documentation** — full refresh: Auto Pipeline and Automatic Redirects now have screenshots; Target audience and Writing tone documented with importance callout; system prompt section added to AI Settings; Explain buttons tip added to setup checklist; TOC and tab heading updated to include Redirects (`tests/generate-help-docs.js`)
+
+## [4.19.106] - 2026-03-31
+### Fixed
+- **Right-side padding too tight** — added `padding-right: 8px` to `.ab-pane` so the card box-shadow has room within WordPress's `.wrap` margin (`trait-settings-assets.php`)
+
+## [4.19.99] - 2026-03-31
+### Added
+- **Target audience & Writing tone fields** — initial implementation (superseded by 4.19.108 which added the settings UI callout and Explain button updates)
+
 ## [4.19.93] - 2026-03-30
 ### Fixed
 - **PCP `NonceVerification.Missing`** — replaced all `$this->ajax_check()` and `$this->catfix_nonce_check()` helper delegations with direct `check_ajax_referer( 'cs_seo_nonce', 'nonce' )` calls in the same handler scope across 13 traits (~40 call sites); PHPCS and WordPress.org Plugin Check require the direct call in scope and cannot trace through helper wrappers (`trait-ai-alt-text.php`, `trait-ai-summary.php`, `trait-ai-scoring.php`, `trait-ai-meta-writer.php`, `trait-related-articles.php`, `trait-category-fixer.php`, `trait-https-fixer.php`, `trait-sitemap.php`, `trait-seo-health.php`, `trait-batch-scheduler.php`, `trait-auto-pipeline.php`, `trait-llms-txt.php`)

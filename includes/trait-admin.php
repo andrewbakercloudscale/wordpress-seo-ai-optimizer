@@ -595,14 +595,20 @@ trait CS_SEO_Admin {
                 <?php esc_html_e( 'pipeline job(s) queued', 'cloudscale-seo-ai-optimizer' ); ?>
                 <?php endif; ?>
             </p>
+            <?php
+                preg_match( '/box-shadow:([^;]+)/', $batch_style, $bs_m );
+                $batch_shadow_orig = trim( $bs_m[1] ?? '' );
+            ?>
             <div style="display:flex;flex-direction:column;gap:10px">
                 <a href="<?php echo esc_url(admin_url('tools.php?page=cs-seo-optimizer&tab=batch')); ?>"
                    class="cs-widget-link"
                    style="display:flex;align-items:center;justify-content:center;gap:8px;
                           <?php echo esc_attr($batch_style); ?>
-                          color:#fff;font-weight:700;font-size:12px;padding:10px 16px;
-                          border-radius:8px;text-decoration:none;
-                          transition:filter 0.15s,transform 0.15s">
+                          color:#fff;font-weight:700;font-size:13px;padding:10px 16px;
+                          border-radius:8px;text-decoration:none;letter-spacing:0.02em;
+                          transition:background 0.15s ease,box-shadow 0.15s ease,letter-spacing 0.15s ease;"
+                   onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.28)';this.style.letterSpacing='0.06em';"
+                   onmouseout="this.style.boxShadow='<?php echo esc_attr( $batch_shadow_orig ); ?>';this.style.letterSpacing='0.02em';">
                     <?php echo esc_html($batch_line); ?>
                 </a>
                 <a href="<?php echo esc_url(admin_url('tools.php?page=cs-seo-optimizer')); ?>"
@@ -611,8 +617,10 @@ trait CS_SEO_Admin {
                           background:linear-gradient(135deg,#0ea5e9 0%,#0369a1 100%);
                           color:#fff;font-weight:700;font-size:13px;padding:10px 16px;
                           border-radius:8px;text-decoration:none;
-                          box-shadow:0 3px 10px rgba(14,165,233,0.35);
-                          transition:filter 0.15s,transform 0.15s">
+                          box-shadow:0 3px 10px rgba(14,165,233,0.35);letter-spacing:0.02em;
+                          transition:background 0.15s ease,box-shadow 0.15s ease,letter-spacing 0.15s ease;"
+                   onmouseover="this.style.background='linear-gradient(135deg,#38bdf8 0%,#0284c7 100%)';this.style.boxShadow='0 8px 24px rgba(3,105,161,0.55)';this.style.letterSpacing='0.06em';"
+                   onmouseout="this.style.background='linear-gradient(135deg,#0ea5e9 0%,#0369a1 100%)';this.style.boxShadow='0 3px 10px rgba(14,165,233,0.35)';this.style.letterSpacing='0.02em';">
                     <span style="font-size:15px">🔭</span> View SEO AI Optimizer
                 </a>
             </div>
@@ -698,7 +706,7 @@ trait CS_SEO_Admin {
         if ($now_sitemap !== $was_sitemap || $now_llms !== $was_llms) {
             add_action('shutdown', 'flush_rewrite_rules');
         }
-        foreach (['site_name','site_lang','title_suffix','home_title','twitter_handle','person_name','person_job_title'] as $k) {
+        foreach (['site_name','site_lang','title_suffix','home_title','twitter_handle','person_name','person_job_title','target_audience','writing_tone'] as $k) {
             $out[$k] = sanitize_text_field(array_key_exists($k, $in) ? (string)$in[$k] : (string)($existing[$k] ?? $d[$k]));
         }
         foreach (['home_desc','default_desc','sameas','robots_txt','sitemap_exclude','defer_js_excludes'] as $k) {
@@ -738,6 +746,13 @@ trait CS_SEO_Admin {
             $out['sitemap_post_types'] = array_values($chosen) ?: ['post'];
         } else {
             $out['sitemap_post_types'] = $existing['sitemap_post_types'] ?? $d['sitemap_post_types'];
+        }
+        // Safety net: any key present in defaults() but not yet handled above is preserved
+        // as a sanitized string. This prevents new options from silently dropping on save.
+        foreach ($d as $k => $default_val) {
+            if ( array_key_exists($k, $out) ) continue;
+            $raw = array_key_exists($k, $in) ? $in[$k] : ($existing[$k] ?? $default_val);
+            $out[$k] = is_array($raw) ? array_map('sanitize_text_field', (array)$raw) : sanitize_text_field((string)$raw);
         }
         return $out;
     }

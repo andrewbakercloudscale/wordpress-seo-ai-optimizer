@@ -139,9 +139,9 @@ trait CS_SEO_AI_Alt_Text {
     public function ajax_alt_generate_one(): void {
         check_ajax_referer( 'cs_seo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
-        $post_id = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
+        $post_id = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
         if (!$post_id) wp_send_json_error('Missing post_id');
-        $force = (int) sanitize_text_field( wp_unslash( $_POST['force'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in ajax_check() above
+        $force = (int) sanitize_text_field( wp_unslash( $_POST['force'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
 
         $post = get_post($post_id);
         if (!$post) wp_send_json_error('Post not found');

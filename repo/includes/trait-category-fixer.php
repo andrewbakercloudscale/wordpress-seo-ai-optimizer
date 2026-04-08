@@ -15,8 +15,7 @@ trait CS_SEO_Category_Fixer {
     /**
      * Verifies the AJAX nonce and checks manage_options capability; dies on failure.
      *
-     * Delegates to ajax_check() from trait-ai-engine.php which verifies the same
-     * cs_seo_nonce nonce and manage_options capability.
+     * Calls check_ajax_referer() directly and verifies manage_options capability.
      *
      * @since 4.0.0
      * @return void
@@ -1112,6 +1111,209 @@ trait CS_SEO_Category_Fixer {
         }
 
         wp_send_json(['success' => true, 'moves' => $moves, 'analysed_post_ids' => array_map('intval', $post_ids)]);
+    }
+
+    // =========================================================================
+    // Category Migrate
+    // =========================================================================
+
+    /**
+     * AJAX handler: returns all non-Uncategorized categories sorted by post count ascending.
+     *
+     * Used by the Migrate Categories panel to show which categories have the
+     * fewest posts — making them the primary candidates for consolidation.
+     *
+     * @since 4.19.135
+     * @return void
+     */
+    public function ajax_catmig_list(): void {
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+
+        $cats   = get_categories( [ 'hide_empty' => false, 'orderby' => 'count', 'order' => 'ASC' ] );
+        $result = [];
+        foreach ( $cats as $c ) {
+            if ( strtolower( $c->slug ) === 'uncategorized' ) continue;
+            $result[] = [
+                'id'    => (int) $c->term_id,
+                'name'  => $c->name,
+                'slug'  => $c->slug,
+                'count' => (int) $c->count,
+            ];
+        }
+        wp_send_json( [ 'success' => true, 'categories' => $result ] );
+    }
+
+    /**
+     * AJAX handler: returns all published posts in a given category with their full category list.
+     *
+     * Accepts `cat_id` (int). Also returns the list of all other non-Uncategorized categories
+     * so the JS can populate the "swap to" dropdown without a second request.
+     *
+     * @since 4.19.135
+     * @return void
+     */
+    public function ajax_catmig_posts(): void {
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked above
+        $cat_id = absint( wp_unslash( $_POST['cat_id'] ?? 0 ) );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+        if ( ! $cat_id ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Missing cat_id.' ] );
+            return;
+        }
+        $cat = get_category( $cat_id );
+        if ( ! $cat || is_wp_error( $cat ) ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Category not found.' ] );
+            return;
+        }
+
+        $post_ids = get_posts( [
+            'category'            => $cat_id,
+            'posts_per_page'      => -1,
+            'post_status'         => 'publish',
+            'orderby'             => 'title',
+            'order'               => 'ASC',
+            'fields'              => 'ids',
+            'no_found_rows'       => true,
+            'ignore_sticky_posts' => true,
+        ] );
+        _prime_post_caches( $post_ids, false, false );
+
+        // All categories available as migration targets (excludes source category + Uncategorized).
+        $all_cats    = get_categories( [ 'hide_empty' => false ] );
+        $avail_cats  = [];
+        foreach ( $all_cats as $c ) {
+            if ( strtolower( $c->slug ) === 'uncategorized' ) continue;
+            if ( (int) $c->term_id === $cat_id ) continue;
+            $avail_cats[ (int) $c->term_id ] = $c->name;
+        }
+
+        $posts = [];
+        foreach ( $post_ids as $pid ) {
+            $pid             = (int) $pid;
+            $current_ids     = array_map( 'intval', wp_get_post_categories( $pid, [ 'fields' => 'ids' ] ) );
+            $current_names   = [];
+            foreach ( $current_ids as $cid ) {
+                $term = get_term( $cid, 'category' );
+                if ( $term && ! is_wp_error( $term ) ) $current_names[ $cid ] = $term->name;
+            }
+            $posts[] = [
+                'post_id'         => $pid,
+                'title'           => get_the_title( $pid ),
+                'post_url'        => (string) get_permalink( $pid ),
+                'edit_url'        => (string) get_edit_post_link( $pid ),
+                'current_cat_ids' => $current_ids,
+                'current_names'   => $current_names,
+                'is_single_cat'   => ( count( $current_ids ) === 1 ),
+            ];
+        }
+
+        wp_send_json( [
+            'success'       => true,
+            'cat_name'      => $cat->name,
+            'posts'         => $posts,
+            'avail_cats'    => $avail_cats,
+        ] );
+    }
+
+    /**
+     * AJAX handler: applies a single post migration — removes or swaps a category.
+     *
+     * Accepts `post_id` (int), `from_cat_id` (int), `migrate_action` ('remove'|'swap'),
+     * and `to_cat_id` (int, required when migrate_action is 'swap').
+     *
+     * @since 4.19.135
+     * @return void
+     */
+    public function ajax_catmig_apply(): void {
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked above
+        $pid            = isset( $_POST['post_id'] )      ? absint( wp_unslash( $_POST['post_id'] ) )                          : 0;
+        $from_cat_id    = isset( $_POST['from_cat_id'] )  ? absint( wp_unslash( $_POST['from_cat_id'] ) )                      : 0;
+        $migrate_action = isset( $_POST['migrate_action'] ) ? sanitize_key( wp_unslash( $_POST['migrate_action'] ) )           : '';
+        $to_cat_id      = isset( $_POST['to_cat_id'] )    ? absint( wp_unslash( $_POST['to_cat_id'] ) )                        : 0;
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+        if ( ! $pid || ! $from_cat_id ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Missing required fields.' ] );
+            return;
+        }
+        if ( ! in_array( $migrate_action, [ 'remove', 'swap' ], true ) ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Invalid action.' ] );
+            return;
+        }
+        if ( 'swap' === $migrate_action && ! $to_cat_id ) {
+            wp_send_json( [ 'success' => false, 'error' => 'No target category selected.' ] );
+            return;
+        }
+
+        $current_cats = array_map( 'intval', wp_get_post_categories( $pid, [ 'fields' => 'ids' ] ) );
+
+        if ( 'remove' === $migrate_action ) {
+            $new_cats = array_values( array_filter( $current_cats, fn( $id ) => $id !== $from_cat_id ) );
+            if ( empty( $new_cats ) ) {
+                wp_send_json( [ 'success' => false, 'error' => 'Cannot remove the only category from a post. Use Swap instead.' ] );
+                return;
+            }
+        } else {
+            // swap: remove source, add target
+            $new_cats   = array_values( array_filter( $current_cats, fn( $id ) => $id !== $from_cat_id ) );
+            $new_cats[] = $to_cat_id;
+            $new_cats   = array_values( array_unique( $new_cats ) );
+        }
+
+        wp_set_post_categories( $pid, $new_cats );
+        wp_send_json( [ 'success' => true, 'new_cat_ids' => $new_cats ] );
+    }
+
+    /**
+     * AJAX handler: deletes a category — only succeeds when the category has zero posts.
+     *
+     * Accepts `cat_id` (int). Verifies the category still has 0 published posts server-side
+     * before calling wp_delete_term(), preventing accidental deletion mid-migration.
+     *
+     * @since 4.19.135
+     * @return void
+     */
+    public function ajax_catmig_delete(): void {
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked above
+        $cat_id = absint( wp_unslash( $_POST['cat_id'] ?? 0 ) );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+        if ( ! $cat_id ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Missing cat_id.' ] );
+            return;
+        }
+        $cat = get_category( $cat_id );
+        if ( ! $cat || is_wp_error( $cat ) ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Category not found.' ] );
+            return;
+        }
+        if ( strtolower( $cat->slug ) === 'uncategorized' ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Cannot delete the Uncategorized category.' ] );
+            return;
+        }
+        // Re-fetch live count as a server-side guard — client state may be stale.
+        $live_count = (int) $cat->count;
+        if ( $live_count > 0 ) {
+            wp_send_json( [ 'success' => false, 'error' => "Category still has {$live_count} post(s). Migrate all posts before deleting." ] );
+            return;
+        }
+        $result = wp_delete_term( $cat_id, 'category' );
+        if ( is_wp_error( $result ) ) {
+            wp_send_json( [ 'success' => false, 'error' => $result->get_error_message() ] );
+            return;
+        }
+        wp_send_json( [ 'success' => true ] );
     }
 
     /**

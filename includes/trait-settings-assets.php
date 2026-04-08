@@ -29,6 +29,15 @@ trait CS_SEO_Settings_Assets {
 .ab-tab[data-tab="batch"].active  { background:#e67e00; color:#fff; }
 .ab-tab[data-tab="catfix"].active { background:#2d6a4f; color:#fff; }
 .ab-tab[data-tab="perf"].active   { background:#d946a6; color:#fff; }
+.ab-tab[data-tab="blc"].active    { background:#0e6b8c; color:#fff; }
+.ab-tab[data-tab="imgseo"].active { background:#5b21b6; color:#fff; }
+.ab-zone-card.ab-card-blc       .ab-zone-header { background:#0e6b8c; }
+.ab-zone-card.ab-card-imgseo    .ab-zone-header { background:#5b21b6; }
+.ab-tab[data-tab="titleopt"].active { background:#0e6b5e; color:#fff; }
+.ab-zone-card.ab-card-titleopt  .ab-zone-header { background:#0e6b5e; }
+.ab-sort-active { background:#2271b1 !important; color:#fff !important; border-color:#2271b1 !important; }
+#ab-titleopt-log .ab-log-entry { color:#0af; font-family:'Courier New',monospace; font-size:12px; margin-bottom:3px; }
+#ab-titleopt-log .ab-log-error { color:#ff5555; }
 .ab-pane { display:none; padding-top:24px; padding-bottom:40px; padding-right:8px; }
 .ab-pane.active { display:block; }
 #ab-ai-writer { font-family: -apple-system, sans-serif; }
@@ -54,7 +63,8 @@ table.ab-posts tr:hover td { background:#f6f7f7; }
 .ab-badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:11px; font-weight:600; }
 .ab-score-badge { display:inline-block; padding:3px 9px; border-radius:12px; font-size:11px; font-weight:700; white-space:nowrap; cursor:pointer; transition:opacity 0.15s; }
 .ab-score-badge:hover { opacity:0.8; }
-.ab-score-none  { background:#f3f4f6; color:#6b7280; border:1px solid #d1d5db; font-weight:400; font-style:italic; }
+.ab-score-none    { background:#f3f4f6; color:#6b7280; border:1px solid #d1d5db; font-weight:400; font-style:italic; }
+.ab-score-details { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; margin-top:3px; }
 .ab-score-poor  { background:#fde8e8; color:#9b1c1c; border:1px solid #fca5a5; }
 .ab-score-fair  { background:#fef3c7; color:#92400e; border:1px solid #fcd34d; }
 .ab-score-good  { background:#d1fae5; color:#064e3b; border:1px solid #6ee7b7; }
@@ -119,6 +129,7 @@ table.ab-posts tr:hover td { background:#f6f7f7; }
 .ab-zone-card.ab-card-alt      .ab-zone-header  { background:#0e6b6b; }
 .ab-zone-card.ab-card-summary  .ab-zone-header  { background:#6b3fa0; }
 .ab-zone-card.ab-card-catfix   .ab-zone-header  { background:#2d6a4f; }
+.ab-zone-card.ab-card-catmig   .ab-zone-header  { background:#b35900; }
 .ab-zone-card.ab-card-sitemap-settings .ab-zone-header { background:#1a7a34; }
 .ab-zone-card.ab-card-sitemap-preview  .ab-zone-header { background:#0e5229; }
 .ab-zone-card.ab-card-llms   .ab-zone-header    { background:#1a4a8a; }

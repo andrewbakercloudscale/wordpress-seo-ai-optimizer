@@ -330,7 +330,7 @@ trait CS_SEO_Related_Articles {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) wp_die();
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce checked via ajax_check()
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce verified by check_ajax_referer() at the top of this function
         $page     = max(1, (int)(wp_unslash($_POST['page'] ?? 1)));
         $per_page = 50;
         $filter   = sanitize_text_field(wp_unslash($_POST['filter'] ?? 'all'));
@@ -441,7 +441,7 @@ trait CS_SEO_Related_Articles {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) wp_die();
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce checked via ajax_check()
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce verified by check_ajax_referer() at the top of this function
         $pid = (int)(wp_unslash($_POST['post_id'] ?? 0));
         // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
         if (!$pid || get_post_status($pid) !== 'publish') {
@@ -629,7 +629,7 @@ trait CS_SEO_Related_Articles {
         check_ajax_referer('cs_seo_nonce', 'nonce');
         if (!current_user_can('manage_options')) wp_die();
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce checked via ajax_check()
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce verified by check_ajax_referer() at the top of this function
         $pid  = (int)(wp_unslash($_POST['post_id'] ?? 0));
         $mode = sanitize_text_field(wp_unslash($_POST['mode'] ?? 'one'));
         // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
@@ -778,6 +778,29 @@ trait CS_SEO_Related_Articles {
         // Deduplicate, exclude self, cap at pool_size
         $candidate_ids = array_values(array_unique(array_map('intval', $candidate_ids)));
         $candidate_ids = array_slice($candidate_ids, 0, $pool_size);
+
+        // Fallback: if the category/tag pool is too small to fill both blocks,
+        // pad it with the most popular posts (by comment count) so every post
+        // always gets related articles even when its category is sparse.
+        $min_needed = (int)($this->opts['rc_top_count'] ?? 3) + (int)($this->opts['rc_bottom_count'] ?? 5);
+        if (count($candidate_ids) < $min_needed) {
+            $need_more   = $pool_size - count($candidate_ids);
+            $exclude_ids = array_merge([$pid], $candidate_ids);
+            $fq = new WP_Query([
+                'post_type'      => 'post',
+                'post_status'    => 'publish',
+                'posts_per_page' => $need_more,
+                'post__not_in'   => $exclude_ids, // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in -- pool capped; excluding self + already-found candidates is required
+                'fields'         => 'ids',
+                'orderby'        => 'comment_count',
+                'order'          => 'DESC',
+            ]);
+            if (!empty($fq->posts)) {
+                $candidate_ids = array_values(array_unique(
+                    array_merge($candidate_ids, array_map('intval', $fq->posts))
+                ));
+            }
+        }
 
         update_post_meta($pid, self::META_RC_CANDIDATES, $candidate_ids);
         update_post_meta($pid, self::META_RC_LAST_STEP,  self::RC_STEP_CANDIDATES);

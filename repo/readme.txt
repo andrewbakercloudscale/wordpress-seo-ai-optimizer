@@ -3,7 +3,7 @@ Contributors: andrewjbaker
 Tags: seo, ai, meta description, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.19.101
+Stable tag: 4.20.27
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -68,10 +68,21 @@ It handles the essentials cleanly and adds a full AI toolkit that uses either th
 * Per post score badges shown in the AI Tools post table and dashboard widget
 * Scores stored in post meta (_cs_seo_score, _cs_seo_notes) and survive plugin deactivation
 
+= Title Optimiser =
+
+* New 🎯 Title Optimiser tab — AI scans all published posts and suggests SEO-optimised replacement titles
+* Before/after SEO score (0–100) for every suggestion so you can see the improvement at a glance
+* Identifies primary and secondary keywords the article is actually about
+* One-click Apply per post: updates title and URL slug, automatically creates a 301 redirect from the old URL
+* "Apply All Suggested" bulk action with confirmation — applies and redirects all in one shot
+* Sort posts by date or by most-commented to prioritise which titles to fix first
+* Suggestions stored in post meta — safe to pause, review, and apply selectively
+
 = AI Summary Box =
 
 * AI-generated article summary box automatically prepended to post content
 * Three fields generated per post: What it is, Why it matters, Key takeaway
+* Summaries now written SEO-first: primary keyword front-loaded, secondary keywords woven in, optimised for search intent rather than conversational reading
 * Bulk generation panel with progress tracking, stop button, and paginated post list
 * Force regenerate option to overwrite all existing summaries
 * Summary fields written to Article JSON-LD schema: description, abstract, and disambiguatingDescription
@@ -147,9 +158,32 @@ It handles the essentials cleanly and adds a full AI toolkit that uses either th
 * Results sorted by verdict type then confidence so the most actionable items appear first
 * Elapsed time counter and Stop button during long analysis runs
 
+= Readability Analyser =
+
+* Pure-PHP readability scoring — no AI call required
+* Scores 0–100 with Easy / Moderate / Hard label based on sentence length, heading density, and passive-voice rate
+* Colour-coded badge in the post metabox with sub-metrics (average words per sentence, words per heading, passive voice percentage)
+* Sortable Readability column in the Meta Writer post list
+* Scores automatically recalculate on post save and after every Auto Pipeline run
+
+= Broken Link Checker =
+
+* Scans all published posts and pages for outbound links with HTTP errors (4xx, 5xx) or connection failures
+* Server-side HEAD request per URL for accurate status — no browser-side fetch limitations
+* Deduplicates URLs across posts so each external URL is checked only once
+* Results table shows post title, anchor text, URL, and HTTP status with colour-coded labels
+* SSRF-safe: link-local, loopback, and private IP ranges are blocked server-side
+
+= Image SEO Audit =
+
+* Scans the entire Media Library and flags images with SEO issues
+* Detects missing ALT text, camera-default filenames (IMG_001, DSC_0045, screenshot2, etc.), and oversized files (> 500 KB)
+* Results sorted by issue count with thumbnail previews and direct edit links
+* Summary counters for each issue type
+
 = What This Plugin Does Not Do =
 
-* No keyword analysis or readability scoring
+* No third-party SEO data, keyword research databases, or rank tracking
 * No paid tiers, no upsells, no tracking
 
 == External Services ==
@@ -192,6 +226,15 @@ Gemini API documentation: https://ai.google.dev/docs
 
 Google Privacy Policy: https://policies.google.com/privacy
 Google Terms of Service: https://policies.google.com/terms
+
+= Broken Link Checker (server-side URL probing) =
+
+**What it does:** When you use the Broken Link Checker in WP Admin, the plugin extracts all outbound hyperlinks from your published posts and pages, then sends an HTTP HEAD request from your server to each unique URL to check its status.
+**Data sent:** Only the URL itself is fetched — no post content, no user data. Standard HTTP headers (User-Agent identifying your site) are sent with each request.
+**When it fires:** Only when you open the Broken Link Checker tab and start a scan. No automatic or scheduled scanning.
+**Note:** `sslverify` is disabled for these requests so that sites with expired or self-signed certificates can be checked. Requests to loopback, link-local, and private IP ranges are blocked.
+
+There is no separate terms of service for outbound HTTP HEAD requests — your server is simply fetching publicly reachable URLs listed in your own content.
 
 == Installation ==
 
@@ -274,14 +317,34 @@ The plugin scores all posts against each other using shared categories, tags, an
 
 == Changelog ==
 
-= 4.19.101 =
+= 4.20.27 =
+* Security: Broken Link Checker SSRF guard — `blc_is_ssrf_blocked()` now rejects URLs that resolve to loopback, link-local, or private IP ranges before making the `wp_remote_head()` call
+* Fix: Title Optimiser stale detection — added 60-second grace period so applying a title never immediately flags the post as "Edited since analysis" due to `wp_update_post()` timing
+* Fix: Title Optimiser applied-post hint text corrected from "re-analyse to compare originals" to "Title was changed to suggested title"
+* Docs: Added Readability, Broken Link Checker, and Image SEO Audit feature sections to readme description
+* Docs: Corrected "What This Plugin Does Not Do" — removed incorrect "no readability scoring" claim; added BLC to External Services section
+
+= 4.20.2 =
+* Add: Title Optimiser — new 🎯 Title Optimiser tab; AI suggests keyword-rich replacement titles for all published posts; shows before/after SEO score and identified keywords; apply individually or in bulk; applying a title auto-creates a 301 redirect from the old URL
+* Change: AI Summary Box now uses SEO-first prompts — primary keyword front-loaded in every field, secondary keywords woven in naturally, written for search intent; existing summaries unchanged until regenerated
+
+= 4.19.142 =
+* Add: Readability scoring — pure-PHP analysis of sentence length, heading density, and passive-voice rate; no AI call required; scores 0–100 with Easy / Moderate / Hard labels
+* Add: Readability badge in post metabox — colour-coded score with sub-metrics (avg words/sentence, words per heading, passive voice %); Score button for on-demand rescoring; auto-refreshes after meta description generation
+* Add: Sortable Readability column in Meta Writer post list — badge updates live during pipeline run
+* Add: Auto-pipeline and save_post hook both trigger readability scoring to keep scores fresh
+* Add: Migrate Categories panel in the Categories tab — lists all categories sorted by post count (fewest first) and lets you migrate posts category-by-category
+* Add: Single-category posts require a swap target; multi-category posts can be removed or swapped per row
+* Add: Apply per-row or Apply All to batch-migrate every pending post in one click
+* Add: Delete Category button appears automatically once a category is empty — available in both the category list (for already-empty categories) and in the migration view once all posts are migrated; server-side guard prevents deletion if posts still exist
+* Fix: Settings save safety net — new option keys no longer silently drop on save
+
+= 4.19.126 =
 * Add: Target audience and Writing tone fields in Site Identity — injected into every AI request; largest quality improvement available without editing the system prompt
 * Add: Prominent callout banner above new fields nudging users to fill them in before generating
 * Improve: Default AI system prompt rewritten to actively use site context for niche and voice matching
 * Improve: Site context header in all AI call sites updated from passive label to active instruction
 * Improve: Help documentation — Auto Pipeline and Redirects now have screenshots; new fields documented; Explain buttons tip added
-
-= 4.19.101 =
 * Fix: Right-side padding too tight — added padding-right to .ab-pane so card shadow is not clipped
 
 = 4.19.99 =
@@ -528,393 +591,8 @@ The plugin scores all posts against each other using shared categories, tags, an
 * Dashboard widget title now uses wp_kses_post() with esc_html() for the version span
 * Added @since, @param, @return DocBlocks to all public methods across all 23 trait files
 
-= 4.12.9 =
-* Security: removed wp_ajax_nopriv_ registration from ajax_download_fonts (admin-only handler)
-* Security: added esc_attr() to three unescaped ternary echo outputs in render_metabox()
-* Standards: replaced file_get_contents/file_put_contents with WP_Filesystem in all font optimizer operations
-
-= 4.12.8 =
-* Fix: SEO score not returned when title needed fixing — json_shape for title-needs-fix case was missing seo_score/seo_notes fields
-
-= 4.12.7 =
-* Dashboard widget: Posts pill colour changed from grey to blue
-
-= 4.12.6 =
-* PCP fix: dashboard widget health-refresh and health-run <script> blocks moved to wp_add_inline_script via ob_start capture
-* PCP fix: post editor metabox csSeoGenOne and csSeoSumGenOne <script> blocks moved to wp_add_inline_script via ob_start capture
-* Registered cs-seo-dashboard-js handle (dashboard page) and cs-seo-metabox-js handle (post edit screens) for inline script delivery
-* Added uninstall.php — cleans up all options, post meta, transients, and cron on plugin deletion
-
-= 4.12.5 =
-* PCP fix: HTTPS scanner script moved from echoed <script> block to wp_add_inline_script via ob_start capture
-* PCP fix: font optimizer script moved from echoed <script> block to wp_add_inline_script via ob_start capture
-* PCP fix: main settings page script (abTab, abState, category fixer, related articles) moved to wp_add_inline_script via ob_start capture
-* PHP values abNonce, abAjax, abMinChar, abMaxChar, abHasApiKey, cfNonce, chNonce, cdNonce, rcNonce now passed via csSeoAdmin (wp_localize_script)
-
-= 4.12.4 =
-* PCP fix: settings page CSS moved from echoed <style> block to wp_add_inline_style()
-* PCP fix: llms.txt preview JS moved from echoed <script> block to wp_add_inline_script()
-* PCP fix: sitemap preview JS moved from echoed <script> block to wp_add_inline_script()
-* PHP values (ajaxUrl, nonce, sitemapIndexUrl) now passed via wp_localize_script
-
-= 4.12.3 =
-* Refactored monolithic plugin into 23 trait files for maintainability
-* AI SEO scoring per post added to admin panel
-
-= 4.11.38 =
-* Panel UI: bold blue drop shadow, contrast body background
-* Post list pagination set to 50 posts/page with consistent page numbers
-
-= 4.11.23 =
-* PHPCS: disable/enable blocks for multi-column POST warnings and meta_query suppression
-* Save button left padding fix
-
-= 4.11.33 =
-* Post titles in AI Image ALT Text Generator and AI Summary Box panels are now clickable links to the post editor
-
-= 4.11.32 =
-* Fix: Noindex posts are now excluded from the Update Posts with AI Descriptions panel and post count stats
-
-= 4.11.26 =
-* Dashboard widget now shows SEO Health pills: Posts, SEO, Images, Links, Summaries with colour coding (green >= 90%, amber >= 60%, red < 60%)
-* Health data timestamp and Refresh link added to widget — rebuilds cache on demand
-* Run Health Check CTA shown when no cache exists yet
-* Health cache auto-rebuilds after SEO meta, ALT text, Summary, and Related Articles bulk runs complete
-* Health cache AJAX endpoint switched to cs_seo_nonce for consistency
-
-= 4.10.68 =
-* Category Fixer colour legend added above table showing Added, Removed, Kept pill meanings
-
-= 4.10.67 =
-* Category Fixer proposed column pill colours updated to standard WordPress traffic light palette
-* Changed flag now compares sorted arrays to eliminate false positives from category ID ordering
-
-= 4.10.66 =
-* AI Analyse All button added to Category Fixer toolbar
-* Per row reanalyse button now calls AI instead of local scorer
-* cfAiOne() merges AI results back into post list without full page reload
-* Progress counter shows live status during bulk AI analysis
-
-= 4.10.65 =
-* ajax_catfix_ai_one() handler added: analyses a single post via Claude and returns proposed category IDs
-* AI prompt constrains Claude to only return IDs from the existing category list, max 4, never Uncategorized
-* Results stored in post meta with source=ai
-
-= 4.10.64 =
-* Uncategorized fully excluded from Category Fixer scoring and fallback path
-
-= 4.10.63 =
-* Category Fixer proposed column now uses colour coded pills: green for additions, red for removals, grey for kept
-
-= 4.10.62 =
-* Category Fixer default view after scan now shows Changed posts only
-* Active filter button highlights in forest green
-
-= 4.10.61 =
-* Category Fixer confidence badge now uses white-space:nowrap to prevent label wrapping
-* Confidence column width increased to 110px
-
-= 4.10.60 =
-* Fixed explain_btn call signature in Category Fixer panel
-
-= 4.10.59 =
-* Category Fixer tab added with forest green styling
-* Local keyword scoring engine: tokenises title, slug, tags, and AI summary against category list
-* Weighted scoring: title 4pts, summary 3pts, tags 3pts, slug 2pts, continuity bonus 2pts
-* Paginated review table with current and proposed category pills
-* Per post Apply, Skip, and reanalyse buttons
-* Bulk Apply All Changed with checkbox selection
-* Filter bar: All, Changed, Unchanged, Low Confidence, Missing
-* Results cached in post meta with MD5 fingerprint for change detection
-* Reload button in panel header for full rescan
-
-= 4.10.58 =
-* Summary box row dividers now use indigo tint overriding theme td border styles with !important
-* Last row explicitly gets border-bottom:none to keep clean bottom padding
-
-= 4.10.57 =
-* Summary box redesigned with modern card styling: gradient indigo header, drop shadow, rounded corners
-* Row separators changed to subtle indigo tint, right cell border removed, content padding increased
-* Header changed to flex layout with layers SVG icon alongside title text
-
-= 4.10.56 =
-* Summary box header updated to CloudScale SEO AI Article Summary
-* Header given solid indigo background with white uppercase text
-* Label column colours changed to indigo, row dividers added between rows
-
-= 4.10.55 =
-* Article JSON-LD schema now includes abstract field from Why it matters summary
-* Article JSON-LD schema now includes disambiguatingDescription field from Key takeaway summary
-
-= 4.10.54 =
-* Reload and Hide Posts buttons moved into panel card headers, visible once panel is loaded
-* Header buttons styled with semi-transparent white to sit cleanly on coloured headers
-
-= 4.10.53 =
-* Status text repositioned to left of toolbar buttons to prevent flex overflow at narrow viewports
-* Fixes Hide Posts button being pushed off screen on 1024px displays
-
-= 4.10.52 =
-* Pagination added to ALT Text panel: 100 posts per page with Prev and Next controls
-* Pagination added to AI Summary panel: 100 posts per page with Prev and Next controls
-
-= 4.10.51 =
-* Reload and Hide Posts buttons added to ALT Text and Summary panel toolbars
-* Load CTA always hides after load regardless of post count
-
-= 4.10.50 =
-* AI Summary Box generator panel completed with paginated post list, Missing and Has Summary badges
-* Posts sorted A to Z, Generated This Session counter, Force Regenerate All button
-
-= 4.10.49 =
-* AI Summary Box bulk generator panel added with purple header, stats row, and Generate Missing button
-* Summary panel toolbar with stop button and live status text
-
-= 4.10.48 =
-* AI Summary Box admin panel scaffolded with Load Posts CTA and post list table
-
-= 4.10.47 =
-* AI Summary Box generation endpoint added: generates What it is, Why it matters, Key takeaway via Claude
-* Summary stored in three separate post meta keys per post
-* Returns JSON with what, why, takeaway fields
-
-= 4.10.46 =
-* AI Summary Box renderer added: prepends styled summary card to singular post content
-* Summary box only renders when all three fields are populated
-* show_summary_box toggle added to plugin settings
-
-= 4.10.45 =
-* PHPCS fixes: sanitized post_id inputs with absint and wp_unslash across AJAX handlers
-* Suppressed meta_query slow query PHPCS notices
-
-= 4.10.44 =
-* Gutenberg sidebar panel registered via enqueue_block_editor_assets using PluginDocumentSettingPanel
-* Panel includes custom SEO title, meta description, OG image URL, AI summary fields, and generate buttons
-* Summary fields editable and saveable directly from the Gutenberg document sidebar
-
-= 4.10.43 =
-* Post meta keys for summary fields registered via register_post_meta for REST API and Gutenberg access
-
-= 4.10.35 =
-* Bulk Update Posts panel header buttons (Reload, Hide Posts) added to toolbar
-* Toolbar status text added with live feedback during generation runs
-
-= 4.10.34 =
-* OG image now uses a dedicated 1200x630 crop for correct WhatsApp and social media thumbnail aspect ratio
-* Added og:image:secure_url meta tag required by WhatsApp scraper for HTTPS pages
-* ALT text scanner now includes featured images, not just images embedded in post content
-* ALT text generator now writes ALT for featured images via attachment meta
-* Added one-line summary to Explain modals on Update Posts and ALT Text panels
-* S3Deploy.sh scripts made self-contained across all plugin repos
-
-= 4.10.30 =
-* Changed dashboard widget button icon from gear to browser emoji
-
-= 4.10.29 =
-* Renamed dashboard widget button from SEO Settings to View SEO AI Optimizer
-
-= 4.10.28 =
-* Removed duplicate version from widget body text, version now only in widget header
-
-= 4.10.27 =
-* Added version number to dashboard widget header title
-
-= 4.10.26 =
-* Added version number to browser title bar via add_management_page page_title argument
-
-= 4.10.25 =
-* Added version number to settings page h1 heading and dashboard widget
-
-= 4.10.24 =
-* Escalating correction prompts across the 3 retry passes — attempt 1 is polite, attempt 2 is firm, attempt 3 is a final hard instruction with exact over/under character count and a strip-words directive
-* Fixed final attempt message to correctly state over/under direction for both too long and too short cases
-
-= 4.10.23 =
-* Added multi-turn length correction loop (up to 3 passes) in generate flow — when AI returns a description that is too long or too short, follow-up messages tell it exactly how many characters to add or remove
-* Correction messages include the exact character count and delta so Claude can self-correct rather than guess
-
-= 4.10.22 =
-* Fixed Plugin URI pointing to 404 — updated to correct blog post URL
-* Converted inline style echo in admin_head_css to wp_add_inline_style via admin_enqueue_scripts
-* Moved reset-prompt, defer-toggle, and schedule-days inline script blocks to wp_add_inline_script
-* Registered no-op cs-seo-admin and cs-seo-admin-js handles for proper WP enqueue compliance
-* Added wp_localize_script to pass PHP values (defaultPrompt) to enqueued scripts
-
-= 4.10.21 =
-* Fixed PHPCS NonceVerification, MissingUnslash, and InputNotSanitized warnings on ALT text force regenerate parameter
-* Replaced direct unlink() calls with wp_delete_file() in deactivation hook and version change detector
-* Replaced direct rmdir() calls with WP_Filesystem rmdir() for WordPress coding standards compliance
-* Added WP_Filesystem initialisation guard with null check before directory removal
-
-= 4.10.20 =
-* Fixed PHPCS NonceVerification, MissingUnslash, and InputNotSanitized warnings on ALT text force regenerate parameter
-* Replaced direct unlink() calls with wp_delete_file() in deactivation hook and version change detector
-* Replaced direct rmdir() calls with WP_Filesystem rmdir() for WordPress coding standards compliance
-* Added WP_Filesystem initialisation guard with null check before directory removal
-
-= 4.10.19 =
-* Changed No AI description badge colour from blue to purple for better visual distinction
-
-= 4.10.18 =
-* Added deactivation hook that removes stale asset files for clean reinstalls
-* Added version change detector on admin_init that cleans leftover assets/ subdirectory and resets OPcache
-* Upgrade path is now Deactivate, Delete, Upload zip, Activate with no manual file cleanup required
-
-= 4.10.17 =
-* Fixed Generate All Missing ALT text processing all posts instead of only posts with missing ALT
-* Added Force Regenerate All button to overwrite all existing ALT text across every post
-* Added ALT text length validation (5 to 15 words) with automatic retry if out of range
-* Progress bar now reflects actual number of posts to process
-
-= 4.10.16 =
-* Recommended checkboxes in Features & Robots now have a green background for at a glance visibility
-* Optional checkboxes shown with neutral grey background to differentiate from recommended
-
-= 4.10.15 =
-* Moved Scheduled Batch tab to last position (tab order: Optimise SEO, Sitemap & Robots, Performance, Scheduled Batch)
-
-= 4.10.14 =
-* Batch run history now keeps 28 days of runs instead of just the last one
-* All runs shown newest first with expandable per run post logs
-* Automatic migration from legacy single run storage
-* Entries older than 28 days are pruned automatically on each new run
-
-= 4.10.13 =
-* Fixed Last Batch Run always showing empty: changed from transient (expired after 24h) to persistent option
-* Last batch results now persist until the next batch run overwrites them
-
-= 4.10.12 =
-* Moved all performance controls (Defer JS, Minify HTML, Defer Font CSS) into the Performance tab
-* Fixed Defer Font CSS Loading toggle not saving (missing from defaults and form recognition)
-* Added hidden form fields to ensure checkbox state saves correctly when all toggles are off
-* Font optimization buttons restyled with unique colours per action
-* Font console restyled with dark terminal theme and reduced height
-* Swapped Scan CSS Files and Auto-Download CDN Fonts button order
-* Fixed div nesting issue that caused Render & Minification card to appear in wrong tab
-* Updated readme with Gemini support documentation and complete feature list
-
-= 4.10.11 =
-* Version bump with Performance tab restructuring
-
-= 4.10.10 =
-* Fixed plugin header format for WordPress.org compliance
-* Updated readme.txt with correct stable tag and tested up to values
-* Font display UI improvements and clearer labeling
-
-= 4.10.9 =
-* Font display swap optimization now correctly applies to all font stylesheets
-* Added console logging for font optimization traceability
-
-= 4.10.8 =
-* Font metric overrides feature for reducing Cumulative Layout Shift
-* Improved Auto Fix All button behavior with clear UI feedback
-
-= 4.10.7 =
-* Added font display optimization with swap/optional selector
-* Performance tab reorganization for clarity
-
-= 4.10.6 =
-* HTTPS scanner improvements for mixed content detection
-* Better handling of edge cases in URL replacement
-
-= 4.10.5 =
-* ALT text generation now includes article context for better results
-* Increased max tokens for ALT text generation
-
-= 4.10.4 =
-* Added llms.txt support for AI crawler guidance
-* Robots.txt improvements for AI bot blocking
-
-= 4.10.3 =
-* Sitemap pagination for large sites (50,000 URLs per file)
-* Sitemap preview in admin panel
-
-= 4.10.2 =
-* Fixed batch generation progress tracking
-* Improved error handling for API failures
-
-= 4.10.1 =
-* Dashboard widget improvements
-* Settings page UI polish
-
-= 4.10.0 =
-* Major release with font display optimization
-* Performance tab with defer JS and minification
-* HTTPS mixed content scanner and fixer
-
-= 4.9.17 =
-* Dashboard widget title updated to AndrewBaker.Ninja AI SEO Optimizer
-
-= 4.9.16 =
-* Fixed SEO Settings link in dashboard widget
-* Removed unrelated Backups button from dashboard widget
-
-= 4.9.15 =
-* ALT text audit table now shows actual generated ALT text after generation
-* Fixed post titles with special characters rendering as raw HTML entities
-
-= 4.9.14 =
-* Added WordPress dashboard widget with links to AndrewBaker.Ninja and SEO Settings
-
-= 4.9.13 =
-* Badge button styling updated with gradient and hover animation
-
-= 4.9.12 =
-* Added AndrewBaker.Ninja badge link at top of settings page
-
-= 4.9.11 =
-* Show All checkbox moved into toolbar layout
-
-= 4.9.10 =
-* Fixed duplicate status message in ALT generator log
-* Fixed post titles with HTML entities rendering incorrectly
-
-= 4.9.9 =
-* Added mobile left padding for better card layout
-* Fixed contradictory log message for missing images
-
-= 4.9.8 =
-* Added left border and padding to description hint text
-
-= 4.9.7 =
-* ALT text article excerpt length now configurable (default 600, range 100 to 2000)
-
-= 4.9.6 =
-* ALT text generation now sends article excerpt alongside image filename
-* Increased ALT text max_tokens from 60 to 80
-
-= 4.9.5 =
-* ALT Text Generator card header styling updated
-
-= 4.9.4 =
-* Added ALT text audit view showing all images and their current ALT text
-* Added Show All toggle to display images that already have ALT text
-
-= 4.9.3 =
-* Added defer render blocking JavaScript feature
-* Configurable exclusions for script handles and URLs
-
-= 4.2.3 =
-* Fix Descriptions now retries up to 3 times for out of range results
-
-= 4.2.2 =
-* Added Fix Descriptions button for targeted correction
-* Badge logic now uses configured min/max values
-
-= 4.2.1 =
-* Increased request gap to 2,500ms for Anthropic rate limits
-* Added automatic retry on HTTP 429 responses
-
-= 4.2.0 =
-* Character range decoupled from system prompt
-
-= 4.1.0 =
-* Added automatic correction pass for out of range descriptions
-
-= 4.0.0 =
-* Initial release of AI Meta Writer tab
-* Bulk generation with live progress log
-* Per post generation from post editor metabox
+= 4.0.0 – 4.12.9 =
+* For the complete version history of all earlier releases see CHANGELOG.md in the plugin directory.
 
 == Upgrade Notice ==
 
@@ -1008,25 +686,5 @@ AI Tools post table now has a Date column and sortable headers for Post, Date, a
 = 4.14.6 =
 Swapped Categories and Scheduled Batch tab order in settings page.
 
-= 4.12.6 =
-PCP compliance: all remaining echoed script blocks eliminated. uninstall.php added. Zero critical PCP violations remain.
-
-= 4.12.5 =
-PCP compliance: HTTPS scanner, font optimizer, and main settings page JS moved to wp_add_inline_script. No functional changes.
-
-= 4.12.4 =
-PCP compliance: settings page CSS and sitemap/llms.txt preview JS moved to wp_add_inline_style/script. No functional changes.
-
-= 4.12.3 =
-Major refactor: plugin split into 23 trait files. AI SEO scoring added per post. Recommended update for all users.
-
-= 4.10.13 =
-Fixed Last Batch Run always appearing empty. Batch results now persist permanently instead of expiring after 24 hours.
-
-= 4.10.12 = Fixes save issue with Defer Font CSS Loading. Updated readme with full Gemini support documentation.
-
-= 4.10.10 =
-Fixes plugin header format for WordPress.org submission. Includes font display optimization for Core Web Vitals improvements.
-
-= 4.10.0 =
-Major release with font display optimization, defer JS, and HTML minification. Recommended for all users seeking better Core Web Vitals scores.
+= 4.0.0 – 4.14.6 =
+For earlier upgrade notices and full version history see CHANGELOG.md in the plugin directory.

@@ -37,6 +37,8 @@ trait CS_SEO_Metabox {
         $sum_why  = (string) get_post_meta($post->ID, self::META_SUM_WHY,  true);
         $sum_key  = (string) get_post_meta($post->ID, self::META_SUM_KEY,  true);
         $has_key = !empty($this->ai_opts['anthropic_key']) || !empty($this->ai_opts['gemini_key']);
+        $r_raw   = (string) get_post_meta($post->ID, self::META_READABILITY, true);
+        $r_data  = $r_raw ? json_decode($r_raw, true) : null;
         ?>
         <p style="margin:0 0 12px;padding:8px 10px;background:<?php echo esc_attr($noindex ? '#fff3cd' : '#f6f7f7'); ?>;border:1px solid <?php echo esc_attr($noindex ? '#ffc107' : '#ddd'); ?>;border-radius:4px;display:flex;align-items:center;gap:8px">
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;margin:0">
@@ -93,8 +95,38 @@ trait CS_SEO_Metabox {
                             field.value = data.data.description;
                             chars.textContent = data.data.chars + ' chars';
                             chars.style.color = data.data.chars >= 140 && data.data.chars <= 160 ? '#46b450' : '#dc3232';
-                            status.textContent = '✓ Done — save post to keep';
+                            status.textContent = '✓ Done — scoring readability…';
                             status.style.color = '#46b450';
+                            // Also refresh readability score
+                            fetch(ajaxurl, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                                body: new URLSearchParams({
+                                    action: 'cs_seo_readability_score_one',
+                                    post_id: postId,
+                                    nonce: csSeoMetabox.nonce
+                                })
+                            })
+                            .then(function(r) { return r.json(); })
+                            .then(function(rd) {
+                                if (rd.success) {
+                                    var d = rd.data;
+                                    var badge  = document.getElementById('cs_seo_r_badge_'   + postId);
+                                    var detail = document.getElementById('cs_seo_r_details_' + postId);
+                                    var col = d.score >= 80 ? '#1a7a34' : d.score >= 60 ? '#e67e00' : '#c3372b';
+                                    var lbl = d.score >= 80 ? 'Easy' : d.score >= 60 ? 'Moderate' : 'Hard';
+                                    if (badge)  { badge.style.background = col; badge.textContent = d.score + '% — ' + lbl; }
+                                    if (detail) {
+                                        var parts = [];
+                                        if (d.sentence_len !== null)    parts.push('Avg sentence <strong>' + d.sentence_len + '</strong> words');
+                                        if (d.heading_density !== null) parts.push('1 heading / <strong>' + d.heading_density + '</strong> words');
+                                        if (d.passive_pct !== null)     parts.push('<strong>' + d.passive_pct + '</strong>% passive');
+                                        detail.innerHTML = parts.join(' &middot; ');
+                                    }
+                                }
+                                status.textContent = '✓ Done — save post to keep';
+                            })
+                            .catch(function() { status.textContent = '✓ Done — save post to keep'; });
                         } else {
                             status.textContent = '✗ ' + (data.data || 'Error');
                             status.style.color = '#dc3232';
@@ -142,6 +174,106 @@ trait CS_SEO_Metabox {
             <span class="cs-og-status" style="display:block;font-size:11px;color:#888;margin-top:3px"><?php esc_html_e( 'No featured image set — using site default OG image', 'cloudscale-seo-ai-optimizer' ); ?></span>
             <?php endif; ?>
         </p>
+
+        <hr style="margin:16px 0;border:none;border-top:1px solid #ddd">
+
+        <?php
+        // ── Readability score ─────────────────────────────────────────────────
+        $r_score = isset($r_data['score']) ? (int) $r_data['score'] : null;
+        $r_colour = '#888';
+        $r_label  = esc_html__( 'Not scored yet', 'cloudscale-seo-ai-optimizer' );
+        if (null !== $r_score) {
+            if ($r_score >= 80)      { $r_colour = '#1a7a34'; $r_label = esc_html__( 'Easy', 'cloudscale-seo-ai-optimizer' ); }
+            elseif ($r_score >= 60)  { $r_colour = '#e67e00'; $r_label = esc_html__( 'Moderate', 'cloudscale-seo-ai-optimizer' ); }
+            else                     { $r_colour = '#c3372b'; $r_label = esc_html__( 'Hard', 'cloudscale-seo-ai-optimizer' ); }
+        }
+        ?>
+        <p style="margin:0 0 8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <strong><?php esc_html_e( 'Readability', 'cloudscale-seo-ai-optimizer' ); ?></strong>
+            <span id="cs_seo_r_badge_<?php echo (int) $post->ID; ?>"
+                  style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:700;color:#fff;background:<?php echo esc_attr($r_colour); ?>">
+                <?php echo null !== $r_score ? esc_html((string) $r_score . '% — ' . $r_label) : esc_html__( '—', 'cloudscale-seo-ai-optimizer' ); ?>
+            </span>
+            <span id="cs_seo_r_details_<?php echo (int) $post->ID; ?>" style="font-size:11px;color:#666">
+                <?php if ($r_data): ?>
+                    <?php
+                    $sl = isset($r_data['sentence_len']) ? round((float)$r_data['sentence_len'], 1) : null;
+                    $hd = isset($r_data['heading_density']) ? (int)$r_data['heading_density'] : null;
+                    $pv = isset($r_data['passive_pct'])     ? (int)$r_data['passive_pct']     : null;
+                    $parts = [];
+                    if (null !== $sl) {
+                        /* translators: %s: average words per sentence */
+                        $parts[] = sprintf( esc_html__( 'Avg sentence %s words', 'cloudscale-seo-ai-optimizer' ), '<strong>' . esc_html((string)$sl) . '</strong>' );
+                    }
+                    if (null !== $hd) {
+                        /* translators: %s: words per heading */
+                        $parts[] = sprintf( esc_html__( '1 heading / %s words', 'cloudscale-seo-ai-optimizer' ), '<strong>' . esc_html((string)$hd) . '</strong>' );
+                    }
+                    if (null !== $pv) {
+                        /* translators: %s: passive voice percentage */
+                        $parts[] = sprintf( esc_html__( '%s%% passive', 'cloudscale-seo-ai-optimizer' ), '<strong>' . esc_html((string)$pv) . '</strong>' );
+                    }
+                    echo wp_kses( implode( ' &middot; ', $parts ), [ 'strong' => [] ] );
+                    ?>
+                <?php endif; ?>
+            </span>
+            <button type="button" class="button cs-r-score-btn"
+                    id="cs_seo_r_btn_<?php echo (int) $post->ID; ?>"
+                    data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"
+                    style="font-size:11px;height:22px;line-height:20px;padding:0 8px">
+                <?php esc_html_e( '⟳ Recalculate', 'cloudscale-seo-ai-optimizer' ); ?>
+            </button>
+            <span id="cs_seo_r_status_<?php echo (int) $post->ID; ?>" style="font-size:11px;color:#888"></span>
+        </p>
+
+        <?php ob_start(); ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.cs-r-score-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var pid    = btn.getAttribute('data-post-id');
+                    var badge  = document.getElementById('cs_seo_r_badge_'   + pid);
+                    var detail = document.getElementById('cs_seo_r_details_' + pid);
+                    var status = document.getElementById('cs_seo_r_status_'  + pid);
+                    btn.disabled = true;
+                    status.textContent = '⟳ Scoring…';
+                    fetch(ajaxurl, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: new URLSearchParams({
+                            action: 'cs_seo_readability_score_one',
+                            post_id: pid,
+                            nonce: csSeoMetabox.nonce
+                        })
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.success) {
+                            var d = data.data;
+                            var col = d.score >= 80 ? '#1a7a34' : d.score >= 60 ? '#e67e00' : '#c3372b';
+                            var lbl = d.score >= 80 ? 'Easy' : d.score >= 60 ? 'Moderate' : 'Hard';
+                            badge.style.background = col;
+                            badge.textContent = d.score + '% — ' + lbl;
+                            var parts = [];
+                            if (d.sentence_len !== null)    parts.push('Avg sentence <strong>' + d.sentence_len + '</strong> words');
+                            if (d.heading_density !== null) parts.push('1 heading / <strong>' + d.heading_density + '</strong> words');
+                            if (d.passive_pct !== null)     parts.push('<strong>' + d.passive_pct + '</strong>% passive');
+                            detail.innerHTML = parts.join(' &middot; ');
+                            status.textContent = '✓ Updated';
+                            status.style.color = '#46b450';
+                        } else {
+                            status.textContent = '✗ ' + (data.data || 'Error');
+                            status.style.color = '#dc3232';
+                        }
+                    })
+                    .catch(function(e) {
+                        status.textContent = '✗ ' + e.message;
+                        status.style.color = '#dc3232';
+                    })
+                    .finally(function() { btn.disabled = false; });
+                });
+            });
+        });
+        <?php wp_add_inline_script('cs-seo-metabox-js', ob_get_clean()); ?>
 
         <hr style="margin:16px 0;border:none;border-top:1px solid #ddd">
         <?php $hide_summary = (int) get_post_meta($post->ID, self::META_HIDE_SUMMARY, true); ?>

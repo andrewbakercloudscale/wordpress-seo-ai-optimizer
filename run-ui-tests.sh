@@ -1,24 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-KEY="REPO_BASE/CPT_Default_Key.pem"
-HOST="ec2-user@your-ec2-host.af-south-1.compute.amazonaws.com"
+PI_KEY="REPO_BASE/pi-monitor/deploy/pi_key"
+CONTAINER="pi_wordpress"
 WP_PATH="/var/www/html"
+WP_CLI="php ${WP_PATH}/wp-cli.phar --allow-root"
 
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/tests" && pwd)"
 
+# ── Auto-detect network: direct SSH on home network, Cloudflare tunnel off it ──
+PI_LOCAL="andrew-pi-5.local"
+CF_HOSTNAME="ssh.andrewbaker.ninja"
 # ── SSH ControlMaster — single persistent connection reused for all commands ─
 CTRL_SOCK="/tmp/pw-ui-test-$$"
-SSH_OPTS="-i ${KEY} -o StrictHostKeyChecking=no -o LogLevel=ERROR \
-    -o ControlMaster=auto -o ControlPath=${CTRL_SOCK} -o ControlPersist=yes \
-    -o ServerAliveInterval=15 -o ServerAliveCountMax=10"
+if nc -z -w2 "$PI_LOCAL" 22 2>/dev/null; then
+    PI_HOST="pi@${PI_LOCAL}"
+    pi_ssh() { ssh -i "${PI_KEY}" -o StrictHostKeyChecking=no -o LogLevel=ERROR -o ControlMaster=auto -o ControlPath="${CTRL_SOCK}" -o ControlPersist=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=10 "${PI_HOST}" "$@"; }
+    echo "Network: home — direct SSH"
+else
+    PI_HOST="pi@${CF_HOSTNAME}"
+    pi_ssh() { ssh -i "${PI_KEY}" -o "ProxyCommand=cloudflared access ssh --hostname ${CF_HOSTNAME}" -o StrictHostKeyChecking=no -o LogLevel=ERROR -o ControlMaster=auto -o ControlPath="${CTRL_SOCK}" -o ControlPersist=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=10 "${PI_HOST}" "$@"; }
+    echo "Network: remote — Cloudflare tunnel"
+fi
 
-run_remote()  { ssh ${SSH_OPTS} "${HOST}" "$@"; }
-run_wp_php()  { ssh ${SSH_OPTS} "${HOST}" "wp eval-file - --path=${WP_PATH} --allow-root"; }
+run_remote()  { pi_ssh "$@"; }
+run_wp()      { run_remote "docker exec ${CONTAINER} ${WP_CLI} $*"; }
+run_wp_php()  { pi_ssh "docker exec -i ${CONTAINER} ${WP_CLI} eval-file - --path=${WP_PATH}"; }
 
 close_ssh() {
-    ssh -i "${KEY}" -o ControlPath="${CTRL_SOCK}" -o LogLevel=ERROR \
-        -O exit "${HOST}" 2>/dev/null || true
+    ssh -i "${PI_KEY}" -o ControlPath="${CTRL_SOCK}" -o LogLevel=ERROR \
+        -O exit "${PI_HOST}" 2>/dev/null || true
 }
 
 # ── Load config from .env ────────────────────────────────────────────────────
@@ -35,7 +46,7 @@ echo "--- Connecting to server..."
 run_remote "echo 'Connection OK'"
 
 # ── Check wp-cli ─────────────────────────────────────────────────────────────
-if ! run_remote "command -v wp >/dev/null 2>&1"; then
+if ! run_remote "docker exec ${CONTAINER} ${WP_CLI} --info >/dev/null 2>&1"; then
     echo "ERROR: wp-cli not found on server. Install: https://wp-cli.org/#installing"
     close_ssh; exit 1
 fi
@@ -50,7 +61,7 @@ cleanup() {
     echo ""
     if [[ -n "${TEST_USER:-}" ]]; then
         echo "--- Deleting test account ${TEST_USER}..."
-        run_remote "wp user delete '${TEST_USER}' --yes --path=${WP_PATH} --allow-root 2>/dev/null || true"
+        run_wp "user delete '${TEST_USER}' --yes --path=${WP_PATH} 2>/dev/null || true"
         echo "--- Test account deleted."
     fi
     close_ssh
@@ -59,11 +70,10 @@ trap cleanup EXIT
 
 # ── Create the temporary admin account ───────────────────────────────────────
 echo "--- Creating temporary test account: ${TEST_USER}"
-run_remote "wp user create '${TEST_USER}' '${TEST_EMAIL}' \
+run_wp "user create '${TEST_USER}' '${TEST_EMAIL}' \
     --role=administrator \
     --user_pass='${TEST_PASS}' \
-    --path=${WP_PATH} \
-    --allow-root"
+    --path=${WP_PATH}"
 echo "--- Test account created."
 
 # ── Mark test user as excluded from 2FA enforcement ──────────────────────────
@@ -72,12 +82,14 @@ echo "--- Test account created."
 # hash so the re-evaluation is skipped and our 'excluded' value sticks.
 printf '<?php
 $user = get_user_by("login", "%s");
-if (!$user) { die("User not found: %s\n"); }
-$hash = get_option(WP_2FA_PREFIX . "settings_hash", "");
+if (!$user) { die("User not found\n"); }
+// WP_2FA_PREFIX may not be defined in WP-CLI context if plugin loads lazily
+$prefix = defined("WP_2FA_PREFIX") ? WP_2FA_PREFIX : "wp_2fa_";
+$hash   = get_option($prefix . "settings_hash", "");
 update_user_meta($user->ID, "wp_2fa_enforcement_state",    "excluded");
 update_user_meta($user->ID, "wp_2fa_global_settings_hash", $hash);
-echo "OK (hash=" . $hash . ")\n";
-' "$TEST_USER" "$TEST_USER" | run_wp_php
+echo "2FA_OK\n";
+' "$TEST_USER" | run_wp_php 2>/dev/null | grep '2FA_OK\|not found' || true
 echo "--- 2FA excluded."
 
 # ── Generate WordPress auth cookies via PHP — bypasses login form, 2FA, etc. ─

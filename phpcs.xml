@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<ruleset name="CloudScale SEO AI Optimizer">
+    <description>CloudScale SEO AI Optimizer — WordPress.org Plugin Check (PCP) coding standards.</description>
+
+    <!-- Scan only plugin source files. -->
+    <file>.</file>
+    <exclude-pattern>/.svn-working-copy/*</exclude-pattern>
+    <exclude-pattern>/repo/*</exclude-pattern>
+    <exclude-pattern>/tests/*</exclude-pattern>
+    <exclude-pattern>/docs/*</exclude-pattern>
+    <exclude-pattern>/vendor/*</exclude-pattern>
+    <exclude-pattern>*.min.js</exclude-pattern>
+    <exclude-pattern>*.min.css</exclude-pattern>
+
+    <!-- WordPress Coding Standards -->
+    <rule ref="WordPress-Core"/>
+    <rule ref="WordPress-Docs"/>
+    <rule ref="WordPress-Extra"/>
+
+    <!--
+        Single plugin prefix: cs_seo.
+        Covers cs_seo_* (options, hooks, AJAX actions), CS_SEO_* (traits),
+        Cs_Seo_* (classes) — PrefixAllGlobals uses case-insensitive matching.
+    -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <properties>
+            <property name="prefixes" type="array">
+                <element value="cs_seo"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Minimum PHP version this plugin supports. -->
+    <config name="testVersion" value="8.0-"/>
+</ruleset>

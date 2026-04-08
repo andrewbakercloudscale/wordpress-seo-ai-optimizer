@@ -152,7 +152,8 @@ trait CS_SEO_Redirects {
                 $redirects[ $i ]['hits']     = (int) ( $r['hits'] ?? 0 ) + 1;
                 $redirects[ $i ]['last_hit'] = time();
                 update_option( 'cs_seo_redirects', $redirects, false );
-                wp_redirect( $r['to'], 301 );
+                // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- redirect manager intentionally supports external destinations; destination is admin-controlled and validated with esc_url_raw() at write time
+                wp_redirect( esc_url_raw( $r['to'] ), 301 );
                 exit;
             }
         }

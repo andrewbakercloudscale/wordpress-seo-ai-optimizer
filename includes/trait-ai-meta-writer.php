@@ -32,7 +32,7 @@ trait CS_SEO_AI_Meta_Writer {
         if (!$key) throw new \RuntimeException($provider === 'gemini' ? 'No Gemini API key configured' : 'No Anthropic API key configured'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 
         // ── Build context ─────────────────────────────────────────────────────
-        $content = CloudScale_SEO_AI_Optimizer_Utils::text_from_html((string) $post->post_content);
+        $content = Cs_Seo_Utils::text_from_html((string) $post->post_content);
         $content = mb_substr($content, 0, 6000);
 
         $site_context_parts = [];
@@ -235,7 +235,7 @@ trait CS_SEO_AI_Meta_Writer {
 
         if (!$key) throw new \RuntimeException($provider === 'gemini' ? 'No Gemini API key configured' : 'No Anthropic API key configured'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 
-        $content  = CloudScale_SEO_AI_Optimizer_Utils::text_from_html((string) $post->post_content);
+        $content  = Cs_Seo_Utils::text_from_html((string) $post->post_content);
         $content  = mb_substr($content, 0, 6000);
 
         // Collect images that need ALT text — bundle into the same API call.
@@ -404,7 +404,7 @@ trait CS_SEO_AI_Meta_Writer {
     public function ajax_generate_one(): void {
         check_ajax_referer( 'cs_seo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
-        $post_id      = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
+        $post_id      = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
         $seo_feedback = sanitize_text_field( wp_unslash( $_POST['seo_notes'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
         $old_score    = absint( wp_unslash( $_POST['seo_score'] ?? 0 ) );               // phpcs:ignore WordPress.Security.NonceVerification.Missing
         if (!$post_id) wp_send_json_error('Missing post_id');
@@ -459,7 +459,7 @@ trait CS_SEO_AI_Meta_Writer {
 
         $len       = mb_strlen($existing_desc);
         $direction = $len > $max ? 'too long' : 'too short';
-        $content   = CloudScale_SEO_AI_Optimizer_Utils::text_from_html((string) $post->post_content);
+        $content   = Cs_Seo_Utils::text_from_html((string) $post->post_content);
         $content   = mb_substr($content, 0, 6000);
 
         $site_context_parts = [];
@@ -531,8 +531,8 @@ trait CS_SEO_AI_Meta_Writer {
     public function ajax_save_desc(): void {
         check_ajax_referer( 'cs_seo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
-        $post_id = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
-        $desc    = sanitize_textarea_field( wp_unslash( $_POST['desc'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
+        $post_id = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
+        $desc    = sanitize_textarea_field( wp_unslash( $_POST['desc'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
         if ( ! $post_id ) wp_send_json_error( 'Missing post_id' );
         if ( ! get_post( $post_id ) ) wp_send_json_error( 'Post not found' );
         update_post_meta( $post_id, self::META_DESC, $desc );
@@ -552,7 +552,7 @@ trait CS_SEO_AI_Meta_Writer {
     public function ajax_fix_desc(): void {
         check_ajax_referer( 'cs_seo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
-        $post_id = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
+        $post_id = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
         if (!$post_id) wp_send_json_error('Missing post_id');
 
         $min = max(100, (int) $this->ai_opts['min_chars']);
@@ -648,7 +648,7 @@ trait CS_SEO_AI_Meta_Writer {
 
         $len       = mb_strlen($current_title);
         $direction = $len > 60 ? 'too long' : 'too short';
-        $content   = CloudScale_SEO_AI_Optimizer_Utils::text_from_html((string) $post->post_content);
+        $content   = Cs_Seo_Utils::text_from_html((string) $post->post_content);
         $content   = mb_substr($content, 0, 2000);
 
         $system   = 'You write concise, compelling SEO title tags for blog posts. '
@@ -690,7 +690,7 @@ trait CS_SEO_AI_Meta_Writer {
     public function ajax_generate_all(): void {
         check_ajax_referer( 'cs_seo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
-        $post_id   = (int) sanitize_key( wp_unslash( $_POST['post_id'] ?? 0 ) );   // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
+        $post_id   = (int) sanitize_key( wp_unslash( $_POST['post_id'] ?? 0 ) );   // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
         $overwrite = (int) sanitize_key( wp_unslash( $_POST['overwrite'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
         if (!$post_id) wp_send_json_error('Missing post_id');
@@ -753,7 +753,7 @@ trait CS_SEO_AI_Meta_Writer {
     public function ajax_regen_static(): void {
         check_ajax_referer( 'cs_seo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
-        $post_id = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
+        $post_id = absint( wp_unslash( $_POST['post_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
         if (!$post_id) wp_send_json_error('Missing post_id');
 
         // Clear stale custom OG image — fall through to featured image.
@@ -783,7 +783,7 @@ trait CS_SEO_AI_Meta_Writer {
         global $wpdb;
         check_ajax_referer( 'cs_seo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
-        $page = max(1, (int) sanitize_key( wp_unslash( $_POST['page'] ?? 1 ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
+        $page = max(1, (int) sanitize_key( wp_unslash( $_POST['page'] ?? 1 ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
         $per_page = 50;
 
         // Build homepage row — pinned at top on page 1 regardless of Reading settings.
@@ -803,21 +803,25 @@ trait CS_SEO_AI_Meta_Writer {
                     if (preg_match('/alt=["\']([^"\']*)["\']/i', $img_tag, $m) && $m[1] === '') $missing_alt++;
                 }
                 $hp_score_raw = get_post_meta($front_page_id, self::META_SEO_SCORE, true);
+                $hp_r_raw     = (string) get_post_meta($front_page_id, self::META_READABILITY, true);
+                $hp_r_data    = $hp_r_raw ? json_decode($hp_r_raw, true) : null;
                 $hp_raw_title = html_entity_decode((string) get_the_title($front_page_id), ENT_QUOTES | ENT_HTML5, 'UTF-8');
                 $homepage = [
-                    'id'              => $front_page_id,
-                    'title'           => $hp_raw_title,
-                    'effective_title' => $custom_hp_title !== '' ? $custom_hp_title : $hp_raw_title,
-                    'title_chars'     => mb_strlen($custom_hp_title !== '' ? $custom_hp_title : $hp_raw_title),
-                    'type'            => 'homepage',
-                    'date'            => get_the_date('Y-m-d', $front_page_id),
-                    'has_desc'        => $desc !== '',
-                    'desc'            => $desc,
-                    'desc_chars'      => mb_strlen($desc),
-                    'missing_alt'     => $missing_alt,
-                    'is_homepage'     => true,
-                    'seo_score'       => $hp_score_raw !== '' ? (int) $hp_score_raw : null,
-                    'seo_notes'       => (string) get_post_meta($front_page_id, self::META_SEO_NOTES, true),
+                    'id'                => $front_page_id,
+                    'title'             => $hp_raw_title,
+                    'effective_title'   => $custom_hp_title !== '' ? $custom_hp_title : $hp_raw_title,
+                    'title_chars'       => mb_strlen($custom_hp_title !== '' ? $custom_hp_title : $hp_raw_title),
+                    'type'              => 'homepage',
+                    'date'              => get_the_date('Y-m-d', $front_page_id),
+                    'has_desc'          => $desc !== '',
+                    'desc'              => $desc,
+                    'desc_chars'        => mb_strlen($desc),
+                    'missing_alt'       => $missing_alt,
+                    'is_homepage'       => true,
+                    'seo_score'         => $hp_score_raw !== '' ? (int) $hp_score_raw : null,
+                    'seo_notes'         => (string) get_post_meta($front_page_id, self::META_SEO_NOTES, true),
+                    'readability_score' => isset($hp_r_data['score']) ? (int) $hp_r_data['score'] : null,
+                    'readability_data'  => $hp_r_data ?: null,
                 ];
             }
         } elseif ($show_on_front === 'posts') {
@@ -874,21 +878,25 @@ trait CS_SEO_AI_Meta_Writer {
                 if (preg_match('/alt=["\']([^"\']*)["\']/i', $img_tag, $m) && $m[1] === '') $missing_alt++;
             }
             $score_raw = get_post_meta($p->ID, self::META_SEO_SCORE, true);
+            $r_raw     = (string) get_post_meta($p->ID, self::META_READABILITY, true);
+            $r_data    = $r_raw ? json_decode($r_raw, true) : null;
             $items[] = [
-                'id'               => $p->ID,
-                'title'            => $raw_title,
-                'effective_title'  => $effective_title,
-                'title_chars'      => mb_strlen($effective_title),
-                'type'             => $p->post_type,
-                'date'             => get_the_date('Y-m-d', $p->ID),
-                'has_desc'         => $desc !== '',
-                'desc'             => $desc,
-                'desc_chars'       => mb_strlen($desc),
-                'missing_alt'      => $missing_alt,
-                'edit_link'        => get_edit_post_link($p->ID, ''),
-                'permalink'        => get_permalink($p->ID),
-                'seo_score'        => $score_raw !== '' ? (int) $score_raw : null,
-                'seo_notes'        => (string) get_post_meta($p->ID, self::META_SEO_NOTES, true),
+                'id'                => $p->ID,
+                'title'             => $raw_title,
+                'effective_title'   => $effective_title,
+                'title_chars'       => mb_strlen($effective_title),
+                'type'              => $p->post_type,
+                'date'              => get_the_date('Y-m-d', $p->ID),
+                'has_desc'          => $desc !== '',
+                'desc'              => $desc,
+                'desc_chars'        => mb_strlen($desc),
+                'missing_alt'       => $missing_alt,
+                'edit_link'         => get_edit_post_link($p->ID, ''),
+                'permalink'         => get_permalink($p->ID),
+                'seo_score'         => $score_raw !== '' ? (int) $score_raw : null,
+                'seo_notes'         => (string) get_post_meta($p->ID, self::META_SEO_NOTES, true),
+                'readability_score' => isset($r_data['score']) ? (int) $r_data['score'] : null,
+                'readability_data'  => $r_data ?: null,
             ];
         }
 
@@ -924,8 +932,37 @@ trait CS_SEO_AI_Meta_Writer {
     }
 
     /**
-     * Test the stored API key with a minimal API call — supports Anthropic and Gemini.
+     * Convert a raw cURL error string into a human-readable explanation.
+     *
+     * @since 4.19.102
+     * @param string $raw_error  The cURL error message returned by WP_Error.
+     * @param string $host       The hostname being contacted (used in the message).
+     * @return string            A user-friendly error string.
      */
+    private static function friendly_curl_error( string $raw_error, string $host ): string {
+        if ( preg_match( '/cURL error (\d+)/i', $raw_error, $m ) ) {
+            switch ( (int) $m[1] ) {
+                case 6:
+                    return "DNS lookup failed — your server cannot resolve {$host}. Check your hosting DNS settings or contact your host.";
+                case 7:
+                    return "Connection refused by {$host}. A firewall or security rule on your server is likely blocking outbound connections on port 443. Ask your host to whitelist {$host}:443.";
+                case 28:
+                    return "Connection timed out — your server could not reach {$host} within 15 seconds. "
+                        . "This is almost always caused by a firewall or hosting restriction blocking outbound HTTPS traffic. "
+                        . "Contact your host and ask them to allow outbound connections to {$host}:443. "
+                        . "This is a server networking issue, not a problem with your API key.";
+                case 35:
+                case 51:
+                case 58:
+                case 60:
+                    return "SSL/TLS error connecting to {$host}. Your server may have outdated CA certificates or a proxy is intercepting HTTPS traffic. Contact your hosting provider.";
+                default:
+                    return "Connection failed (cURL error {$m[1]}) — your server cannot reach {$host}. Check firewall and proxy settings. Raw error: {$raw_error}";
+            }
+        }
+        return 'Connection failed: ' . $raw_error;
+    }
+
     /**
      * AJAX handler: tests the configured AI API key by sending a minimal request.
      *
@@ -935,15 +972,38 @@ trait CS_SEO_AI_Meta_Writer {
     public function ajax_test_key(): void {
         check_ajax_referer( 'cs_seo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
         $provider = sanitize_key(wp_unslash($_POST['provider'] ?? $this->ai_opts['ai_provider'] ?? 'anthropic'));
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in ajax_check()
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
         $key = sanitize_text_field(wp_unslash($_POST['live_key'] ?? ''));
         if (!$key) {
             $saved_key = $provider === 'gemini' ? ($this->ai_opts['gemini_key'] ?? '') : $this->ai_opts['anthropic_key'];
             $key = $saved_key;
         }
         if (!$key) wp_send_json_error('No API key entered');
+
+        // ── Firewall / connectivity pre-check ─────────────────────────────────
+        $api_host    = $provider === 'gemini' ? 'generativelanguage.googleapis.com' : 'api.anthropic.com';
+        $resolved_ip = gethostbyname($api_host);
+        if ($resolved_ip === $api_host) {
+            // gethostbyname returns the input unchanged when DNS fails
+            wp_send_json_error(
+                "Firewall check — DNS lookup failed: your server cannot resolve {$api_host}. " .
+                'This indicates a DNS misconfiguration on your hosting server. Contact your host.'
+            );
+        }
+        // Plain TCP connect on port 443 — tests reachability without needing a valid key
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fsockopen
+        $sock = @fsockopen($api_host, 443, $errno, $errstr, 5);
+        if (false === $sock) {
+            wp_send_json_error(
+                "Firewall check failed — your server resolved {$api_host} to {$resolved_ip} " .
+                "but cannot open a TCP connection to port 443 (error {$errno}: {$errstr}). " .
+                'A firewall is blocking outbound HTTPS traffic. ' .
+                "Ask your host to allow outbound connections to {$api_host}:443."
+            );
+        }
+        fclose($sock);
 
         if ($provider === 'gemini') {
             // Gemini: use generateContent endpoint with a minimal prompt
@@ -959,12 +1019,14 @@ trait CS_SEO_AI_Meta_Writer {
             ]);
 
             if (is_wp_error($response)) {
-                wp_send_json_error('Connection failed: ' . $response->get_error_message());
+                wp_send_json_error( self::friendly_curl_error( $response->get_error_message(), 'generativelanguage.googleapis.com' ) );
             }
             $code = wp_remote_retrieve_response_code($response);
             $body = json_decode(wp_remote_retrieve_body($response), true);
             if ($code === 200) {
-                wp_send_json_success('API key valid. Provider: Google Gemini');
+                wp_send_json_success('API key valid and credits confirmed. Provider: Google Gemini');
+            } elseif ($code === 401 || $code === 403) {
+                wp_send_json_error('Invalid API key — check that you copied it correctly from aistudio.google.com.');
             } else {
                 $msg = $body['error']['message'] ?? "HTTP {$code}";
                 wp_send_json_error("API error: {$msg}");
@@ -987,14 +1049,25 @@ trait CS_SEO_AI_Meta_Writer {
             ]);
 
             if (is_wp_error($response)) {
-                wp_send_json_error('Connection failed: ' . $response->get_error_message());
+                wp_send_json_error( self::friendly_curl_error( $response->get_error_message(), 'api.anthropic.com' ) );
             }
             $code = wp_remote_retrieve_response_code($response);
             $body = json_decode(wp_remote_retrieve_body($response), true);
+            $err_type = $body['error']['type'] ?? '';
+            $err_msg  = $body['error']['message'] ?? '';
             if ($code === 200) {
-                wp_send_json_success('API key valid. Model: ' . ($body['model'] ?? 'unknown'));
+                $model = $body['model'] ?? 'unknown';
+                wp_send_json_success( 'API key valid and credits confirmed. Model: ' . $model );
+            } elseif ($code === 401) {
+                wp_send_json_error('Invalid API key — check that you copied it correctly from console.anthropic.com/settings/keys.');
+            } elseif ($code === 402 || $err_type === 'billing_error' || false !== stripos($err_msg, 'credit') || false !== stripos($err_msg, 'billing')) {
+                wp_send_json_error('Your Anthropic account has insufficient credits. Top up your balance at console.anthropic.com/settings/billing.' . ($err_msg ? ' (' . $err_msg . ')' : ''));
+            } elseif ($code === 429 && $err_type === 'rate_limit_error') {
+                wp_send_json_error('Rate limit reached — your API key is valid but you\'ve hit a request limit. Try again in a minute.');
+            } elseif ($code === 529) {
+                wp_send_json_error('Anthropic API is currently overloaded. Your key appears valid — try again shortly.');
             } else {
-                $msg = $body['error']['message'] ?? "HTTP {$code}";
+                $msg = $err_msg ?: "HTTP {$code}";
                 wp_send_json_error("API error: {$msg}");
             }
         }

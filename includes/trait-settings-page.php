@@ -73,6 +73,9 @@ trait CS_SEO_Settings_Page {
             <button class="ab-tab"        data-tab="perf">⚡ <?php esc_html_e( 'Performance', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="catfix">🏷 <?php esc_html_e( 'Categories', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="batch">🔄 <?php esc_html_e( 'Scheduled Batch', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="blc">🔗 <?php esc_html_e( 'Broken Links', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="imgseo">🖼 <?php esc_html_e( 'Image SEO', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="titleopt">🎯 <?php esc_html_e( 'Title Optimiser', 'cloudscale-seo-ai-optimizer' ); ?></button>
         </div>
         </div>
 
@@ -272,7 +275,7 @@ trait CS_SEO_Settings_Page {
                                     'claude-opus-4-6'           => 'Claude Opus 4.6 (best quality, highest cost)',
                                     'claude-sonnet-4-6'         => 'Claude Sonnet 4.6 (recommended — quality + speed)',
                                     'claude-sonnet-4-5'         => 'Claude Sonnet 4.5',
-                                    'claude-sonnet-4-20250514'  => 'Claude Sonnet 4 (stable pinned)',
+                                    'claude-sonnet-4.20.140514'  => 'Claude Sonnet 4 (stable pinned)',
                                     'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5 (fastest, cheapest)',
                                 ];
                                 $gemini_models = [
@@ -374,7 +377,7 @@ trait CS_SEO_Settings_Page {
                     <span><span class="ab-zone-icon">⚡</span> <?php esc_html_e( 'Auto Pipeline', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
                     <?php $this->explain_btn('auto_pipeline', '⚡ Auto Pipeline — How it works', [
-                        ['rec'=>'ℹ️ Info',         'name'=>'What it does',          'desc'=>'Automatically runs every AI operation — meta description, focus keyword, ALT text for attached images, internal link suggestions, AI summary box, and Related Articles — immediately when a post is published or updated. Each step runs in a background HTTP request so publish is never blocked.'],
+                        ['rec'=>'ℹ️ Info',         'name'=>'What it does',          'desc'=>'Automatically runs every AI operation — meta description, focus keyword, ALT text for attached images, internal link suggestions, AI summary box, Related Articles, and readability scoring — immediately when a post is published or updated. Each step runs in a background HTTP request so publish is never blocked.'],
                         ['rec'=>'✅ Recommended',  'name'=>'Run on first publish',  'desc'=>'Triggers once when a post goes from any status to Published. Will not re-run on subsequent saves unless "Re-run on update" is also enabled. Prevents duplicate API calls on minor edits.'],
                         ['rec'=>'⬜ Optional',     'name'=>'Re-run on update',      'desc'=>'Re-triggers the full pipeline every time an already-published post is saved. Useful for keeping AI content fresh when you make major content changes. Each re-run replaces all previous AI-generated data for that post.'],
                         ['rec'=>'ℹ️ Info',         'name'=>'Minimum content',       'desc'=>'All AI steps silently skip if the post has fewer than 50 words. This prevents generating meaningless output for stubs, drafts accidentally published, or test posts.'],
@@ -383,7 +386,7 @@ trait CS_SEO_Settings_Page {
                     </span>
                 </div>
                 <div class="ab-zone-body" style="padding:20px 24px;">
-                    <p style="margin:0 0 16px;color:#50575e;"><?php esc_html_e( 'Automatically run all AI operations (meta description, ALT text, internal links, AI summary, Related Articles) in a background request immediately on publish. Requires an API key. Posts under 50 words are skipped.', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                    <p style="margin:0 0 16px;color:#50575e;"><?php esc_html_e( 'Automatically run all AI operations (meta description, ALT text, internal links, AI summary, Related Articles, readability score) in a background request immediately on publish. Requires an API key. Posts under 50 words are skipped.', 'cloudscale-seo-ai-optimizer' ); ?></p>
                     <table class="form-table" role="presentation">
                         <tr>
                             <th style="width:220px;"><?php esc_html_e( 'Run on first publish:', 'cloudscale-seo-ai-optimizer' ); ?></th>
@@ -391,7 +394,7 @@ trait CS_SEO_Settings_Page {
                                 <label>
                                     <input type="checkbox"
                                         name="<?php echo esc_attr(self::AI_OPT); ?>[auto_run_enabled]"
-                                        value="1" <?php checked((int)($ai['auto_run_enabled'] ?? 0), 1); ?>>
+                                        value="1" <?php checked((int)($ai['auto_run_enabled'] ?? 1), 1); ?>>
                                     <?php esc_html_e( 'Run all AI operations when a post is first published', 'cloudscale-seo-ai-optimizer' ); ?>
                                 </label>
                             </td>
@@ -402,7 +405,7 @@ trait CS_SEO_Settings_Page {
                                 <label>
                                     <input type="checkbox"
                                         name="<?php echo esc_attr(self::AI_OPT); ?>[auto_run_on_update]"
-                                        value="1" <?php checked((int)($ai['auto_run_on_update'] ?? 0), 1); ?>>
+                                        value="1" <?php checked((int)($ai['auto_run_on_update'] ?? 1), 1); ?>>
                                     <?php esc_html_e( 'Re-run all AI operations when an already-published post is updated', 'cloudscale-seo-ai-optimizer' ); ?>
                                 </label>
                                 <p class="description"><?php esc_html_e( 'Clears previous results and re-runs the full pipeline 5 seconds after each save.', 'cloudscale-seo-ai-optimizer' ); ?></p>
@@ -573,10 +576,10 @@ trait CS_SEO_Settings_Page {
                         <button class="button" id="ab-sum-reload-hdr" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-summary" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
                         <?php $this->explain_btn('summary', '📋 AI Summary Box — How this works', [
-                        ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Generates the three-field AI Summary Box shown at the top of each post — What it is, Why it matters, and Key takeaway. These are displayed to readers and used by AI search engines to understand your content.'],
-                        ['rec'=>'✅ Recommended','name'=>'Why it matters','desc'=>'AI-powered search engines like Perplexity and SearchGPT use structured summaries to decide whether to cite your content. A well-written summary box increases the chance your post appears as a source in AI-generated answers.'],
+                        ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Generates the three-field AI Summary Box shown at the top of each post — What it is, Why it matters, and Key takeaway. Summaries are now written SEO-first: primary keyword in the opening sentence, secondary keywords woven in naturally, and sentences written to match search intent rather than for conversational reading.'],
+                        ['rec'=>'✅ Recommended','name'=>'Why SEO summaries matter','desc'=>'AI-powered search engines like Perplexity and SearchGPT use structured, keyword-rich summaries to decide whether to cite your content. A summary that leads with keywords and answers search intent directly is far more likely to be cited than a vague human-readable blurb.'],
                         ['rec'=>'ℹ️ Info','name'=>'Generate Missing','desc'=>'Processes every published post that has no existing AI summary. Runs one post at a time and shows progress. Safe to stop and restart at any time.'],
-                        ['rec'=>'ℹ️ Info','name'=>'Force Regenerate All','desc'=>'Overwrites all existing AI summaries across every post. Use this to refresh summaries after changing your AI provider or if you want to improve older generated content.'],
+                        ['rec'=>'ℹ️ Info','name'=>'Force Regenerate All','desc'=>'Overwrites all existing AI summaries across every post. Use this after the SEO-first prompt upgrade to refresh older human-readable summaries with keyword-optimised versions.'],
                     ]); ?>
                     </span>
                 </div>
@@ -1944,7 +1947,199 @@ trait CS_SEO_Settings_Page {
                 </div>
             </div><!-- /ab-card-catdrift -->
 
+            <div class="ab-zone-card ab-card-catmig" style="margin-top:24px;">
+                <div class="ab-zone-header" style="display:flex;align-items:center;justify-content:space-between;background:#b35900;">
+                    <span>&#128260; Migrate Categories</span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-catmig" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <?php $this->explain_btn('catmig', 'Migrate Categories', [
+                            ['name'=>'When to use','rec'=>'ℹ️ Info','desc'=>'Use this panel when you want to retire or consolidate a low-traffic category. Categories are listed from fewest posts to most — the lowest-count ones are the best candidates to migrate away.'],
+                            ['name'=>'Single-category posts','rec'=>'ℹ️ Info','desc'=>'A post assigned to only this category must be swapped to another category — it cannot simply be removed or it would end up uncategorised.'],
+                            ['name'=>'Multi-category posts','rec'=>'ℹ️ Info','desc'=>'A post already in two or more categories can either have this category removed (keeping the others) or swapped to a different one.'],
+                            ['name'=>'Applying changes','rec'=>'ℹ️ Info','desc'=>'Set the action for each post, then click Apply on individual rows or Apply All to process every pending row at once.'],
+                            ['name'=>'Deleting the category','rec'=>'ℹ️ Info','desc'=>'Once all posts have been migrated away, a red Delete Category button appears. Click it to permanently delete the empty category — no need to leave the plugin.'],
+                        ]); ?>
+                    </span>
+                </div>
+                <div class="ab-zone-body" style="padding:20px 24px;">
+
+                    <?php /* Phase 1: category list */ ?>
+                    <div id="cm-phase1">
+                        <div id="cm-cta" style="text-align:center;padding:32px 0;">
+                            <p style="color:#555;margin:0 0 16px;">View all categories sorted by post count. Select one to migrate its posts.</p>
+                            <button id="cm-load-btn" class="button button-primary button-hero">&#128260; Load Categories</button>
+                        </div>
+                        <div id="cm-cat-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
+                    </div>
+
+                    <?php /* Phase 2: posts within the selected category */ ?>
+                    <div id="cm-phase2" style="display:none;">
+                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+                            <button id="cm-back-btn" class="button" style="background:#b35900;border-color:#b35900;color:#fff;">&#8592; Back to Categories</button>
+                            <span id="cm-p2-title" style="font-weight:600;font-size:14px;color:#333;flex:1;"></span>
+                            <button id="cm-delete-cat-btn" class="button" style="background:#c3372b;border-color:#c3372b;color:#fff;display:none;">&#128465; Delete Category</button>
+                            <span id="cm-apply-result" style="display:none;font-size:12px;font-weight:600;padding:4px 10px;border-radius:12px;background:#d1fae5;color:#1a7a34;"></span>
+                            <button id="cm-apply-all-btn" class="button button-primary" style="background:#2d6a4f;border-color:#2d6a4f;color:#fff;">&#10003; Apply All</button>
+                        </div>
+                        <div id="cm-p2-status" style="font-size:13px;color:#555;margin-bottom:12px;"></div>
+                        <div id="cm-post-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
+                    </div>
+
+                </div><!-- /ab-zone-body -->
+            </div><!-- /ab-card-catmig -->
+
         </div><!-- /ab-pane-catfix -->
+
+        <?php /* ══════════════════ BROKEN LINK CHECKER PANE ══════════════════ */ ?>
+
+        <div class="ab-pane" id="ab-pane-blc">
+
+            <div class="ab-zone-card ab-card-blc" style="margin-top:0">
+                <div class="ab-zone-header">
+                    <span class="ab-zone-icon">🔗</span>
+                    <?php esc_html_e( 'Broken Link Checker', 'cloudscale-seo-ai-optimizer' ); ?>
+                </div>
+                <div class="ab-zone-body" style="padding:20px">
+                    <p style="margin:0 0 16px;color:#50575e;font-size:13px">
+                        <?php esc_html_e( 'Scans all published posts and pages for broken outbound links. Each unique URL is checked server-side once, regardless of how many posts use it.', 'cloudscale-seo-ai-optimizer' ); ?>
+                    </p>
+                    <div class="ab-ai-toolbar">
+                        <button id="blc-scan-btn" class="button button-primary ab-action-btn"><?php esc_html_e( '🔍 Scan for Broken Links', 'cloudscale-seo-ai-optimizer' ); ?></button>
+                        <button id="blc-stop-btn" class="button ab-action-btn" style="display:none"><?php esc_html_e( '⏹ Stop', 'cloudscale-seo-ai-optimizer' ); ?></button>
+                        <span id="blc-status" style="font-size:13px;color:#50575e"></span>
+                    </div>
+                    <div class="ab-progress" id="blc-progress"><div class="ab-progress-fill" id="blc-progress-fill"></div></div>
+                    <div id="blc-summary" class="ab-summary-row" style="display:none">
+                        <div class="ab-summary-card"><div class="ab-summary-num" id="blc-total-posts">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Posts Scanned', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
+                        <div class="ab-summary-card"><div class="ab-summary-num" id="blc-total-links">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Links Checked', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
+                        <div class="ab-summary-card"><div class="ab-summary-num" id="blc-broken-count" style="color:#9b1c1c">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Broken Links', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
+                        <div class="ab-summary-card"><div class="ab-summary-num" id="blc-redirect-count" style="color:#92400e">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Redirects', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
+                    </div>
+                    <div id="blc-results-wrap" style="overflow-x:auto;display:none">
+                        <table class="ab-posts" id="blc-table">
+                            <thead>
+                                <tr>
+                                    <th style="min-width:160px"><?php esc_html_e( 'Post', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                    <th style="min-width:260px"><?php esc_html_e( 'URL', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                    <th style="min-width:100px"><?php esc_html_e( 'Anchor Text', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                    <th style="min-width:100px"><?php esc_html_e( 'Status', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody id="blc-tbody"></tbody>
+                        </table>
+                    </div>
+                    <p id="blc-all-ok" style="display:none;color:#1a7a34;font-weight:600;font-size:14px;margin-top:16px">✅ <?php esc_html_e( 'No broken links found!', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                </div>
+            </div>
+
+        </div><!-- /ab-pane-blc -->
+
+        <?php /* ══════════════════ IMAGE SEO PANE ══════════════════ */ ?>
+
+        <div class="ab-pane" id="ab-pane-imgseo">
+
+            <div class="ab-zone-card ab-card-imgseo" style="margin-top:0">
+                <div class="ab-zone-header">
+                    <span class="ab-zone-icon">🖼</span>
+                    <?php esc_html_e( 'Image SEO Audit', 'cloudscale-seo-ai-optimizer' ); ?>
+                </div>
+                <div class="ab-zone-body" style="padding:20px">
+                    <p style="margin:0 0 16px;color:#50575e;font-size:13px">
+                        <?php esc_html_e( 'Scans your Media Library for SEO issues: missing ALT text, non-descriptive filenames (IMG_001.jpg etc.), and oversized files (>500 KB).', 'cloudscale-seo-ai-optimizer' ); ?>
+                    </p>
+                    <div class="ab-ai-toolbar">
+                        <button id="imgseo-scan-btn" class="button button-primary ab-action-btn"><?php esc_html_e( '🔍 Scan Media Library', 'cloudscale-seo-ai-optimizer' ); ?></button>
+                        <span id="imgseo-status" style="font-size:13px;color:#50575e"></span>
+                    </div>
+                    <div id="imgseo-summary" class="ab-summary-row" style="display:none">
+                        <div class="ab-summary-card"><div class="ab-summary-num" id="imgseo-total">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Total Images', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
+                        <div class="ab-summary-card"><div class="ab-summary-num" id="imgseo-missing-alt" style="color:#9b1c1c">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Missing ALT', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
+                        <div class="ab-summary-card"><div class="ab-summary-num" id="imgseo-bad-fname" style="color:#92400e">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Bad Filenames', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
+                        <div class="ab-summary-card"><div class="ab-summary-num" id="imgseo-large" style="color:#7c3aed">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Large Files (>500KB)', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
+                    </div>
+                    <div id="imgseo-results-wrap" style="overflow-x:auto;display:none">
+                        <table class="ab-posts" id="imgseo-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:60px"><?php esc_html_e( 'Preview', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                    <th><?php esc_html_e( 'Filename', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                    <th><?php esc_html_e( 'Used In', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                    <th><?php esc_html_e( 'Size', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                    <th><?php esc_html_e( 'ALT Text', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                    <th><?php esc_html_e( 'Issues', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                    <th><?php esc_html_e( 'Action', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody id="imgseo-tbody"></tbody>
+                        </table>
+                    </div>
+                    <p id="imgseo-all-ok" style="display:none;color:#1a7a34;font-weight:600;font-size:14px;margin-top:16px">✅ <?php esc_html_e( 'No image SEO issues found!', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                </div>
+            </div>
+
+        </div><!-- /ab-pane-imgseo -->
+
+        <?php /* ══════════════════ TITLE OPTIMISER PANE ══════════════════ */ ?>
+        <div class="ab-pane" id="ab-pane-titleopt">
+
+            <div class="ab-zone-card ab-card-titleopt" style="margin-top:0">
+                <div class="ab-zone-header" style="justify-content:space-between">
+                    <span><span class="ab-zone-icon">🎯</span> <?php esc_html_e( 'Title Optimiser', 'cloudscale-seo-ai-optimizer' ); ?></span>
+                    <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
+                        <button class="button" id="ab-titleopt-reload-hdr" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
+                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-titleopt" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <?php $this->explain_btn('titleopt', '🎯 Title Optimiser — How this works', [
+                            ['rec'=>'ℹ️ Info','name'=>'What this panel does','desc'=>'Scans all your published posts and uses AI to suggest SEO-optimised titles. Each suggestion includes the primary keywords identified, a before/after SEO score, and a note on what was weak and what was fixed. You can apply titles individually or in bulk.'],
+                            ['rec'=>'✅ Recommended','name'=>'Why title SEO matters','desc'=>'Google weighs the title heavily when deciding rankings. A title that leads with the primary keyword, is 50–60 characters long, and matches clear search intent (how-to, best, guide) consistently outranks a clever or conversational title. Most blog titles are written for humans first — this tool rewrites them for search engines first.'],
+                            ['rec'=>'ℹ️ Info','name'=>'SEO score','desc'=>'The score (0–100) measures keyword clarity, title length (ideal 50–60 chars), and search intent alignment. A score below 50 means the title is likely too vague or missing keywords. Above 70 is good. The goal is to see a meaningful jump from before to after.'],
+                            ['rec'=>'ℹ️ Info','name'=>'Analyse All','desc'=>'Runs the AI suggestion pass across every post that has not yet been analysed. Runs one post at a time in a polling loop. Safe to stop and restart. Does not change any post titles.'],
+                            ['rec'=>'⚠️ Important','name'=>'Apply','desc'=>'Applying a title updates the post title and URL slug. A 301 redirect is automatically created from the old URL to the new one — so existing links and search engine rankings are preserved. The redirect appears in the Sitemap & Redirects tab.'],
+                            ['rec'=>'ℹ️ Info','name'=>'Sort options','desc'=>'"Sort by Date" shows newest posts first. "Sort by Comments" shows most-engaged posts first — useful for prioritising high-traffic posts for optimisation.'],
+                        ]); ?>
+                    </span>
+                </div>
+                <div class="ab-zone-body" style="padding:20px 24px 24px;">
+
+                <div class="ab-api-key-warning" id="ab-titleopt-api-warn" style="<?php echo esc_attr( $alt_has_key ? 'display:none' : '' ); ?>">
+                    <div class="ab-warn-icon">⚠️</div>
+                    <div class="ab-warn-body">
+                        <strong>No AI API key saved — title analysis is disabled.</strong>
+                        Add an Anthropic API key in the <strong>✨ AI Tools</strong> tab → AI Meta Writer section and save.
+                    </div>
+                </div>
+
+                <div id="ab-titleopt-summary" class="ab-summary-row">
+                    <div class="ab-summary-card"><div class="ab-summary-num" id="titleopt-s-total">—</div><div class="ab-summary-lbl">Total Posts</div></div>
+                    <div class="ab-summary-card"><div class="ab-summary-num" id="titleopt-s-analysed" style="color:#6b3fa0">—</div><div class="ab-summary-lbl">Analysed</div></div>
+                    <div class="ab-summary-card"><div class="ab-summary-num" id="titleopt-s-applied" style="color:#1a7a34">—</div><div class="ab-summary-lbl">Applied</div></div>
+                    <div class="ab-summary-card"><div class="ab-summary-num" id="titleopt-s-session" style="color:#2271b1">0</div><div class="ab-summary-lbl">Analysed This Session</div></div>
+                </div>
+
+                <div class="ab-ai-toolbar" id="ab-titleopt-toolbar">
+                    <button class="button button-primary ab-action-btn" id="ab-titleopt-analyse-all" <?php disabled( ! $alt_has_key ); ?>>🔍 Analyse Remaining</button>
+                    <button class="button ab-action-btn" id="ab-titleopt-force-all" style="background:#b45309;border-color:#92400e;color:#fff;font-weight:600" <?php disabled( ! $alt_has_key ); ?>>🔄 Re-analyse All</button>
+                    <button class="button ab-action-btn" id="ab-titleopt-apply-all" style="background:#1a7a34;border-color:#155724;color:#fff;font-weight:600" disabled>✅ Apply All Suggested</button>
+                    <span id="ab-titleopt-status" style="font-size:12px;color:#50575e;"></span>
+                    <button class="button" id="ab-titleopt-stop" style="display:none;background:#9b1c1c;border-color:#7f1d1d;color:#fff;font-weight:700;font-size:13px;padding:0 18px">⏹ Stop</button>
+                </div>
+
+                <div class="ab-progress" id="ab-titleopt-progress">
+                    <div class="ab-progress-fill" id="ab-titleopt-progress-fill"></div>
+                </div>
+
+                <div id="ab-titleopt-posts-wrap" style="margin-top:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
+
+                <div id="ab-titleopt-log-wrap" style="display:none;margin-top:16px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                        <span style="background:linear-gradient(135deg,#f953c6 0%,#4f46e5 100%);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:3px 10px;border-radius:20px">⚡ Activity Log</span>
+                    </div>
+                    <div id="ab-titleopt-log"></div>
+                </div>
+
+                </div><!-- /ab-zone-body -->
+            </div><!-- /ab-card-titleopt -->
+
+        </div><!-- /ab-pane-titleopt -->
 
         <?php /* ══════════════════ REDIRECTS PANE ══════════════════ */ ?>
 
@@ -2806,7 +3001,7 @@ trait CS_SEO_Settings_Page {
                 status.className   = 'ab-key-status ab-key-err';
                 return;
             }
-            status.textContent = '⟳ Testing...';
+            status.textContent = '⟳ Checking firewall & API key…';
             status.className   = 'ab-key-status';
 
             fetch(abAjax, {
@@ -2888,7 +3083,7 @@ trait CS_SEO_Settings_Page {
                 abState.sortDir = abState.sortDir === 'asc' ? 'desc' : 'asc';
             } else {
                 abState.sortKey = key;
-                abState.sortDir = (key === 'date' || key === 'score' || key === 'alt') ? 'desc' : 'asc';
+                abState.sortDir = (key === 'date' || key === 'score' || key === 'readability' || key === 'alt') ? 'desc' : 'asc';
             }
             abRenderTable();
         }
@@ -2952,9 +3147,27 @@ trait CS_SEO_Settings_Page {
                 const click = post.no_post ? '' : ' onclick="abScoreOne(' + post.id + ')"';
                 return '<span class="ab-score-badge ab-score-none"' + click + ' title="Click to score">Score</span>';
             }
-            const cls   = s >= 90 ? 'ab-score-great' : s >= 75 ? 'ab-score-good' : s >= 50 ? 'ab-score-fair' : 'ab-score-poor';
-            const click = post.no_post ? '' : ' onclick="abShowScoreModal(' + post.id + ')"';
-            return '<span class="ab-score-badge ' + cls + '"' + click + ' title="Click to view feedback" style="cursor:pointer">' + s + '%</span>';
+            const cls          = s >= 90 ? 'ab-score-great' : s >= 75 ? 'ab-score-good' : s >= 50 ? 'ab-score-fair' : 'ab-score-poor';
+            const scoreClick   = post.no_post ? '' : ' onclick="abScoreOne(' + post.id + ')"';
+            const detailsClick = post.no_post ? '' : ' onclick="abShowScoreModal(' + post.id + ')"';
+            return '<span class="ab-score-badge ' + cls + '"' + scoreClick + ' title="Click to re-score" style="cursor:pointer">' + s + '%</span>' +
+                   '<br><span class="ab-score-badge ab-score-details"' + detailsClick + ' title="View AI feedback">Details</span>';
+        }
+
+        function abReadabilityBadge(post) {
+            const s = (post._readability_score !== undefined) ? post._readability_score : post.readability_score;
+            if (s === null || s === undefined) {
+                return '<span class="ab-score-badge ab-score-none" title="Saved on next post save">—</span>';
+            }
+            const cls = s >= 80 ? 'ab-score-great' : s >= 60 ? 'ab-score-good' : s >= 40 ? 'ab-score-fair' : 'ab-score-poor';
+            const lbl = s >= 80 ? 'Easy' : s >= 60 ? 'Moderate' : 'Hard';
+            const d   = post.readability_data || {};
+            const tip = [
+                d.sentence_len    !== undefined ? 'Avg sentence: ' + d.sentence_len + ' words'       : '',
+                d.heading_density !== undefined && d.heading_density !== null ? '1 heading / ' + d.heading_density + ' words' : '',
+                d.passive_pct     !== undefined ? d.passive_pct + '% passive'                         : '',
+            ].filter(Boolean).join(' · ');
+            return '<span class="ab-score-badge ' + cls + '" title="' + (tip || lbl) + '">' + s + '% ' + lbl + '</span>';
         }
 
         function abBadge(post) {
@@ -2999,6 +3212,9 @@ trait CS_SEO_Settings_Page {
                     } else if (abState.sortKey === 'alt') {
                         av = a.missing_alt || 0;
                         bv = b.missing_alt || 0;
+                    } else if (abState.sortKey === 'readability') {
+                        av = (a._readability_score !== undefined ? a._readability_score : a.readability_score) ?? -1;
+                        bv = (b._readability_score !== undefined ? b._readability_score : b.readability_score) ?? -1;
                     } else {
                         av = (a._seo_score !== undefined ? a._seo_score : a.seo_score) ?? -1;
                         bv = (b._seo_score !== undefined ? b._seo_score : b.seo_score) ?? -1;
@@ -3090,18 +3306,20 @@ trait CS_SEO_Settings_Page {
                     '<td style="text-align:center">' + titleBadge + '</td>' +
                     '<td style="text-align:center">' + altCell + '</td>' +
                     '<td style="text-align:center" class="ab-score-cell">' + abScoreBadge(p) + '</td>' +
+                    '<td style="text-align:center" class="ab-r-cell">' + abReadabilityBadge(p) + '</td>' +
                     '<td>' + actionCell + '</td>' +
                 '</tr>';
             }).join('');
 
-            wrap.innerHTML = '<table class="ab-posts" style="min-width:820px">' +
+            wrap.innerHTML = '<table class="ab-posts" style="min-width:900px">' +
                 '<thead><tr>' +
-                '<th style="width:22%;cursor:pointer;user-select:none" onclick="abSortBy(\'title\')">Post' + abSortIcon('title') + '</th>' +
-                '<th style="width:9%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'date\')">Date' + abSortIcon('date') + '</th>' +
-                '<th style="width:28%;cursor:pointer;user-select:none" onclick="abSortBy(\'desc\')">Description' + abSortIcon('desc') + '</th>' +
-                '<th style="width:7%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'title_chars\')">Title' + abSortIcon('title_chars') + '</th>' +
-                '<th style="width:7%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'alt\')">ALT' + abSortIcon('alt') + '</th>' +
-                '<th style="width:9%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'score\')">SEO Score' + abSortIcon('score') + '</th>' +
+                '<th style="width:20%;cursor:pointer;user-select:none" onclick="abSortBy(\'title\')">Post' + abSortIcon('title') + '</th>' +
+                '<th style="width:8%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'date\')">Date' + abSortIcon('date') + '</th>' +
+                '<th style="width:25%;cursor:pointer;user-select:none" onclick="abSortBy(\'desc\')">Description' + abSortIcon('desc') + '</th>' +
+                '<th style="width:6%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'title_chars\')">Title' + abSortIcon('title_chars') + '</th>' +
+                '<th style="width:6%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'alt\')">ALT' + abSortIcon('alt') + '</th>' +
+                '<th style="width:8%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'score\')">SEO Score' + abSortIcon('score') + '</th>' +
+                '<th style="width:10%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'readability\')">Readability' + abSortIcon('readability') + '</th>' +
                 '<th style="width:10%">Action</th>' +
                 '</tr></thead>' +
                 '<tbody>' + rows + '</tbody></table>';
@@ -3160,6 +3378,14 @@ trait CS_SEO_Settings_Page {
                 abRenderTable();
                 const scoreCell = document.querySelector('#ab-row-' + postId + ' .ab-score-cell');
                 if (scoreCell) { scoreCell.style.transition = 'background 0.3s'; scoreCell.style.background = '#d1e7dd'; setTimeout(() => { scoreCell.style.background = ''; }, 1200); }
+                // Readability score (pure PHP — no API cost)
+                abPost('cs_seo_readability_score_one', {post_id: postId}).then(rd => {
+                    if (rd.success) {
+                        post._readability_score = rd.data.score;
+                        post.readability_data   = rd.data;
+                        abRenderTable();
+                    }
+                }).catch(() => {});
             }).catch(e => {
                 post._processing = false;
                 abLog('✗ Network error: ' + e.message, 'err');
@@ -3391,6 +3617,9 @@ trait CS_SEO_Settings_Page {
                                 }
                                 if (r.seo_score !== undefined) { local._seo_score = r.seo_score; local._seo_notes = r.seo_notes || ''; }
                             }
+                            // Readability score (pure PHP — no API cost)
+                            const rdG = await abPost('cs_seo_readability_score_one', {post_id: post.id}).catch(() => null);
+                            if (rdG && rdG.success && local) { local._readability_score = rdG.data.score; local.readability_data = rdG.data; }
                         }
                     } else {
                         errors++;
@@ -3414,7 +3643,7 @@ trait CS_SEO_Settings_Page {
             abLog('Run complete: ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors', done > 0 ? 'ok' : 'info');
             if (done > 0) abPost('cs_seo_rebuild_health', {}).catch(() => {});
 
-            // Phase 2 (Generate Missing only): score any posts still missing an SEO score.
+            // Phase 2 (Generate Missing only): score any posts still missing an SEO or readability score.
             if (!overwrite && !abState.stopped) {
                 abLog('Phase 2: fetching post list to find unscored posts...', 'info');
                 let scoreAllPosts = [];
@@ -3446,6 +3675,12 @@ trait CS_SEO_Settings_Page {
                             if (cell && local) cell.innerHTML = abScoreBadge(local);
                             scoresDone++;
                         } else { scoresErr++; }
+                        // Also run readability score in the same pass
+                        const rdS = await abPost('cs_seo_readability_score_one', {post_id: post.id}).catch(() => null);
+                        if (rdS && rdS.success) {
+                            const rLocal = abState.posts.find(p => p.id === post.id);
+                            if (rLocal) { rLocal._readability_score = rdS.data.score; rLocal.readability_data = rdS.data; }
+                        }
                     } catch(e) { scoresErr++; }
                     await abSleep(300);
                 }
@@ -4408,7 +4643,7 @@ trait CS_SEO_Settings_Page {
                 // ── Phase 1: get post ID list (fast, no analysis) ───────────────
                 document.getElementById('cf-status').textContent = 'Fetching post list…';
                 const fd1 = new FormData();
-                fd1.append('action', 'cs_catfix_list_ids');
+                fd1.append('action', 'cs_seo_catfix_list_ids');
                 fd1.append('nonce', cfNonce);
                 const r1 = await cfFetchWithTimeout(ajaxurl, {method:'POST', body:fd1}, CF_TIMEOUT);
                 const d1 = await r1.json();
@@ -4433,7 +4668,7 @@ trait CS_SEO_Settings_Page {
 
                     try {
                         const fd2 = new FormData();
-                        fd2.append('action', 'cs_catfix_load');
+                        fd2.append('action', 'cs_seo_catfix_load');
                         fd2.append('nonce', cfNonce);
                         batchIds.forEach(id => fd2.append('post_ids[]', id));
 
@@ -4464,7 +4699,7 @@ trait CS_SEO_Settings_Page {
                 const p = cfAllPosts.find(x => x.post_id === postId);
                 if (!p) return;
                 const fd = new FormData();
-                fd.append('action', 'cs_catfix_apply');
+                fd.append('action', 'cs_seo_catfix_apply');
                 fd.append('nonce', cfNonce);
                 fd.append('post_id', postId);
                 p.proposed_ids.forEach(id => fd.append('proposed_ids[]', id));
@@ -4480,7 +4715,7 @@ trait CS_SEO_Settings_Page {
                 const p = cfAllPosts.find(x => x.post_id === postId);
                 if (!p) return;
                 const fd = new FormData();
-                fd.append('action', 'cs_catfix_skip');
+                fd.append('action', 'cs_seo_catfix_skip');
                 fd.append('nonce', cfNonce);
                 fd.append('post_id', postId);
                 await fetch(ajaxurl, {method:'POST', body:fd});
@@ -4492,7 +4727,7 @@ trait CS_SEO_Settings_Page {
         async function cfAiOne(postId) {
             try {
                 const fd = new FormData();
-                fd.append('action', 'cs_catfix_ai_one');
+                fd.append('action', 'cs_seo_catfix_ai_one');
                 fd.append('nonce', cfNonce);
                 fd.append('post_id', postId);
                 const r = await fetch(ajaxurl, {method:'POST', body:fd});
@@ -4560,7 +4795,7 @@ trait CS_SEO_Settings_Page {
                 if (!confirm(`Apply category changes to ${targets.length} posts?`)) return;
 
                 const fd = new FormData();
-                fd.append('action', 'cs_catfix_bulk_apply');
+                fd.append('action', 'cs_seo_catfix_bulk_apply');
                 fd.append('nonce', cfNonce);
                 targets.forEach((p, i) => {
                     fd.append(`items[${i}][post_id]`, p.post_id);
@@ -4603,7 +4838,7 @@ trait CS_SEO_Settings_Page {
                 // Phase 1: lightweight category list (no post queries)
                 chProgress('Fetching category list\u2026');
                 const fd1 = new FormData();
-                fd1.append('action', 'cs_catfix_health_list');
+                fd1.append('action', 'cs_seo_catfix_health_list');
                 fd1.append('nonce', chNonce);
                 const r1 = await fetch(ajaxurl, {method:'POST', body:fd1});
                 const d1 = await r1.json();
@@ -4619,7 +4854,7 @@ trait CS_SEO_Settings_Page {
                     chProgress('Processing category ' + (i + 1) + ' of ' + total + ': <strong>' + abEsc(c.name) + '</strong>');
                     try {
                         const fd2 = new FormData();
-                        fd2.append('action', 'cs_catfix_health_cat');
+                        fd2.append('action', 'cs_seo_catfix_health_cat');
                         fd2.append('nonce', chNonce);
                         fd2.append('cat_id', c.id);
                         const r2 = await fetch(ajaxurl, {method:'POST', body:fd2});
@@ -4811,7 +5046,7 @@ trait CS_SEO_Settings_Page {
             if (cacheBtn) { cacheBtn.disabled = true; cacheBtn.innerHTML = '&#128336; Checking cache…'; }
 
             const fd = new FormData();
-            fd.append('action', 'cs_catfix_drift_cache_get');
+            fd.append('action', 'cs_seo_catfix_drift_cache_get');
             fd.append('nonce', cdNonce);
             const r = await fetch(ajaxurl, {method:'POST', body:fd});
             const d = await r.json();
@@ -4869,7 +5104,7 @@ trait CS_SEO_Settings_Page {
 
             _cdLoadAbort = new AbortController();
             const fd = new FormData();
-            fd.append('action', 'cs_catfix_drift');
+            fd.append('action', 'cs_seo_catfix_drift');
             fd.append('nonce', cdNonce);
             try {
                 const r = await fetch(ajaxurl, {method:'POST', body:fd, signal: _cdLoadAbort.signal});
@@ -4933,7 +5168,7 @@ trait CS_SEO_Settings_Page {
             stopBtn.addEventListener('click', () => controller.abort());
 
             const fd = new FormData();
-            fd.append('action',          'cs_catfix_drift_analyse_remaining');
+            fd.append('action',          'cs_seo_catfix_drift_analyse_remaining');
             fd.append('nonce',           cdNonce);
             fd.append('cat_id',          c.cat_id);
             fd.append('cat_name',        c.cat_name);
@@ -5215,7 +5450,7 @@ trait CS_SEO_Settings_Page {
             btn.disabled    = true;
             btn.textContent = '\u2026';
             const fd = new FormData();
-            fd.append('action',      'cs_catfix_drift_move');
+            fd.append('action',      'cs_seo_catfix_drift_move');
             fd.append('nonce',       cdNonce);
             fd.append('post_id',     postId);
             fd.append('from_cat_id', fromCatId);
@@ -5282,6 +5517,365 @@ trait CS_SEO_Settings_Page {
         }
 
         // =====================================================================
+        // Category Migrate — admin UI
+        // =====================================================================
+
+        let cmCurrentCatId   = 0;
+        let cmCurrentCatName = '';
+        let cmAvailCats      = {}; // id → name map for the target dropdown
+
+        function abEscCm(s) {
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        // ── Phase 1: load and render the category list ────────────────────────
+        async function cmLoad() {
+            const btn = document.getElementById('cm-load-btn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Loading\u2026'; }
+            const wrap = document.getElementById('cm-cat-wrap');
+            const cta  = document.getElementById('cm-cta');
+            try {
+                const fd = new FormData();
+                fd.append('action', 'cs_seo_catmig_list');
+                fd.append('nonce',  csSeoAdmin.nonce);
+                const r = await fetch(ajaxurl, { method: 'POST', body: fd });
+                const d = await r.json();
+                if (!d.success) throw new Error(d.error || 'Load failed');
+                if (cta) cta.style.display = 'none';
+                cmRenderCatList(d.categories || [], wrap);
+            } catch (e) {
+                if (wrap) wrap.innerHTML = '<p style="color:#c3372b;">Error: ' + abEscCm(e.message) + '</p>';
+                if (btn) { btn.disabled = false; btn.textContent = '\u128260 Load Categories'; }
+            }
+        }
+
+        function cmRenderCatList(cats, wrap) {
+            if (!wrap) return;
+            if (!cats.length) {
+                wrap.innerHTML = '<p style="color:#888;font-size:13px;">No categories found.</p>';
+                return;
+            }
+            let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+                + '<thead><tr style="background:#f0f0f0;">'
+                + '<th style="padding:8px 12px;text-align:left;width:80px;">Category ID</th>'
+                + '<th style="padding:8px 12px;text-align:left;">Category</th>'
+                + '<th style="padding:8px 12px;text-align:left;width:100px;">Posts</th>'
+                + '<th style="padding:8px 12px;text-align:left;width:200px;">Action</th>'
+                + '</tr></thead><tbody>';
+            cats.forEach(function(c) {
+                const countStyle = c.count === 0
+                    ? 'color:#c3372b;font-weight:600;'
+                    : c.count <= 3 ? 'color:#b35900;font-weight:600;' : 'color:#333;';
+                const rowId = 'cm-cat-row-' + c.id;
+                let actionHtml;
+                if (c.count === 0) {
+                    actionHtml = '<button type="button" class="button button-small cm-delete-cat-btn"'
+                        + ' data-id="' + c.id + '" data-name="' + abEscCm(c.name) + '"'
+                        + ' style="background:#c3372b;border-color:#c3372b;color:#fff;">'
+                        + '\uD83D\uDDD1 Delete</button>';
+                } else {
+                    actionHtml = '<button type="button" class="button button-small cm-migrate-btn"'
+                        + ' data-id="' + c.id + '" data-name="' + abEscCm(c.name) + '"'
+                        + ' style="background:#b35900;border-color:#b35900;color:#fff;">'
+                        + '\u2192 Migrate</button>';
+                }
+                html += '<tr id="' + rowId + '" style="border-bottom:1px solid #e5e7eb;">'
+                    + '<td style="padding:8px 12px;color:#888;font-size:12px;">' + c.id + '</td>'
+                    + '<td style="padding:8px 12px;">' + abEscCm(c.name) + '</td>'
+                    + '<td style="padding:8px 12px;' + countStyle + '" id="cm-cat-count-' + c.id + '">' + c.count + '</td>'
+                    + '<td style="padding:8px 12px;" id="cm-cat-action-' + c.id + '">' + actionHtml + '</td>'
+                    + '</tr>';
+            });
+            html += '</tbody></table>';
+            wrap.innerHTML = html;
+            wrap.querySelectorAll('.cm-migrate-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    cmLoadPosts(parseInt(btn.dataset.id, 10), btn.dataset.name);
+                });
+            });
+            wrap.querySelectorAll('.cm-delete-cat-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    cmDeleteCat(parseInt(btn.dataset.id, 10), btn.dataset.name, btn,
+                        document.getElementById('cm-cat-row-' + btn.dataset.id));
+                });
+            });
+        }
+
+        // ── Phase 2: load posts for the selected category ─────────────────────
+        async function cmLoadPosts(catId, catName) {
+            cmCurrentCatId   = catId;
+            cmCurrentCatName = catName;
+
+            const phase1 = document.getElementById('cm-phase1');
+            const phase2 = document.getElementById('cm-phase2');
+            const title  = document.getElementById('cm-p2-title');
+            const status = document.getElementById('cm-p2-status');
+            const wrap   = document.getElementById('cm-post-wrap');
+
+            if (phase1) phase1.style.display = 'none';
+            if (phase2) phase2.style.display = 'block';
+            // Let the browser reflow, then scroll the card header into view.
+            setTimeout(() => document.querySelector('.ab-card-catmig')
+                ?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+            if (title)  title.textContent = 'Migrating posts from: \u201c' + catName + '\u201d';
+            if (status) status.textContent = 'Loading posts\u2026';
+            if (wrap)   wrap.innerHTML = '';
+
+            // Reset header buttons to their initial state for each new migration session
+            const applyAllBtn = document.getElementById('cm-apply-all-btn');
+            if (applyAllBtn) { applyAllBtn.textContent = '\u2713 Apply All'; applyAllBtn.disabled = false; }
+            const applyBadge = document.getElementById('cm-apply-result');
+            if (applyBadge) applyBadge.style.display = 'none';
+            const delBtn = document.getElementById('cm-delete-cat-btn');
+            if (delBtn) delBtn.style.display = 'none';
+
+            try {
+                const fd = new FormData();
+                fd.append('action',  'cs_seo_catmig_posts');
+                fd.append('nonce',   csSeoAdmin.nonce);
+                fd.append('cat_id',  catId);
+                const r = await fetch(ajaxurl, { method: 'POST', body: fd });
+                const d = await r.json();
+                if (!d.success) throw new Error(d.error || 'Load failed');
+                cmAvailCats = d.avail_cats || {};
+                cmRenderPostTable(d.posts || [], wrap, status);
+            } catch (e) {
+                if (wrap)   wrap.innerHTML = '<p style="color:#c3372b;">Error: ' + abEscCm(e.message) + '</p>';
+                if (status) status.textContent = '';
+            }
+        }
+
+        function cmRenderPostTable(posts, wrap, statusEl) {
+            if (!wrap) return;
+            // Sort: single-category posts (require a target selection) first
+            posts = posts.slice().sort((a, b) => (b.is_single_cat ? 1 : 0) - (a.is_single_cat ? 1 : 0));
+            const total = posts.length;
+            if (statusEl) statusEl.textContent = total + ' post' + (total === 1 ? '' : 's') + ' in this category.';
+
+            if (!total) {
+                wrap.innerHTML = '<p style="color:#888;font-size:13px;">No published posts found in this category. You can delete it.</p>';
+                cmShowDeleteBtn();
+                return;
+            }
+
+            // Build the target dropdown options (shared across all rows)
+            let targetOpts = '<option value="">— select target —</option>';
+            Object.keys(cmAvailCats).forEach(function(id) {
+                targetOpts += '<option value="' + id + '">' + abEscCm(cmAvailCats[id]) + '</option>';
+            });
+
+            let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;min-width:620px;">'
+                + '<thead><tr style="background:#f0f0f0;">'
+                + '<th style="padding:8px 12px;text-align:left;">Post</th>'
+                + '<th style="padding:8px 12px;text-align:left;width:160px;">Current Categories</th>'
+                + '<th style="padding:8px 12px;text-align:left;width:220px;">Action</th>'
+                + '<th style="padding:8px 12px;text-align:left;width:80px;">Status</th>'
+                + '</tr></thead><tbody>';
+
+            posts.forEach(function(p, i) {
+                const rowId      = 'cm-row-' + i;
+                const selectId   = 'cm-sel-' + i;
+                const statusId   = 'cm-st-' + i;
+                const isSingle   = p.is_single_cat;
+
+                // Current categories as pills
+                const catNames = Object.values(p.current_names || {});
+                const catPills = catNames.map(function(n) {
+                    const isSrc = (n === cmCurrentCatName);
+                    return '<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;margin:1px;background:'
+                        + (isSrc ? '#b35900' : '#6b7280') + ';color:#fff;">' + abEscCm(n) + '</span>';
+                }).join(' ');
+
+                // Action select
+                let actionHtml;
+                if (isSingle) {
+                    // Must swap — show only swap options with a label
+                    actionHtml = '<span style="font-size:11px;color:#888;display:block;margin-bottom:3px;">Must swap (only category)</span>'
+                        + '<select id="' + selectId + '" class="cm-target-sel" data-pid="' + p.post_id + '" data-single="1"'
+                        + ' style="width:100%;max-width:200px;font-size:12px;" data-mode="swap">'
+                        + targetOpts + '</select>';
+                } else {
+                    // Offer remove OR swap
+                    actionHtml = '<select id="' + selectId + '" class="cm-target-sel" data-pid="' + p.post_id + '" data-single="0"'
+                        + ' style="width:100%;max-width:200px;font-size:12px;" data-mode="">'
+                        + '<option value="__remove">— Remove from this category —</option>'
+                        + '<optgroup label="Swap to\u2026">' + targetOpts + '</optgroup>'
+                        + '</select>';
+                }
+
+                html += '<tr id="' + rowId + '" style="border-bottom:1px solid #e5e7eb;">'
+                    + '<td style="padding:8px 12px;">'
+                    +   '<a href="' + abEscCm(p.post_url) + '" target="_blank" style="color:#1a4a7a;text-decoration:none;">' + abEscCm(p.title) + '</a>'
+                    +   (p.edit_url ? ' <a href="' + abEscCm(p.edit_url) + '" target="_blank" title="Edit post" style="color:#888;font-size:11px;text-decoration:none;">&#9998;</a>' : '')
+                    + '</td>'
+                    + '<td style="padding:8px 12px;">' + catPills + '</td>'
+                    + '<td style="padding:8px 12px;">'
+                    +   actionHtml
+                    + '</td>'
+                    + '<td style="padding:8px 12px;" id="' + statusId + '">'
+                    +   '<span style="color:#6b7280;font-size:11px;">Pending</span>'
+                    + '</td>'
+                    + '</tr>';
+            });
+            html += '</tbody></table>';
+            wrap.innerHTML = html;
+        }
+
+        // ── Apply a single row ────────────────────────────────────────────────
+        async function cmApplyOne(pid, selectEl, statusEl) {
+            const val      = selectEl.value;
+            const isSingle = selectEl.dataset.single === '1';
+
+            let migrateAction, toCatId;
+            if (val === '__remove') {
+                if (isSingle) {
+                    statusEl.innerHTML = '<span style="color:#c3372b;font-size:11px;">Must select a target</span>';
+                    return false;
+                }
+                migrateAction = 'remove';
+                toCatId       = 0;
+            } else if (!val) {
+                statusEl.innerHTML = '<span style="color:#c3372b;font-size:11px;">Select an action first</span>';
+                return false;
+            } else {
+                migrateAction = 'swap';
+                toCatId       = parseInt(val, 10);
+            }
+
+            statusEl.innerHTML = '<span style="color:#888;font-size:11px;">Saving\u2026</span>';
+            selectEl.disabled  = true;
+
+            try {
+                const fd = new FormData();
+                fd.append('action',         'cs_seo_catmig_apply');
+                fd.append('nonce',          csSeoAdmin.nonce);
+                fd.append('post_id',        pid);
+                fd.append('from_cat_id',    cmCurrentCatId);
+                fd.append('migrate_action', migrateAction);
+                if (toCatId) fd.append('to_cat_id', toCatId);
+                const r = await fetch(ajaxurl, { method: 'POST', body: fd });
+                const d = await r.json();
+                if (!d.success) throw new Error(d.error || 'Failed');
+
+                const label = (migrateAction === 'remove')
+                    ? 'Removed'
+                    : 'Swapped \u2192 ' + abEscCm(cmAvailCats[toCatId] || toCatId);
+                statusEl.innerHTML = '<span style="color:#1a7a34;font-size:11px;font-weight:600;">\u2713 ' + label + '</span>';
+                selectEl.closest('tr').style.opacity = '0.45';
+                cmCheckIfEmpty();
+                return true;
+            } catch (e) {
+                statusEl.innerHTML = '<span style="color:#c3372b;font-size:11px;">Error: ' + abEscCm(e.message) + '</span>';
+                selectEl.disabled  = false;
+                return false;
+            }
+        }
+
+        // ── Apply All ─────────────────────────────────────────────────────────
+        async function cmApplyAll() {
+            const btn    = document.getElementById('cm-apply-all-btn');
+            const badge  = document.getElementById('cm-apply-result');
+            const sels   = document.querySelectorAll('#cm-post-wrap .cm-target-sel:not(:disabled)');
+            if (!sels.length) return;
+            btn.disabled    = true;
+            btn.textContent = '0 / ' + sels.length + '\u2026';
+            if (badge) badge.style.display = 'none';
+            let done = 0, failed = 0;
+            for (const sel of sels) {
+                const pid      = parseInt(sel.dataset.pid, 10);
+                const statusEl = document.getElementById('cm-st-' + sel.id.replace('cm-sel-', ''));
+                if (!statusEl) continue;
+                if (!sel.value) continue; // skip rows with no selection
+                const ok = await cmApplyOne(pid, sel, statusEl);
+                if (ok) done++; else failed++;
+                btn.textContent = done + ' / ' + sels.length + '\u2026';
+            }
+            btn.textContent = '\u2713 Apply All';
+            btn.disabled    = false;
+            if (badge) {
+                badge.textContent = '\u2713 ' + done + ' applied' + (failed ? ', ' + failed + ' errors' : '');
+                badge.style.background = failed ? '#fee2e2' : '#d1fae5';
+                badge.style.color      = failed ? '#c3372b' : '#1a7a34';
+                badge.style.display    = '';
+            }
+            btn.disabled    = false;
+            const statusEl  = document.getElementById('cm-p2-status');
+            if (statusEl) statusEl.textContent = done + ' post' + (done === 1 ? '' : 's') + ' migrated.';
+            cmCheckIfEmpty();
+        }
+
+        // ── Show the delete button in Phase 2 ────────────────────────────────
+        function cmShowDeleteBtn() {
+            const btn = document.getElementById('cm-delete-cat-btn');
+            if (!btn) return;
+            btn.style.display = '';
+            btn.textContent   = '\uD83D\uDDD1 Delete \u201c' + cmCurrentCatName + '\u201d';
+            btn.onclick = function() {
+                cmDeleteCat(cmCurrentCatId, cmCurrentCatName, btn, null);
+            };
+        }
+
+        // ── Check if all rows are done; surface the delete button ─────────────
+        function cmCheckIfEmpty() {
+            const pending = document.querySelectorAll('#cm-post-wrap .cm-target-sel:not([disabled])');
+            if (pending.length === 0) cmShowDeleteBtn();
+        }
+
+        // ── Delete a category (Phase 1 or Phase 2) ───────────────────────────
+        async function cmDeleteCat(catId, catName, btn, rowEl) {
+            if (!confirm('Delete the category \u201c' + catName + '\u201d?\n\nThis cannot be undone.')) return;
+            btn.disabled    = true;
+            btn.textContent = 'Deleting\u2026';
+            try {
+                const fd = new FormData();
+                fd.append('action',  'cs_seo_catmig_delete');
+                fd.append('nonce',   csSeoAdmin.nonce);
+                fd.append('cat_id',  catId);
+                const r = await fetch(ajaxurl, { method: 'POST', body: fd });
+                const d = await r.json();
+                if (!d.success) throw new Error(d.error || 'Delete failed');
+
+                if (rowEl) {
+                    // Phase 1: fade out the row
+                    rowEl.style.opacity = '0.35';
+                    const actionCell = document.getElementById('cm-cat-action-' + catId);
+                    if (actionCell) actionCell.innerHTML = '<span style="color:#1a7a34;font-size:12px;">\u2713 Deleted</span>';
+                } else {
+                    // Phase 2: go back and refresh the list
+                    const statusEl = document.getElementById('cm-p2-status');
+                    if (statusEl) statusEl.innerHTML = '<span style="color:#1a7a34;">\u2713 Category deleted.</span>';
+                    btn.style.display = 'none';
+                    setTimeout(function() {
+                        cmBack();
+                        cmLoad(); // reload Phase 1 list with updated counts
+                    }, 800);
+                }
+            } catch (e) {
+                btn.disabled    = false;
+                btn.textContent = '\uD83D\uDDD1 Delete \u201c' + catName + '\u201d';
+                alert('Could not delete: ' + e.message);
+            }
+        }
+
+        // ── Back to category list ─────────────────────────────────────────────
+        let cmListLoaded = false;
+        function cmBack() {
+            // Hide the delete button so it doesn't carry over to the next migration
+            const delBtn = document.getElementById('cm-delete-cat-btn');
+            if (delBtn) delBtn.style.display = 'none';
+            document.getElementById('cm-phase1').style.display = 'block';
+            document.getElementById('cm-phase2').style.display = 'none';
+            // Refresh the list so updated counts are reflected
+            const wrap = document.getElementById('cm-cat-wrap');
+            if (wrap && wrap.innerHTML) cmLoad();
+        }
+
+        // ── Wire up events ────────────────────────────────────────────────────
+        document.getElementById('cm-load-btn')      ?.addEventListener('click', cmLoad);
+        document.getElementById('cm-back-btn')      ?.addEventListener('click', cmBack);
+        document.getElementById('cm-apply-all-btn') ?.addEventListener('click', cmApplyAll);
+
+        // =====================================================================
         // Related Articles — admin UI
         // =====================================================================
 
@@ -5326,7 +5920,7 @@ trait CS_SEO_Settings_Page {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#999;">Loading…</td></tr>';
 
             const fd = new FormData();
-            fd.append('action', 'cs_rc_get_posts');
+            fd.append('action', 'cs_seo_rc_get_posts');
             fd.append('nonce',  rcNonce);
             fd.append('page',   page);
             fd.append('filter', filter);
@@ -5411,7 +6005,7 @@ trait CS_SEO_Settings_Page {
                 let done = false;
                 while (!done) {
                     const fd = new FormData();
-                    fd.append('action',  'cs_rc_step');
+                    fd.append('action',  'cs_seo_rc_step');
                     fd.append('nonce',   rcNonce);
                     fd.append('post_id', postId);
 
@@ -5431,7 +6025,7 @@ trait CS_SEO_Settings_Page {
                 const fetchFilter = rcCurrentFilter && rcCurrentFilter !== 'all' ? rcCurrentFilter : 'complete';
                 for (const pg of [rcCurrentPage, 1]) {
                     const fd2 = new FormData();
-                    fd2.append('action', 'cs_rc_get_posts');
+                    fd2.append('action', 'cs_seo_rc_get_posts');
                     fd2.append('nonce',  rcNonce);
                     fd2.append('page',   pg);
                     fd2.append('filter', fetchFilter);
@@ -5454,7 +6048,7 @@ trait CS_SEO_Settings_Page {
         async function rcResetOne(postId) {
             if (!confirm('Reset Related Articles data for this post?')) return;
             const fd = new FormData();
-            fd.append('action',  'cs_rc_reset');
+            fd.append('action',  'cs_seo_rc_reset');
             fd.append('nonce',   rcNonce);
             fd.append('post_id', postId);
             fd.append('mode',    'one');
@@ -5466,7 +6060,7 @@ trait CS_SEO_Settings_Page {
         async function rcResetAll() {
             if (!confirm('This will delete all Related Articles data for ALL posts. Are you sure?')) return;
             const fd = new FormData();
-            fd.append('action', 'cs_rc_reset');
+            fd.append('action', 'cs_seo_rc_reset');
             fd.append('nonce',  rcNonce);
             fd.append('mode',   'all');
             await fetch(ajaxurl, { method: 'POST', body: fd });
@@ -5480,7 +6074,7 @@ trait CS_SEO_Settings_Page {
             const url = (typeof ajaxurl !== 'undefined' ? ajaxurl : null) || csSeoAdmin.ajaxUrl;
             try {
                 const fd = new FormData();
-                fd.append('action', 'cs_rc_sync_counts');
+                fd.append('action', 'cs_seo_rc_sync_counts');
                 fd.append('nonce',  rcNonce);
                 const r = await fetch(url, { method: 'POST', body: fd });
                 const d = await r.json();
@@ -5533,7 +6127,7 @@ trait CS_SEO_Settings_Page {
             // Fetch any additional pages (rcTotalPages updated by the load above).
             for (let pg = 2; pg <= rcTotalPages; pg++) {
                 const fd = new FormData();
-                fd.append('action', 'cs_rc_get_posts');
+                fd.append('action', 'cs_seo_rc_get_posts');
                 fd.append('nonce',  rcNonce);
                 fd.append('page',   pg);
                 fd.append('filter', rcCurrentFilter);
@@ -5579,7 +6173,7 @@ trait CS_SEO_Settings_Page {
                 // not short-circuit on status === 'complete'.
                 if (mode === 'stale' || mode === 'failed') {
                     const fdR = new FormData();
-                    fdR.append('action',  'cs_rc_reset');
+                    fdR.append('action',  'cs_seo_rc_reset');
                     fdR.append('nonce',   rcNonce);
                     fdR.append('post_id', postId);
                     fdR.append('mode',    'one');
@@ -5738,6 +6332,713 @@ trait CS_SEO_Settings_Page {
                 if (typeof abProviderChanged === 'function') abProviderChanged();
             }
         });
+
+        // ── Broken Link Checker ──────────────────────────────────────────────
+        (function() {
+            var _ajax  = csSeoAdmin.ajaxUrl;
+            var _nonce = csSeoAdmin.nonce;
+            var blcStop        = false;
+            var blcTotalLinks  = 0;
+            var blcChecked     = 0;
+            var blcBroken      = 0;
+            var blcRedirects   = 0;
+            var blcPostCount   = 0;
+
+            function blcPost(data) {
+                return fetch(_ajax, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(Object.assign({nonce: _nonce}, data)).toString()
+                }).then(function(r){ return r.json(); });
+            }
+            function blcEsc(s) { var d=document.createElement('div'); d.textContent=String(s); return d.innerHTML; }
+            function blcSetStatus(msg) { var el=document.getElementById('blc-status'); if(el) el.textContent=msg; }
+            function blcSetProgress(pct) {
+                var p=document.getElementById('blc-progress'),f=document.getElementById('blc-progress-fill');
+                if(p) p.classList.add('visible');
+                if(f) f.style.width=Math.min(100,pct)+'%';
+            }
+            function blcUpdateSummary() {
+                var s=document.getElementById('blc-summary'); if(s) s.style.display='grid';
+                function setN(id,v){var e=document.getElementById(id);if(e) e.textContent=v;}
+                setN('blc-total-posts', blcPostCount);
+                setN('blc-total-links', blcChecked);
+                setN('blc-broken-count', blcBroken);
+                setN('blc-redirect-count', blcRedirects);
+            }
+            function blcAddRow(item) {
+                var tbody=document.getElementById('blc-tbody'), wrap=document.getElementById('blc-results-wrap');
+                if(!tbody) return;
+                if(wrap) wrap.style.display='block';
+                var cls = item.status>=300&&item.status<400 ? 'ab-badge-short' : 'ab-badge-long';
+                var tr=document.createElement('tr');
+                tr.innerHTML=
+                    '<td><a href="'+blcEsc(item.post_edit)+'" target="_blank">'+blcEsc(item.post_title)+'</a></td>'+
+                    '<td style="word-break:break-all"><a href="'+blcEsc(item.url)+'" target="_blank" rel="noopener noreferrer">'+
+                        blcEsc(item.url.length>70?item.url.substring(0,70)+'\u2026':item.url)+'</a></td>'+
+                    '<td style="font-size:12px;color:#50575e">'+blcEsc(item.anchor||'\u2014')+'</td>'+
+                    '<td><span class="ab-badge '+cls+'">'+blcEsc(item.label)+' ('+item.status+')</span></td>';
+                tbody.appendChild(tr);
+            }
+
+            async function blcRunScan() {
+                blcStop=false; blcChecked=0; blcBroken=0; blcRedirects=0; blcPostCount=0;
+                var tbody=document.getElementById('blc-tbody');
+                if(tbody) tbody.innerHTML='';
+                document.getElementById('blc-results-wrap').style.display='none';
+                document.getElementById('blc-all-ok').style.display='none';
+                document.getElementById('blc-summary').style.display='none';
+                var scanBtn=document.getElementById('blc-scan-btn'), stopBtn=document.getElementById('blc-stop-btn');
+                if(scanBtn) scanBtn.disabled=true;
+                if(stopBtn) stopBtn.style.display='inline-block';
+                blcSetStatus('Loading posts\u2026'); blcSetProgress(0);
+                try {
+                    var r=await blcPost({action:'cs_seo_blc_get_posts'});
+                    if(!r.success){ blcSetStatus('Error: '+(r.data||'unknown')); return; }
+                    var postIds=r.data.post_ids;
+                    blcPostCount=postIds.length;
+                    if(!postIds.length){ blcSetStatus('No posts found.'); return; }
+
+                    // Phase 1 — extract all links
+                    var allLinks=[];
+                    for(var i=0;i<postIds.length;i++){
+                        if(blcStop) break;
+                        blcSetProgress((i/postIds.length)*40);
+                        blcSetStatus('Extracting links\u2026 post '+(i+1)+' of '+postIds.length);
+                        var er=await blcPost({action:'cs_seo_blc_extract_links',post_id:postIds[i]});
+                        if(er.success&&er.data.links){
+                            er.data.links.forEach(function(lk){
+                                allLinks.push({post_title:er.data.post_title,post_edit:er.data.post_edit,url:lk.url,anchor:lk.anchor});
+                            });
+                        }
+                    }
+
+                    // Phase 2 — check unique URLs
+                    var uniqueUrls=[...new Set(allLinks.map(function(l){return l.url;}))];
+                    blcTotalLinks=uniqueUrls.length;
+                    var urlCache={};
+                    for(var k=0;k<uniqueUrls.length;k++){
+                        if(blcStop) break;
+                        blcSetProgress(40+(k/uniqueUrls.length)*60);
+                        blcSetStatus('Checking URL '+(k+1)+' of '+uniqueUrls.length+'\u2026');
+                        var url=uniqueUrls[k];
+                        var cr=await blcPost({action:'cs_seo_blc_check_url',url:url});
+                        var res={status:0,ok:false,label:'Error'};
+                        if(cr.success) res={status:cr.data.status,ok:cr.data.ok,label:cr.data.label};
+                        urlCache[url]=res;
+                        blcChecked++;
+                        if(!res.ok){
+                            if(res.status>=300&&res.status<400) blcRedirects++;
+                            else blcBroken++;
+                            allLinks.forEach(function(lk){
+                                if(lk.url===url) blcAddRow(Object.assign({},lk,res));
+                            });
+                        }
+                        blcUpdateSummary();
+                    }
+                    blcSetProgress(100);
+                    blcSetStatus('Done \u2014 '+blcChecked+' URLs checked.');
+                    if(blcBroken===0&&blcRedirects===0){
+                        document.getElementById('blc-all-ok').style.display='block';
+                    }
+                } catch(e){
+                    blcSetStatus('Error: '+e.message);
+                } finally {
+                    if(scanBtn) scanBtn.disabled=false;
+                    if(stopBtn) stopBtn.style.display='none';
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                var sb=document.getElementById('blc-scan-btn');
+                if(sb) sb.addEventListener('click', blcRunScan);
+                var st=document.getElementById('blc-stop-btn');
+                if(st) st.addEventListener('click', function(){ blcStop=true; blcSetStatus('Stopping\u2026'); });
+            });
+        })();
+
+        // ── Image SEO Audit ──────────────────────────────────────────────────
+        (function() {
+            var _ajax  = csSeoAdmin.ajaxUrl;
+            var _nonce = csSeoAdmin.nonce;
+
+            function imgPost(data) {
+                return fetch(_ajax, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(Object.assign({nonce: _nonce}, data)).toString()
+                }).then(function(r){ return r.json(); });
+            }
+            function imgEsc(s){ var d=document.createElement('div'); d.textContent=String(s); return d.innerHTML; }
+            function imgFmt(b){ if(b>1048576) return (b/1048576).toFixed(1)+' MB'; if(b>1024) return Math.round(b/1024)+' KB'; return b+' B'; }
+
+            function imgRender(data) {
+                function setN(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; }
+                setN('imgseo-total', data.total);
+                setN('imgseo-missing-alt', data.missing_alt);
+                setN('imgseo-bad-fname', data.bad_filename);
+                setN('imgseo-large', data.large_file);
+                document.getElementById('imgseo-summary').style.display='grid';
+
+                var tbody=document.getElementById('imgseo-tbody');
+                var wrap=document.getElementById('imgseo-results-wrap');
+                var allOk=document.getElementById('imgseo-all-ok');
+                if(!data.images||!data.images.length){
+                    if(allOk) allOk.style.display='block';
+                    if(wrap) wrap.style.display='none';
+                    return;
+                }
+                if(wrap) wrap.style.display='block';
+                if(allOk) allOk.style.display='none';
+                tbody.innerHTML='';
+                data.images.forEach(function(img){
+                    var badges=img.issues.map(function(issue){
+                        var lbl=issue==='missing_alt'?'&#10060; No ALT':issue==='bad_filename'?'&#9888;&#65039; Bad filename':'&#128230; Large file';
+                        var cls=issue==='missing_alt'?'ab-badge-long':issue==='bad_filename'?'ab-badge-short':'ab-badge-none';
+                        return '<span class="ab-badge '+cls+'" style="display:block;margin-bottom:3px">'+lbl+'</span>';
+                    }).join('');
+                    var thumb=img.thumb_url
+                        ? '<img src="'+imgEsc(img.thumb_url)+'" style="width:48px;height:48px;object-fit:cover;border-radius:3px" loading="lazy">'
+                        : '<span style="font-size:28px">&#128444;</span>';
+                    var parentCell=img.parent_edit
+                        ? '<a href="'+imgEsc(img.parent_edit)+'" target="_blank">'+imgEsc(img.parent_title||'(no title)')+'</a>'
+                        : '<span style="color:#999">Unattached</span>';
+                    var altCell=img.alt
+                        ? '<span style="font-size:12px;color:#1a7a34">'+imgEsc(img.alt.substring(0,60))+(img.alt.length>60?'\u2026':'')+'</span>'
+                        : '<span style="color:#9b1c1c;font-style:italic;font-size:12px">None</span>';
+                    var tr=document.createElement('tr');
+                    tr.innerHTML=
+                        '<td style="text-align:center">'+thumb+'</td>'+
+                        '<td style="font-size:12px;word-break:break-all"><a href="'+imgEsc(img.edit_url)+'" target="_blank">'+imgEsc(img.filename)+'</a></td>'+
+                        '<td>'+parentCell+'</td>'+
+                        '<td style="white-space:nowrap;font-size:12px">'+imgFmt(img.filesize)+'</td>'+
+                        '<td>'+altCell+'</td>'+
+                        '<td>'+badges+'</td>'+
+                        '<td><a href="'+imgEsc(img.edit_url)+'" class="button button-small" target="_blank">Edit</a></td>';
+                    tbody.appendChild(tr);
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                var btn=document.getElementById('imgseo-scan-btn');
+                if(!btn) return;
+                btn.addEventListener('click', async function(){
+                    btn.disabled=true; btn.textContent='\u27f3 Scanning\u2026';
+                    var status=document.getElementById('imgseo-status');
+                    if(status) status.textContent='Scanning Media Library\u2026';
+                    try {
+                        var r=await imgPost({action:'cs_seo_imgseo_scan'});
+                        if(r.success){
+                            imgRender(r.data);
+                            if(status) status.textContent='Done \u2014 '+r.data.with_issues+' issue(s) across '+r.data.total+' images.';
+                        } else {
+                            if(status) status.textContent='Error: '+(r.data||'unknown');
+                        }
+                    } catch(e){
+                        if(status) status.textContent='Error: '+e.message;
+                    } finally {
+                        btn.disabled=false; btn.textContent='\uD83D\uDD0D Scan Media Library';
+                    }
+                });
+            });
+        })();
+
+        // ── Title Optimiser ───────────────────────────────────────────────────
+        (function() {
+            const toState = { running: false, stopped: false, sessionDone: 0, sortBy: 'date', filter: 'all', posts: [], page: 0, polling: false, pollTimer: null, lastLoggedId: 0 };
+            const TO_PAGE = 50;
+
+            function toLog(msg, cls) {
+                const wrap = document.getElementById('ab-titleopt-log-wrap');
+                const log  = document.getElementById('ab-titleopt-log');
+                if (!wrap || !log) return;
+                wrap.style.display = 'block';
+                const d = document.createElement('div');
+                d.className = 'ab-log-entry' + (cls ? ' ' + cls : '');
+                d.textContent = msg;
+                log.prepend(d);
+            }
+
+            function toSetStatus(msg) {
+                var s = document.getElementById('ab-titleopt-status');
+                var l = document.getElementById('ab-titleopt-prog-label');
+                if (s) s.textContent = msg;
+                if (l) l.textContent = msg;
+            }
+
+            function toSetProgress(pct) {
+                var f = document.getElementById('ab-titleopt-progress-fill');
+                if (f) f.style.width = pct + '%';
+            }
+
+            function toScoreBadge(score, small) {
+                if (!score) return '<span style="color:#aaa;font-size:11px">—</span>';
+                var col = score >= 71 ? '#1a7a34' : score >= 41 ? '#b45309' : '#9b1c1c';
+                var bg  = score >= 71 ? '#dcfce7' : score >= 41 ? '#fef3c7' : '#fee2e2';
+                var sz  = small ? '11px' : '13px';
+                return '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:' + bg + ';color:' + col + ';font-weight:700;font-size:' + sz + '">' + score + '</span>';
+            }
+
+            function toStatusBadge(status, stale) {
+                var badge = '';
+                if (status === 'applied')   badge = '<span class="ab-badge ab-badge-ok">✓ Applied</span>';
+                else if (status === 'suggested') badge = '<span class="ab-badge" style="background:#e0e7ff;color:#3730a3">💡 Suggested</span>';
+                else badge = '<span class="ab-badge ab-badge-none">Pending</span>';
+                if (stale) badge += '<div style="margin-top:3px"><span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid #fcd34d">⚠ Edited since analysis</span></div>';
+                return badge;
+            }
+
+            function toKwHtml(kws) {
+                if (!kws || !kws.length) return '<span style="color:#aaa;font-size:11px">—</span>';
+                return kws.map(function(k) {
+                    return '<span style="display:inline-block;background:#f0f0f0;border-radius:4px;padding:1px 6px;font-size:11px;margin:1px 2px;color:#374151">' + abEsc(k) + '</span>';
+                }).join('');
+            }
+
+            window.titleOptSort = function(by) {
+                var serverSorts = { date: true, comments: true };
+                toState.sortBy = by;
+                if (serverSorts[by]) {
+                    toLoad();
+                } else {
+                    if (by === 'score_before' || by === 'score_after') {
+                        toState.posts.sort(function(a, b) { return (b[by] || 0) - (a[by] || 0); });
+                    } else if (by === 'stale') {
+                        toState.posts.sort(function(a, b) {
+                            if (a.stale !== b.stale) return (b.stale ? 1 : 0) - (a.stale ? 1 : 0);
+                            var sOrd = { suggested: 0, applied: 1 };
+                            return (sOrd[a.status] !== undefined ? sOrd[a.status] : 2) - (sOrd[b.status] !== undefined ? sOrd[b.status] : 2);
+                        });
+                    } else if (by === 'status') {
+                        var ord = { applied: 0, suggested: 1 };
+                        toState.posts.sort(function(a, b) { return (ord[a.status] !== undefined ? ord[a.status] : 2) - (ord[b.status] !== undefined ? ord[b.status] : 2); });
+                    } else if (by === 'title') {
+                        toState.posts.sort(function(a, b) { return (a.title || '').localeCompare(b.title || ''); });
+                    }
+                    toState.page = 0;
+                    toRenderTable();
+                }
+            };
+
+            function toUpdateAnalyseBtn() {
+                var btn = document.getElementById('ab-titleopt-analyse-all');
+                if (!btn) return;
+                var total     = toState.posts.length;
+                var analysed  = toState.posts.filter(function(p) { return p.suggested; }).length;
+                var remaining = total - analysed;
+                if (remaining > 0) {
+                    btn.textContent = '🔍 Analyse Remaining ' + remaining;
+                    btn.title = '';
+                } else {
+                    btn.textContent = '🔍 Analyse Remaining';
+                    btn.title = 'All posts have suggestions — use Re-analyse All to regenerate';
+                }
+            }
+
+            async function toLoad() {
+                toSetStatus('Loading…');
+                var data = await abPost('cs_seo_title_optimiser_load', { sort: toState.sortBy });
+                if (!data.success) { toSetStatus('Error: ' + (data.data || 'Unknown')); return; }
+                var d = data.data;
+                toState.posts = d.posts || [];
+                toState.page  = 0;
+                var s = d.posts ? d.posts.filter(function(p) { return p.suggested; }).length : 0;
+                document.getElementById('titleopt-s-total').textContent    = d.total;
+                document.getElementById('titleopt-s-analysed').textContent = s;
+                document.getElementById('titleopt-s-applied').textContent  = d.applied;
+                var applyBtn = document.getElementById('ab-titleopt-apply-all');
+                var suggested = toState.posts.filter(function(p) { return p.status === 'suggested'; }).length;
+                if (applyBtn) applyBtn.disabled = suggested === 0;
+                toSetStatus(s === 0 ? 'Click "Analyse Remaining" to get SEO title suggestions' : s + ' analysed, ' + d.applied + ' applied');
+                document.getElementById('ab-titleopt-reload-hdr').style.visibility = 'visible';
+                toUpdateAnalyseBtn();
+                toRenderTable();
+                // Auto-resume polling if a background job is already running
+                if (!toState.polling) {
+                    abPost('cs_seo_title_queue_status', {}).then(function(r) {
+                        if (r.success && r.data.running) {
+                            toLog('⚡ Background analysis in progress — resuming tracking.', 'ab-log-ok');
+                            toStartPolling();
+                        }
+                    });
+                }
+            }
+
+            function toSetFilter(f) { toState.filter = f; toState.page = 0; toRenderTable(); }
+
+            function toRenderTable() {
+                var wrap = document.getElementById('ab-titleopt-posts-wrap');
+                if (!wrap) return;
+                var allPosts = toState.posts || [];
+                if (!allPosts.length) { wrap.innerHTML = '<p style="color:#50575e;margin-top:8px">No published posts found.</p>'; return; }
+
+                // Filter
+                var cntSuggested = allPosts.filter(function(p) { return p.status === 'suggested'; }).length;
+                var cntApplied   = allPosts.filter(function(p) { return p.status === 'applied'; }).length;
+                var cntPending   = allPosts.filter(function(p) { return !p.suggested; }).length;
+                var posts = toState.filter === 'suggested' ? allPosts.filter(function(p) { return p.status === 'suggested'; })
+                          : toState.filter === 'applied'   ? allPosts.filter(function(p) { return p.status === 'applied'; })
+                          : toState.filter === 'pending'   ? allPosts.filter(function(p) { return !p.suggested; })
+                          : allPosts;
+
+                var mkFBtn = function(f, label, cnt) {
+                    var active = toState.filter === f;
+                    var style = active
+                        ? 'background:#1d2327;color:#fff;border-color:#1d2327;font-weight:700'
+                        : 'background:#fff;color:#50575e;border-color:#ddd';
+                    return '<button class="button" style="font-size:12px;padding:3px 10px;' + style + '" onclick="toSetFilter(\'' + f + '\')">' + label + ' <span style="opacity:0.7">(' + cnt + ')</span></button>';
+                };
+                var filterBar = '<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap">' +
+                    '<span style="font-size:12px;color:#50575e;font-weight:600;margin-right:2px">Filter:</span>' +
+                    mkFBtn('all',       'All',           allPosts.length) +
+                    mkFBtn('suggested', 'Pending Apply', cntSuggested) +
+                    mkFBtn('applied',   'Applied',       cntApplied) +
+                    mkFBtn('pending',   'Not Analysed',  cntPending) +
+                    '</div>';
+
+                var totalPages = Math.ceil(posts.length / TO_PAGE);
+                if (toState.page >= totalPages) toState.page = Math.max(0, totalPages - 1);
+                var start = toState.page * TO_PAGE;
+                var page  = posts.slice(start, start + TO_PAGE);
+
+                var thBase = 'padding:9px 10px;background:#1d2327;color:#fff;font-weight:700;font-size:12px;white-space:nowrap;border-right:1px solid #3a4450;text-align:left';
+                var thSort = thBase + ';cursor:pointer;user-select:none';
+                var thCenter = thSort + ';text-align:center';
+                var arrow = function(by) { return toState.sortBy === by ? ' <span style="opacity:0.9">↓</span>' : ' <span style="opacity:0.25">↕</span>'; };
+
+                var rows = page.map(function(p, idx) {
+                    var rowBg = idx % 2 === 0 ? '#fff' : '#f9fafb';
+                    // Use original_title (captured at analysis time) so the "before" state is always the pre-optimisation title.
+                    // For posts analysed before tracking was added (original_title empty + applied), show a "re-analyse to compare" hint.
+                    var displayTitle = p.original_title || p.title;
+                    var noOriginal   = !p.original_title && p.status === 'applied';
+                    var titleInner   = abEsc(displayTitle)
+                        + (noOriginal ? '<div style="font-size:10px;color:#aaa;font-style:italic;margin-top:2px">Title was changed to suggested title</div>' : '');
+                    var editIcon = p.edit_link
+                        ? ' <a href="' + safeHref(p.edit_link) + '" target="_blank" title="Edit post" style="color:#aaa;font-size:11px;text-decoration:none;margin-left:4px">✏</a>'
+                        : '';
+                    var titleCell = p.post_url
+                        ? '<a href="' + safeHref(p.post_url) + '" target="_blank" style="color:#1d2327;text-decoration:none;border-bottom:1px dotted #aaa" title="View post">' + titleInner + '</a>' + editIcon
+                        : titleInner + editIcon;
+                    var scoreArrow = (p.score_before && p.score_after && p.score_after > p.score_before)
+                        ? ' <span style="color:#1a7a34;font-size:11px">↑' + (p.score_after - p.score_before) + '</span>' : '';
+                    var suggestedCell = p.suggested
+                        ? '<span style="color:#3730a3;font-weight:600">' + abEsc(p.suggested) + '</span>'
+                        : '<span style="color:#aaa;font-size:11px;font-style:italic">Not yet analysed</span>';
+                    var notesCell = p.notes
+                        ? '<div style="font-size:11px;color:#6b7280;margin-top:2px;font-style:italic">' + abEsc(p.notes) + '</div>'
+                        : '';
+                    var actionBtns = p.status === 'applied'
+                        ? '<button class="button button-small" onclick="toAnalyseOne(' + p.id + ')" style="margin-right:4px" title="Re-analyse this post">🔍 Re-analyse</button>'
+                        : '<button class="button button-small ab-action-btn" onclick="toAnalyseOne(' + p.id + ')" id="titleopt-analyse-' + p.id + '" style="margin-right:4px">🔍 Analyse</button>'
+                          + (p.suggested && p.status !== 'applied' ? '<button class="button button-small" onclick="toApplyOne(' + p.id + ')" id="titleopt-apply-' + p.id + '" style="background:#1a7a34;border-color:#155724;color:#fff">✅ Apply</button>' : '');
+                    var tdStyle = 'padding:8px 10px;border-right:1px solid #ececec';
+                    return '<tr id="titleopt-row-' + p.id + '" style="border-bottom:1px solid #ddd;background:' + rowBg + '">' +
+                        '<td style="' + tdStyle + ';font-size:13px;max-width:220px;word-break:break-word">' + titleCell + '</td>' +
+                        '<td style="' + tdStyle + ';font-size:12px;color:#50575e;white-space:nowrap" class="titleopt-date-' + p.id + '">' + abEsc(p.date || '—') + (p.analysed_at ? '<div style="font-size:10px;color:#aaa;margin-top:1px">analysed ' + abEsc(p.analysed_at) + '</div>' : '') + '</td>' +
+                        '<td style="' + tdStyle + ';text-align:center;white-space:nowrap" class="titleopt-score-before-' + p.id + '">' + toScoreBadge(p.score_before) + '</td>' +
+                        '<td style="' + tdStyle + ';font-size:13px;max-width:240px;word-break:break-word" class="titleopt-suggested-' + p.id + '">' + suggestedCell + notesCell + '</td>' +
+                        '<td style="' + tdStyle + ';max-width:160px" class="titleopt-kw-' + p.id + '">' + toKwHtml(p.keywords) + '</td>' +
+                        '<td style="' + tdStyle + ';text-align:center;white-space:nowrap" class="titleopt-score-after-' + p.id + '">' + toScoreBadge(p.score_after) + scoreArrow + '</td>' +
+                        '<td style="' + tdStyle + ';text-align:center;white-space:nowrap" class="titleopt-status-' + p.id + '">' + toStatusBadge(p.status, p.stale) + '</td>' +
+                        '<td style="padding:8px 10px;white-space:nowrap" class="titleopt-actions-' + p.id + '">' + actionBtns + '</td>' +
+                        '</tr>';
+                }).join('');
+
+                var pager = '';
+                if (totalPages > 1) {
+                    var from = start + 1, to = Math.min(start + TO_PAGE, posts.length);
+                    pager = '<div style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#50575e">' +
+                        '<button class="button" onclick="toState.page--;toRenderTable()" ' + (toState.page === 0 ? 'disabled' : '') + '>← Prev</button>' +
+                        '<span>Page ' + (toState.page+1) + ' of ' + totalPages + ' &nbsp;·&nbsp; ' + from + '–' + to + ' of ' + posts.length + '</span>' +
+                        '<button class="button" onclick="toState.page++;toRenderTable()" ' + (toState.page >= totalPages-1 ? 'disabled' : '') + '>Next →</button>' +
+                        '</div>';
+                }
+
+                wrap.innerHTML = filterBar + '<table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid #ddd">' +
+                    '<thead><tr>' +
+                    '<th style="' + thSort + ';min-width:180px" onclick="titleOptSort(\'title\')">Post Title' + arrow('title') + '</th>' +
+                    '<th style="' + thSort + ';min-width:90px" onclick="titleOptSort(\'date\')">Date' + arrow('date') + '</th>' +
+                    '<th style="' + thCenter + '" onclick="titleOptSort(\'score_before\')">SEO Before' + arrow('score_before') + '</th>' +
+                    '<th style="' + thBase + ';min-width:200px">Suggested Title</th>' +
+                    '<th style="' + thBase + '">Keywords</th>' +
+                    '<th style="' + thCenter + '" onclick="titleOptSort(\'score_after\')">SEO After' + arrow('score_after') + '</th>' +
+                    '<th style="' + thCenter + '" onclick="titleOptSort(\'stale\')" title="Sort: edited posts first">Status / Edited' + arrow('stale') + '</th>' +
+                    '<th style="' + thBase + '">Actions</th>' +
+                    '</tr></thead>' +
+                    '<tbody>' + rows + '</tbody>' +
+                    '</table>' + pager;
+
+                window.toState       = toState;
+                window.toRenderTable = toRenderTable;
+                window.toSetFilter   = toSetFilter;
+            }
+
+            window.toAnalyseOne = async function(postId) {
+                var row    = document.getElementById('titleopt-row-' + postId);
+                var btn    = document.getElementById('titleopt-analyse-' + postId);
+                if (btn) { btn.disabled = true; btn.textContent = '⟳ Analysing…'; }
+                try {
+                    var data = await abPost('cs_seo_title_optimise_one', { post_id: postId });
+                    if (data.success) {
+                        var d = data.data;
+                        var p = (toState.posts || []).find(function(x) { return x.id === postId; });
+                        if (p) {
+                            p.suggested    = d.suggested_title;
+                            p.keywords     = d.keywords;
+                            p.score_before = d.score_before;
+                            p.score_after  = d.score_after;
+                            p.notes        = d.notes;
+                            p.status       = 'suggested';
+                            p.stale        = false;
+                        }
+                        var scoreArrow = (d.score_after > d.score_before)
+                            ? ' <span style="color:#1a7a34;font-size:11px">↑' + (d.score_after - d.score_before) + '</span>' : '';
+                        var el;
+                        el = row && row.querySelector('.titleopt-score-before-' + postId);
+                        if (el) el.innerHTML = toScoreBadge(d.score_before);
+                        el = row && row.querySelector('.titleopt-suggested-' + postId);
+                        if (el) el.innerHTML = '<span style="color:#3730a3;font-weight:600">' + abEsc(d.suggested_title) + '</span>'
+                            + (d.notes ? '<div style="font-size:11px;color:#6b7280;margin-top:2px;font-style:italic">' + abEsc(d.notes) + '</div>' : '');
+                        el = row && row.querySelector('.titleopt-kw-' + postId);
+                        if (el) el.innerHTML = toKwHtml(d.keywords);
+                        el = row && row.querySelector('.titleopt-score-after-' + postId);
+                        if (el) el.innerHTML = toScoreBadge(d.score_after) + scoreArrow;
+                        el = row && row.querySelector('.titleopt-status-' + postId);
+                        if (el) el.innerHTML = toStatusBadge('suggested', false);
+                        el = row && row.querySelector('.titleopt-actions-' + postId);
+                        if (el) el.innerHTML =
+                            '<button class="button button-small ab-action-btn" onclick="toAnalyseOne(' + postId + ')" style="margin-right:4px">🔍 Analyse</button>' +
+                            '<button class="button button-small" onclick="toApplyOne(' + postId + ')" id="titleopt-apply-' + postId + '" style="background:#1a7a34;border-color:#155724;color:#fff">✅ Apply</button>';
+                        toState.sessionDone++;
+                        document.getElementById('titleopt-s-session').textContent = toState.sessionDone;
+                        var analysedCount = (toState.posts || []).filter(function(x) { return x.suggested; }).length;
+                        document.getElementById('titleopt-s-analysed').textContent = analysedCount;
+                        var applyBtn = document.getElementById('ab-titleopt-apply-all');
+                        var suggested = (toState.posts || []).filter(function(x) { return x.status === 'suggested'; }).length;
+                        if (applyBtn) applyBtn.disabled = suggested === 0;
+                        toLog('✓ ' + abEsc(d.suggested_title) + ' [' + d.score_before + '→' + d.score_after + ']', 'ab-log-ok');
+                    } else {
+                        toLog('✗ Error for post #' + postId + ': ' + (data.data || 'Unknown'), 'ab-log-error');
+                    }
+                } catch (e) {
+                    toLog('✗ Network error: ' + e.message, 'ab-log-error');
+                } finally {
+                    if (btn) { btn.disabled = false; btn.textContent = '🔍 Analyse'; }
+                }
+            };
+
+            window.toApplyOne = async function(postId) {
+                if (!confirm('Apply this suggested title? This will update the post title and URL slug, and create a 301 redirect from the old URL.')) return;
+                var row = document.getElementById('titleopt-row-' + postId);
+                var btn = document.getElementById('titleopt-apply-' + postId);
+                if (btn) { btn.disabled = true; btn.textContent = '⟳ Applying…'; }
+                try {
+                    var data = await abPost('cs_seo_title_apply_one', { post_id: postId });
+                    if (data.success) {
+                        var d = data.data;
+                        var p = (toState.posts || []).find(function(x) { return x.id === postId; });
+                        if (p) p.status = 'applied';
+                        var el = row && row.querySelector('.titleopt-status-' + postId);
+                        if (el) el.innerHTML = toStatusBadge('applied');
+                        el = row && row.querySelector('.titleopt-actions-' + postId);
+                        if (el) el.innerHTML = '<button class="button button-small" onclick="toAnalyseOne(' + postId + ')" title="Re-analyse this post">🔍 Re-analyse</button>';
+                        var titleEl = row && row.querySelector('td:first-child');
+                        if (titleEl && d.new_title) {
+                            var linkEl = titleEl.querySelector('a');
+                            if (linkEl) linkEl.textContent = d.new_title;
+                        }
+                        var appliedCount = (toState.posts || []).filter(function(x) { return x.status === 'applied'; }).length;
+                        document.getElementById('titleopt-s-applied').textContent = appliedCount;
+                        var suggested = (toState.posts || []).filter(function(x) { return x.status === 'suggested'; }).length;
+                        var applyBtn = document.getElementById('ab-titleopt-apply-all');
+                        if (applyBtn) applyBtn.disabled = suggested === 0;
+                        toLog('✓ Applied: ' + abEsc(d.new_title || '') + (d.redirected ? ' (redirect created)' : ''), 'ab-log-ok');
+                    } else {
+                        toLog('✗ Apply failed for post #' + postId + ': ' + (data.data || 'Unknown'), 'ab-log-error');
+                    }
+                } catch (e) {
+                    toLog('✗ Network error: ' + e.message, 'ab-log-error');
+                } finally {
+                    if (btn) { btn.disabled = false; btn.textContent = '✅ Apply'; }
+                }
+            };
+
+            async function toQueueStart(force) {
+                if (toState.polling) toStopPollingUI(); // clear any stale polling state before starting fresh
+                if (force && !confirm('Re-analyse ALL ' + toState.posts.length + ' posts, overwriting existing suggestions. Continue?')) return;
+                toSetProgress(0);
+                toLog('⚡ Queuing posts for background analysis…', 'ab-log-ok');
+                try {
+                    var data = await abPost('cs_seo_title_queue_start', { force: force ? 1 : 0 });
+                    if (!data.success) { toLog('✗ ' + (data.data || 'Unknown error'), 'ab-log-error'); return; }
+                    var d = data.data;
+                    if (d.queued === 0) {
+                        toLog('✓ All ' + toState.posts.length + ' posts have suggestions — nothing left to analyse. Use Re-analyse All to refresh.', 'ab-log-ok');
+                        toSetStatus('✓ All posts analysed');
+                        toUpdateAnalyseBtn();
+                        return;
+                    }
+                    toLog('⚡ ' + d.queued + ' posts queued — running in background. Safe to close this tab.', 'ab-log-ok');
+                    toSetStatus('⚡ Background: 0 of ' + d.queued + ' processed');
+                    toStartPolling();
+                } catch (e) {
+                    toLog('✗ Failed to start queue: ' + e.message, 'ab-log-error');
+                }
+            }
+
+            function toStartPolling() {
+                if (toState.polling) return;
+                toState.polling     = true;
+                toState.lastLoggedId = 0;
+                // Keep analyse buttons enabled — clicking them while polling stops and restarts cleanly via toQueueStart → toStopPollingUI
+                document.getElementById('ab-titleopt-apply-all').disabled   = true;
+                document.getElementById('ab-titleopt-stop').style.display   = '';
+                toPollStatus();
+                toState.pollTimer = setInterval(toPollStatus, 3000);
+            }
+
+            function toStopPollingUI() {
+                toState.polling = false;
+                if (toState.pollTimer) { clearInterval(toState.pollTimer); toState.pollTimer = null; }
+                document.getElementById('ab-titleopt-analyse-all').disabled = false;
+                document.getElementById('ab-titleopt-force-all').disabled   = false;
+                document.getElementById('ab-titleopt-stop').style.display   = 'none';
+                var suggested = (toState.posts || []).filter(function(p) { return p.status === 'suggested'; }).length;
+                document.getElementById('ab-titleopt-apply-all').disabled = suggested === 0;
+            }
+
+            async function toPollStatus() {
+                try {
+                    var data = await abPost('cs_seo_title_queue_status', {});
+                    if (!data.success) return;
+                    var d = data.data;
+
+                    if (d.last_error) toLog('✗ ' + abEsc(d.last_error), 'ab-log-error');
+
+                    if (d.last_post_id && d.last_post_id !== toState.lastLoggedId) {
+                        toState.lastLoggedId = d.last_post_id;
+                        var scores = (d.last_scores && d.last_scores.length === 2)
+                            ? '[' + d.last_scores[0] + '→' + d.last_scores[1] + '] ' : '';
+                        toLog('✓ ' + scores + abEsc(d.last_title), 'ab-log-ok');
+                        var p = (toState.posts || []).find(function(x) { return x.id === d.last_post_id; });
+                        if (p) {
+                            p.suggested    = d.last_title;
+                            p.score_before = d.last_scores[0];
+                            p.score_after  = d.last_scores[1];
+                            p.stale        = false;
+                            if (p.status !== 'applied') p.status = 'suggested';
+                        }
+                        toState.sessionDone++;
+                        document.getElementById('titleopt-s-session').textContent  = toState.sessionDone;
+                        document.getElementById('titleopt-s-analysed').textContent = d.processed;
+                        var pct = d.total > 0 ? Math.round((d.processed / d.total) * 100) : 0;
+                        toSetProgress(pct);
+                        toUpdateAnalyseBtn();
+                        toRenderTable();
+                    }
+
+                    toSetStatus('⚡ Background: ' + d.processed + ' of ' + d.total + ', ' + d.remaining + ' remaining');
+
+                    if (!d.running) {
+                        toStopPollingUI();
+                        toSetProgress(100);
+                        toSetStatus('✓ Done — ' + d.processed + ' of ' + d.total + ' analysed.');
+                        toLog('✓ Background analysis complete — ' + d.processed + ' posts processed.', 'ab-log-ok');
+                        await toLoad();
+                    }
+                } catch (e) {
+                    // swallow network errors during poll — will retry on next interval
+                }
+            }
+
+            async function toQueueStop() {
+                if (toState.pollTimer) { clearInterval(toState.pollTimer); toState.pollTimer = null; }
+                try {
+                    var data = await abPost('cs_seo_title_queue_stop', {});
+                    if (data.success) toLog('⏹ Stopped — ' + (data.data.processed || 0) + ' processed this run.', 'ab-log-ok');
+                } catch (e) { /* ignore */ }
+                toStopPollingUI();
+                await toLoad();
+            }
+
+            async function toApplyAll() {
+                var pending = (toState.posts || []).filter(function(x) { return x.status === 'suggested'; });
+                if (pending.length === 0) { alert('No suggested titles to apply. Run "Analyse All" first.'); return; }
+                if (!confirm('Apply all ' + pending.length + ' suggested titles? Each post\'s URL slug will be updated and a 301 redirect created from the old URL. This cannot be undone in bulk.')) return;
+
+                var applyBtn = document.getElementById('ab-titleopt-apply-all');
+                var total = pending.length, done = 0, redirects = 0, errors = 0;
+
+                function setCounter() {
+                    if (applyBtn) applyBtn.textContent = '⟳ Applying ' + done + ' / ' + total + '…';
+                }
+
+                if (applyBtn) { applyBtn.disabled = true; setCounter(); }
+
+                for (var i = 0; i < pending.length; i++) {
+                    var p = pending[i];
+                    try {
+                        var data = await abPost('cs_seo_title_apply_one', { post_id: p.id });
+                        if (data.success) {
+                            var d = data.data;
+                            done++;
+                            if (d.redirected) redirects++;
+                            // Update local state so table re-renders correctly
+                            var sp = (toState.posts || []).find(function(x) { return x.id === p.id; });
+                            if (sp) { sp.status = 'applied'; sp.stale = false; }
+                            toLog('✓ ' + abEsc(d.new_title || p.suggested || '') + (d.redirected ? ' (↪ redirect)' : ''), 'ab-log-ok');
+                            // Update stats bar
+                            document.getElementById('titleopt-s-applied').textContent =
+                                (toState.posts || []).filter(function(x) { return x.status === 'applied'; }).length;
+                        } else {
+                            errors++;
+                            toLog('✗ #' + p.id + ': ' + abEsc(data.data || 'Unknown error'), 'ab-log-error');
+                        }
+                    } catch (e) {
+                        errors++;
+                        toLog('✗ #' + p.id + ' network error: ' + abEsc(e.message), 'ab-log-error');
+                    }
+                    setCounter();
+                    toRenderTable();
+                }
+
+                toLog('✓ Done — ' + done + ' of ' + total + ' applied, ' + redirects + ' redirect' + (redirects !== 1 ? 's' : '') + (errors ? ', ' + errors + ' error(s)' : ''), 'ab-log-ok');
+                if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = '✅ Apply All Suggested'; }
+                var remaining = (toState.posts || []).filter(function(p) { return p.status === 'suggested'; }).length;
+                if (applyBtn) applyBtn.disabled = remaining === 0;
+                await toLoad();
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                // Auto-load when Title Optimiser tab is activated
+                var pane = document.getElementById('ab-pane-titleopt');
+                if (!pane) return;
+                var obs = new MutationObserver(function() {
+                    if (pane.classList.contains('active') && !window.__titleOptLoaded) {
+                        window.__titleOptLoaded = true;
+                        toLoad();
+                    }
+                });
+                obs.observe(pane, { attributes: true, attributeFilter: ['class'] });
+                // Also fire immediately if pane is already active on load (e.g. after page refresh)
+                if (pane.classList.contains('active') && !window.__titleOptLoaded) {
+                    window.__titleOptLoaded = true;
+                    toLoad();
+                }
+
+                var btn = document.getElementById('ab-titleopt-analyse-all');
+                if (btn) btn.addEventListener('click', function() { toQueueStart(false); });
+                var forceBtn = document.getElementById('ab-titleopt-force-all');
+                if (forceBtn) forceBtn.addEventListener('click', function() { toQueueStart(true); });
+                var applyAllBtn = document.getElementById('ab-titleopt-apply-all');
+                if (applyAllBtn) applyAllBtn.addEventListener('click', toApplyAll);
+                var stopBtn = document.getElementById('ab-titleopt-stop');
+                if (stopBtn) stopBtn.addEventListener('click', toQueueStop);
+                var reloadBtn = document.getElementById('ab-titleopt-reload-hdr');
+                if (reloadBtn) reloadBtn.addEventListener('click', toLoad);
+            });
+        })();
 
         <?php wp_add_inline_script('cs-seo-admin-js', ob_get_clean()); ?>
         </div><!-- /wrap -->

@@ -35,7 +35,7 @@ trait CS_SEO_AI_Scoring {
 
         if (!$key) throw new \RuntimeException($provider === 'gemini' ? 'No Gemini API key configured' : 'No Anthropic API key configured'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 
-        $content   = mb_substr(CloudScale_SEO_AI_Optimizer_Utils::text_from_html((string) $post->post_content), 0, 3000);
+        $content   = mb_substr(Cs_Seo_Utils::text_from_html((string) $post->post_content), 0, 3000);
         $desc      = trim((string) get_post_meta($post_id, self::META_DESC, true));
         $custom    = trim((string) get_post_meta($post_id, self::META_TITLE, true));
         $title     = $custom !== '' ? $custom : get_the_title($post_id);
