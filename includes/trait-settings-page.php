@@ -463,6 +463,7 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-summary-row" id="ab-summary" style="display:none">
                     <div class="ab-summary-card"><div class="ab-summary-num" id="sum-total">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Total Posts & Pages', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
                     <div class="ab-summary-card"><div class="ab-summary-num" id="sum-has" style="color:#1a7a34">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Have Description', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
+                    <div class="ab-summary-card"><div class="ab-summary-num" id="sum-missing-title" style="color:#6b7280">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Missing Title Tag', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
                     <div class="ab-summary-card"><div class="ab-summary-num" id="sum-missing" style="color:#6b3fa0">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Unprocessed', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
                     <div class="ab-summary-card"><div class="ab-summary-num" id="sum-generated" style="color:#2271b1">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Generated This Session', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
                 </div>
@@ -473,6 +474,7 @@ trait CS_SEO_Settings_Page {
                     <button class="button ab-action-btn ab-regen-btn" id="ab-ai-gen-all" disabled>↺ Regenerate All</button>
                     <button class="button ab-action-btn ab-fix-btn" id="ab-ai-fix" disabled>⚑ Fix Long/Short</button>
                     <button class="button ab-action-btn" id="ab-ai-fix-titles" disabled style="background:#7c3aed;color:#fff;border-color:#6d28d9">✎ Fix Titles</button>
+                    <button class="button ab-action-btn" id="ab-ai-gen-missing-titles" disabled style="background:#0e6b6b;color:#fff;border-color:#0a5050">✦ Generate Missing Titles</button>
                     <button class="button ab-action-btn ab-static-btn" id="ab-ai-static" disabled>🖼 Regenerate Static</button>
                     <button class="button ab-action-btn" id="ab-ai-score-all" disabled style="background:#0e6b6b;border-color:#0a5050;color:#fff;font-weight:600">📊 Calculate SEO Scores</button>
                     <span id="ab-toolbar-status" style="font-size:12px;color:#50575e;"></span>
@@ -1995,9 +1997,17 @@ trait CS_SEO_Settings_Page {
         <div class="ab-pane" id="ab-pane-blc">
 
             <div class="ab-zone-card ab-card-blc" style="margin-top:0">
-                <div class="ab-zone-header">
-                    <span class="ab-zone-icon">🔗</span>
-                    <?php esc_html_e( 'Broken Link Checker', 'cloudscale-seo-ai-optimizer' ); ?>
+                <div class="ab-zone-header" style="justify-content:space-between">
+                    <span><span class="ab-zone-icon">🔗</span> <?php esc_html_e( 'Broken Link Checker', 'cloudscale-seo-ai-optimizer' ); ?></span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <?php $this->explain_btn( 'blc', '🔗 Broken Link Checker — How it works', [
+                            [ 'rec' => 'ℹ️ Info', 'name' => 'What it scans',         'desc' => 'Checks every outbound <a href="…"> link found in published posts and pages. Internal links (same domain) are skipped — only external URLs are verified.' ],
+                            [ 'rec' => 'ℹ️ Info', 'name' => 'Deduplication',          'desc' => 'Each unique URL is fetched only once, no matter how many posts contain it. This keeps the scan fast even on large sites.' ],
+                            [ 'rec' => 'ℹ️ Info', 'name' => 'HTTP status codes',     'desc' => '2xx responses are OK. 3xx redirects are flagged as warnings (the link still works but points to an outdated URL). 4xx/5xx responses are flagged as broken.' ],
+                            [ 'rec' => '⚡ Tip',  'name' => 'Stopping a scan',        'desc' => 'You can stop the scan at any time — results found so far are still shown in the table below. Re-running a scan clears the previous results and starts fresh.' ],
+                            [ 'rec' => '⚡ Tip',  'name' => 'Fixing broken links',    'desc' => 'Click the post title in the results table to open the editor. Find the broken URL and either update it to the new address or remove the link entirely.' ],
+                        ] ); ?>
+                    </span>
                 </div>
                 <div class="ab-zone-body" style="padding:20px">
                     <p style="margin:0 0 16px;color:#50575e;font-size:13px">
@@ -2019,10 +2029,11 @@ trait CS_SEO_Settings_Page {
                         <table class="ab-posts" id="blc-table">
                             <thead>
                                 <tr>
-                                    <th style="min-width:160px"><?php esc_html_e( 'Post', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                    <th style="min-width:160px;cursor:pointer;user-select:none" data-blc-sort="post_title"><?php esc_html_e( 'Post', 'cloudscale-seo-ai-optimizer' ); ?> <span class="blc-sort-icon" style="opacity:0.5">&#8597;</span></th>
                                     <th style="min-width:260px"><?php esc_html_e( 'URL', 'cloudscale-seo-ai-optimizer' ); ?></th>
                                     <th style="min-width:100px"><?php esc_html_e( 'Anchor Text', 'cloudscale-seo-ai-optimizer' ); ?></th>
-                                    <th style="min-width:100px"><?php esc_html_e( 'Status', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                                    <th style="min-width:100px;cursor:pointer;user-select:none" data-blc-sort="date_ts"><?php esc_html_e( 'Date Created', 'cloudscale-seo-ai-optimizer' ); ?> <span class="blc-sort-icon" style="opacity:0.5">&#8597;</span></th>
+                                    <th style="min-width:100px;cursor:pointer;user-select:none" data-blc-sort="status_code"><?php esc_html_e( 'Status', 'cloudscale-seo-ai-optimizer' ); ?> <span class="blc-sort-icon" style="opacity:0.5">&#8597;</span></th>
                                 </tr>
                             </thead>
                             <tbody id="blc-tbody"></tbody>
@@ -2039,9 +2050,17 @@ trait CS_SEO_Settings_Page {
         <div class="ab-pane" id="ab-pane-imgseo">
 
             <div class="ab-zone-card ab-card-imgseo" style="margin-top:0">
-                <div class="ab-zone-header">
-                    <span class="ab-zone-icon">🖼</span>
-                    <?php esc_html_e( 'Image SEO Audit', 'cloudscale-seo-ai-optimizer' ); ?>
+                <div class="ab-zone-header" style="justify-content:space-between">
+                    <span><span class="ab-zone-icon">🖼</span> <?php esc_html_e( 'Image SEO Audit', 'cloudscale-seo-ai-optimizer' ); ?></span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <?php $this->explain_btn( 'imgseo', '🖼 Image SEO Audit — What each issue means', [
+                            [ 'rec' => '🔴 Fix',  'name' => 'Missing ALT text',       'desc' => 'The image has no alt attribute set in the Media Library. ALT text is read by screen readers and used by Google to understand image content. Add a short, descriptive phrase — e.g. "laptop on a wooden desk" rather than "image1".' ],
+                            [ 'rec' => '🔴 Fix',  'name' => 'Non-descriptive filename','desc' => 'The filename looks like a camera default (IMG_001.jpg, screenshot2.png, DSC_0042.jpg etc.). Google uses filenames as a ranking signal. Rename images to something descriptive before uploading — e.g. "cloud-architecture-diagram.png".' ],
+                            [ 'rec' => '🟡 Warn', 'name' => 'Oversized file (>500 KB)','desc' => 'The image file on disk exceeds 500 KB. Large images slow page load times and hurt Core Web Vitals scores. Compress or resize the image using a tool like Squoosh, TinyPNG, or ShortPixel.' ],
+                            [ 'rec' => 'ℹ️ Info', 'name' => 'Results scope',          'desc' => 'Only images with at least one issue are listed. Images that pass all three checks are not shown. The scan covers all media in your WordPress Media Library, not just images attached to posts.' ],
+                            [ 'rec' => '⚡ Tip',  'name' => 'Bulk fixing',             'desc' => 'Click the image title to open the Media Library attachment editor where you can update the ALT text directly. For filenames, re-upload the renamed file and update any posts that reference the old URL.' ],
+                        ] ); ?>
+                    </span>
                 </div>
                 <div class="ab-zone-body" style="padding:20px">
                     <p style="margin:0 0 16px;color:#50575e;font-size:13px">
@@ -2094,6 +2113,8 @@ trait CS_SEO_Settings_Page {
                             ['rec'=>'ℹ️ Info','name'=>'SEO score','desc'=>'The score (0–100) measures keyword clarity, title length (ideal 50–60 chars), and search intent alignment. A score below 50 means the title is likely too vague or missing keywords. Above 70 is good. The goal is to see a meaningful jump from before to after.'],
                             ['rec'=>'ℹ️ Info','name'=>'Analyse All','desc'=>'Runs the AI suggestion pass across every post that has not yet been analysed. Runs one post at a time in a polling loop. Safe to stop and restart. Does not change any post titles.'],
                             ['rec'=>'⚠️ Important','name'=>'Apply','desc'=>'Applying a title updates the post title and URL slug. A 301 redirect is automatically created from the old URL to the new one — so existing links and search engine rankings are preserved. The redirect appears in the Sitemap & Redirects tab.'],
+                            ['rec'=>'ℹ️ Info','name'=>'Min. gain % threshold','desc'=>'Set a minimum percentage improvement before a title is eligible for bulk apply. For example, 10% means only apply titles where the AI score improved by at least 10% relative to the original. The "Will Apply" column in the table updates live as you type. Posts below the threshold show their actual gain % so you can decide individually. Leave the field blank or set to 0 to apply all suggested titles.'],
+                            ['rec'=>'ℹ️ Info','name'=>'Will Apply column','desc'=>'Shows whether each post will be included in the next "Apply to X posts" bulk run, based on the current Min. gain threshold. Green badge = will be applied. "Below threshold" = suggested but gain is below your cutoff. You can sort and filter by this column to preview exactly what will change before committing.'],
                             ['rec'=>'ℹ️ Info','name'=>'Sort options','desc'=>'"Sort by Date" shows newest posts first. "Sort by Comments" shows most-engaged posts first — useful for prioritising high-traffic posts for optimisation.'],
                         ]); ?>
                     </span>
@@ -2118,7 +2139,21 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-ai-toolbar" id="ab-titleopt-toolbar">
                     <button class="button button-primary ab-action-btn" id="ab-titleopt-analyse-all" <?php disabled( ! $alt_has_key ); ?>>🔍 Analyse Remaining</button>
                     <button class="button ab-action-btn" id="ab-titleopt-force-all" style="background:#b45309;border-color:#92400e;color:#fff;font-weight:600" <?php disabled( ! $alt_has_key ); ?>>🔄 Re-analyse All</button>
-                    <button class="button ab-action-btn" id="ab-titleopt-apply-all" style="background:#1a7a34;border-color:#155724;color:#fff;font-weight:600" disabled>✅ Apply All Suggested</button>
+                    <span style="display:inline-flex;align-items:center;gap:4px;background:#f6f7f7;border:1px solid #dcdcde;border-radius:3px;padding:2px 7px;height:30px">
+                        <label for="ab-titleopt-threshold" style="font-size:11px;color:#50575e;white-space:nowrap;cursor:default" title="Only apply titles where the score improves by at least this percentage">Min. gain</label>
+                        <input type="number" id="ab-titleopt-threshold" min="0" max="100" value="10" style="width:44px;border:none;background:transparent;font-size:13px;text-align:center;padding:0;-moz-appearance:textfield" placeholder="—" title="Leave blank to apply all suggested titles, or enter a % threshold (e.g. 20 = only apply where score improves by ≥20%)">
+                        <span style="font-size:11px;color:#50575e">%</span>
+                    </span>
+                    <button class="button ab-action-btn" id="ab-titleopt-apply-all" style="background:#1a7a34;border-color:#155724;color:#fff;font-weight:600" disabled>✅ Apply to — posts</button>
+                    <button class="button ab-action-btn" id="ab-titleopt-scan-links" style="background:#6b3fa0;border-color:#4a2a7a;color:#fff;font-weight:600" title="Scan posts for internal links still pointing to old slugs">🔍 Scan Broken Links</button>
+                    <button class="button ab-action-btn" id="ab-titleopt-fix-links" style="background:#0073aa;border-color:#005177;color:#fff;font-weight:600" title="Rewrite internal post links from old slugs to new URLs" disabled>🔗 Fix Broken Links</button>
+                    <?php $this->explain_btn('fix_links', '🔗 Fix Broken Internal Links — How it works', [
+                        ['rec' => 'ℹ️ Info', 'name' => 'What these buttons do', 'desc' => 'When a post slug is renamed, any other posts that link to the old URL will still have the old URL in their content — they rely on the 301 redirect. These buttons let you update the actual post content so the links point directly to the new URL, eliminating the redirect hop.'],
+                        ['rec' => '✅ Step 1 — Scan', 'name' => 'Scan for Broken Links', 'desc' => 'Scans all published posts and checks whether any contain URLs that now have a redirect on them. Returns a list of affected posts. No changes are made at this stage.'],
+                        ['rec' => '✅ Step 2 — Fix', 'name' => 'Fix Broken Links', 'desc' => 'Rewrites the old URLs found during the scan directly to the new destination URL inside the post content. Safe to run multiple times — if a URL is already correct the rewrite is a no-op.'],
+                        ['rec' => 'ℹ️ Info', 'name' => 'Why bother if the redirect already works', 'desc' => 'A redirect adds a round-trip for every visitor and crawler. Google does transfer PageRank through redirects, but direct links are faster and cleaner. For internal links on your own site there is no reason to keep the redirect hop in place.'],
+                    ]); ?>
+                    <span id="ab-titleopt-link-scan-result" style="display:none;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap"></span>
                     <span id="ab-titleopt-status" style="font-size:12px;color:#50575e;"></span>
                     <button class="button" id="ab-titleopt-stop" style="display:none;background:#9b1c1c;border-color:#7f1d1d;color:#fff;font-weight:700;font-size:13px;padding:0 18px">⏹ Stop</button>
                 </div>
@@ -2459,14 +2494,16 @@ trait CS_SEO_Settings_Page {
 
         // ── State ────────────────────────────────────────────────────────────
         const abState = {
-            posts:         [],
-            page:          1,
-            totalPages:    1,
-            total:         0,
-            totalWithDesc: 0,
-            generated:     0,
-            stopped:       false,
-            running:       false,
+            posts:          [],
+            page:           1,
+            totalPages:     1,
+            total:          0,
+            totalWithDesc:  0,
+            totalWithTitle: 0,
+            generated:      0,
+            generatedTitles:0,
+            stopped:        false,
+            running:        false,
             sortKey:       null,
             sortDir:       'desc',
         };
@@ -2901,11 +2938,16 @@ trait CS_SEO_Settings_Page {
         }
 
         function abUpdateSummary() {
-            const total   = abState.total;
-            const hasDesc = abState.totalWithDesc + abState.generated;
-            const missing = Math.max(0, total - hasDesc);
+            const total        = abState.total;
+            const hasDesc      = abState.totalWithDesc + abState.generated;
+            const hasTitle     = abState.totalWithTitle + abState.generatedTitles;
+            const missing      = Math.max(0, total - hasDesc);
+            const missingTitle = Math.max(0, total - hasTitle);
             document.getElementById('sum-total').textContent     = total;
             document.getElementById('sum-has').textContent       = hasDesc;
+            const mtEl = document.getElementById('sum-missing-title');
+            mtEl.textContent = missingTitle;
+            mtEl.style.color = missingTitle > 0 ? '#dc2626' : '#6b7280';
             document.getElementById('sum-missing').textContent   = missing;
             document.getElementById('sum-generated').textContent = abState.generated;
             document.getElementById('ab-summary').style.display  = 'grid';
@@ -3045,22 +3087,24 @@ trait CS_SEO_Settings_Page {
             abSetStatus('Loading posts...');
             abPost('cs_seo_ai_get_posts', {page}).then(data => {
                 if (!data.success) { abLog('Failed to load posts: ' + data.data, 'err'); return; }
-                abState.posts      = data.data.posts;
+                abState.posts          = data.data.posts;
                 abState.total          = data.data.total;
                 abState.totalWithDesc  = data.data.total_with_desc;
+                abState.totalWithTitle = data.data.total_with_title || 0;
                 abState.totalPages     = data.data.total_pages;
-                abState.page       = data.data.page;
+                abState.page           = data.data.page;
                 abUpdateSummary();
                 abRenderTable();
                 abSetStatus(data.data.total + ' posts & pages loaded');
                 document.getElementById('ab-ai-toolbar').style.display = 'flex';
                 document.getElementById('ab-reload-hdr').style.visibility = 'visible';
-                document.getElementById('ab-ai-gen-missing').disabled = false;
-                document.getElementById('ab-ai-gen-all').disabled = false;
-                document.getElementById('ab-ai-fix').disabled = false;
-            document.getElementById('ab-ai-fix-titles').disabled = false;
-                document.getElementById('ab-ai-static').disabled = false;
-                document.getElementById('ab-ai-score-all').disabled = false;
+                document.getElementById('ab-ai-gen-missing').disabled          = false;
+                document.getElementById('ab-ai-gen-all').disabled               = false;
+                document.getElementById('ab-ai-fix').disabled                   = false;
+                document.getElementById('ab-ai-fix-titles').disabled            = false;
+                document.getElementById('ab-ai-gen-missing-titles').disabled    = false;
+                document.getElementById('ab-ai-static').disabled                = false;
+                document.getElementById('ab-ai-score-all').disabled             = false;
                 // Pager
                 const pager = document.getElementById('ab-pager');
                 pager.style.display = abState.totalPages > 1 ? 'flex' : 'none';
@@ -3167,7 +3211,64 @@ trait CS_SEO_Settings_Page {
                 d.heading_density !== undefined && d.heading_density !== null ? '1 heading / ' + d.heading_density + ' words' : '',
                 d.passive_pct     !== undefined ? d.passive_pct + '% passive'                         : '',
             ].filter(Boolean).join(' · ');
-            return '<span class="ab-score-badge ' + cls + '" title="' + (tip || lbl) + '">' + s + '% ' + lbl + '</span>';
+            const detailsClick = post.no_post ? '' : ' onclick="abShowReadabilityModal(' + post.id + ')"';
+            return '<span class="ab-score-badge ' + cls + '" title="' + (tip || lbl) + '">' + s + '% ' + lbl + '</span>' +
+                   '<br><span class="ab-score-badge ab-score-details"' + detailsClick + ' title="View readability details">Details</span>';
+        }
+
+        function abShowReadabilityModal(postId) {
+            const post = abState.posts.find(p => p.id === postId);
+            if (!post) return;
+            const s   = (post._readability_score !== undefined) ? post._readability_score : post.readability_score;
+            const d   = post.readability_data || {};
+            const lbl = !s ? '—' : s >= 80 ? 'Easy' : s >= 60 ? 'Moderate' : 'Hard';
+
+            if (!document.getElementById('ab-r-modal')) {
+                const el = document.createElement('div');
+                el.id = 'ab-r-modal';
+                el.style.cssText = 'display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;padding:16px';
+                el.innerHTML =
+                    '<div style="background:#fff;border-radius:10px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.35);overflow:hidden">' +
+                        '<div id="ab-r-modal-hdr" style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center">' +
+                            '<strong id="ab-r-modal-title" style="color:#fff;font-size:14px;line-height:1.4;padding-right:12px"></strong>' +
+                            '<button type="button" onclick="document.getElementById(\'ab-r-modal\').style.display=\'none\'" style="flex-shrink:0;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-size:16px;font-weight:700;padding:2px 10px;cursor:pointer;line-height:1">&#10005;</button>' +
+                        '</div>' +
+                        '<div style="padding:20px 24px">' +
+                            '<table id="ab-r-modal-table" style="width:100%;border-collapse:collapse;font-size:13px"></table>' +
+                            '<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">' +
+                                '<button type="button" onclick="document.getElementById(\'ab-r-modal\').style.display=\'none\'" class="button">Close</button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+                document.body.appendChild(el);
+                el.addEventListener('click', function(e) { if (e.target === el) el.style.display = 'none'; });
+            }
+
+            const modal   = document.getElementById('ab-r-modal');
+            const hdr     = document.getElementById('ab-r-modal-hdr');
+            const titleEl = document.getElementById('ab-r-modal-title');
+            const table   = document.getElementById('ab-r-modal-table');
+
+            const bg = !s ? '#666' : s >= 80 ? '#1a7a34' : s >= 60 ? '#2271b1' : s >= 40 ? '#b45309' : '#b91c1c';
+            hdr.style.background = bg;
+            titleEl.textContent  = post.title + ' — Readability: ' + (s ? s + '% ' + lbl : 'unscored');
+
+            const rows = [
+                ['Score',            s !== null && s !== undefined ? s + '% — ' + lbl : '—'],
+                ['Avg sentence',     d.sentence_len    !== undefined && d.sentence_len !== null ? d.sentence_len + ' words (ideal ≤ 15)' : '—'],
+                ['Heading density',  d.heading_density !== undefined && d.heading_density !== null ? '1 heading per ' + d.heading_density + ' words' : '—'],
+                ['Passive voice',    d.passive_pct     !== undefined ? d.passive_pct + '% (target < 5%)' : '—'],
+                ['Word count',       d.word_count      !== undefined && d.word_count !== null ? d.word_count + ' words' : '—'],
+            ];
+            table.innerHTML = rows.map(function(r, i) {
+                const bg2 = i % 2 === 0 ? '#f6f7f7' : '#fff';
+                return '<tr style="background:' + bg2 + '">' +
+                    '<td style="padding:8px 10px;font-weight:600;color:#50575e;width:45%;border-bottom:1px solid #e0e0e0">' + r[0] + '</td>' +
+                    '<td style="padding:8px 10px;color:#1d2327;border-bottom:1px solid #e0e0e0">' + r[1] + '</td>' +
+                    '</tr>';
+            }).join('');
+
+            modal.style.display = 'flex';
         }
 
         function abBadge(post) {
@@ -3532,13 +3633,14 @@ trait CS_SEO_Settings_Page {
             abSetStatus('✓ Scored ' + done + ' posts' + (errors > 0 ? ', ' + errors + ' errors' : ''));
             abLog('Score run complete: ' + done + ' scored, ' + errors + ' errors', done > 0 ? 'ok' : 'info');
             abState.running = false;
-            document.getElementById('ab-ai-gen-missing').disabled = false;
-            document.getElementById('ab-ai-gen-all').disabled = false;
-            document.getElementById('ab-ai-fix').disabled = false;
-            document.getElementById('ab-ai-fix-titles').disabled = false;
-            document.getElementById('ab-ai-static').disabled = false;
-            document.getElementById('ab-ai-score-all').disabled = false;
-            document.getElementById('ab-ai-stop').style.display = 'none';
+            document.getElementById('ab-ai-gen-missing').disabled         = false;
+            document.getElementById('ab-ai-gen-all').disabled              = false;
+            document.getElementById('ab-ai-fix').disabled                  = false;
+            document.getElementById('ab-ai-fix-titles').disabled           = false;
+            document.getElementById('ab-ai-gen-missing-titles').disabled   = false;
+            document.getElementById('ab-ai-static').disabled               = false;
+            document.getElementById('ab-ai-score-all').disabled            = false;
+            document.getElementById('ab-ai-stop').style.display            = 'none';
         }
 
         // ── Generate all ──────────────────────────────────────────────────────
@@ -3548,12 +3650,13 @@ trait CS_SEO_Settings_Page {
             abState.stopped = false;
             abState.running = true;
 
-            document.getElementById('ab-ai-gen-missing').disabled = true;
-            document.getElementById('ab-ai-gen-all').disabled = true;
-            document.getElementById('ab-ai-fix').disabled = true;
-            document.getElementById('ab-ai-fix-titles').disabled = true;
-            document.getElementById('ab-ai-static').disabled = true;
-            document.getElementById('ab-ai-stop').style.display = 'inline-block';
+            document.getElementById('ab-ai-gen-missing').disabled         = true;
+            document.getElementById('ab-ai-gen-all').disabled              = true;
+            document.getElementById('ab-ai-fix').disabled                  = true;
+            document.getElementById('ab-ai-fix-titles').disabled           = true;
+            document.getElementById('ab-ai-gen-missing-titles').disabled   = true;
+            document.getElementById('ab-ai-static').disabled               = true;
+            document.getElementById('ab-ai-stop').style.display            = 'inline-block';
 
             abLog(overwrite ? 'Starting full regeneration run...' : 'Starting generation run (missing only)...', 'info');
 
@@ -3810,12 +3913,13 @@ trait CS_SEO_Settings_Page {
             abState.stopped = false;
             abState.running = true;
 
-            document.getElementById('ab-ai-gen-missing').disabled    = true;
-            document.getElementById('ab-ai-gen-all').disabled         = true;
-            document.getElementById('ab-ai-fix').disabled             = true;
-            document.getElementById('ab-ai-fix-titles').disabled      = true;
-            document.getElementById('ab-ai-static').disabled          = true;
-            document.getElementById('ab-ai-stop').style.display       = 'inline-block';
+            document.getElementById('ab-ai-gen-missing').disabled         = true;
+            document.getElementById('ab-ai-gen-all').disabled              = true;
+            document.getElementById('ab-ai-fix').disabled                  = true;
+            document.getElementById('ab-ai-fix-titles').disabled           = true;
+            document.getElementById('ab-ai-gen-missing-titles').disabled   = true;
+            document.getElementById('ab-ai-static').disabled               = true;
+            document.getElementById('ab-ai-stop').style.display            = 'inline-block';
 
             abLog('Starting title fix run — scanning for titles outside 50–60 chars...', 'info');
 
@@ -3896,12 +4000,123 @@ trait CS_SEO_Settings_Page {
             abSetStatus('Title fix done — ' + done + ' fixed, ' + skipped + ' skipped, ' + errors + ' errors');
             abLog('Title fix complete: ' + done + ' fixed, ' + skipped + ' skipped, ' + errors + ' errors', done > 0 ? 'ok' : 'info');
 
-            document.getElementById('ab-ai-gen-missing').disabled  = false;
-            document.getElementById('ab-ai-gen-all').disabled       = false;
-            document.getElementById('ab-ai-fix').disabled           = false;
-            document.getElementById('ab-ai-fix-titles').disabled    = false;
-            document.getElementById('ab-ai-static').disabled        = false;
-            document.getElementById('ab-ai-stop').style.display     = 'none';
+            document.getElementById('ab-ai-gen-missing').disabled         = false;
+            document.getElementById('ab-ai-gen-all').disabled              = false;
+            document.getElementById('ab-ai-fix').disabled                  = false;
+            document.getElementById('ab-ai-fix-titles').disabled           = false;
+            document.getElementById('ab-ai-gen-missing-titles').disabled   = false;
+            document.getElementById('ab-ai-static').disabled               = false;
+            document.getElementById('ab-ai-stop').style.display            = 'none';
+            abState.running = false;
+        }
+
+        async function abGenMissingTitles() {
+            if (!abCheckApiKey()) return;
+            if (abState.running) return;
+            abState.stopped = false;
+            abState.running = true;
+
+            document.getElementById('ab-ai-gen-missing').disabled         = true;
+            document.getElementById('ab-ai-gen-all').disabled              = true;
+            document.getElementById('ab-ai-fix').disabled                  = true;
+            document.getElementById('ab-ai-fix-titles').disabled           = true;
+            document.getElementById('ab-ai-gen-missing-titles').disabled   = true;
+            document.getElementById('ab-ai-static').disabled               = true;
+            document.getElementById('ab-ai-stop').style.display            = 'inline-block';
+
+            abLog('Generating missing titles — fetching full post list...', 'info');
+
+            let allPosts = [];
+            abSetStatus('Fetching full post list...');
+            for (let pg = 1; pg <= abState.totalPages; pg++) {
+                if (abState.stopped) break;
+                try {
+                    const data = await abPost('cs_seo_ai_get_posts', {page: pg});
+                    if (data.success) allPosts = allPosts.concat(data.data.posts);
+                } catch(e) { console.error('[cs-seo] page-fetch failed (pg=' + pg + ')', e); }
+            }
+
+            const targets = allPosts.filter(p => !p.is_homepage && !p.no_post && !p.has_title);
+            abLog('Found ' + targets.length + ' post(s) with no SEO title', 'info');
+
+            if (targets.length === 0) {
+                abLog('All posts have a title tag — nothing to generate.', 'info');
+                abSetStatus('Nothing to generate.');
+                document.getElementById('ab-ai-gen-missing').disabled         = false;
+                document.getElementById('ab-ai-gen-all').disabled              = false;
+                document.getElementById('ab-ai-fix').disabled                  = false;
+                document.getElementById('ab-ai-fix-titles').disabled           = false;
+                document.getElementById('ab-ai-gen-missing-titles').disabled   = false;
+                document.getElementById('ab-ai-static').disabled               = false;
+                document.getElementById('ab-ai-stop').style.display            = 'none';
+                abState.running = false;
+                return;
+            }
+
+            let done = 0, errors = 0, skipped = 0;
+            const queue = targets.slice();
+
+            async function titleWorker() {
+                while (queue.length > 0 && !abState.stopped) {
+                    const post = queue.shift();
+                    if (!post) break;
+
+                    abSetStatus('Generating titles — ' + (done + skipped + errors) + '/' + targets.length + ' done, ' + queue.length + ' remaining');
+                    abSetProgress(done + skipped + errors, targets.length);
+
+                    try {
+                        const data = await abPost('cs_seo_ai_gen_missing_title', {post_id: post.id});
+                        if (data.success) {
+                            const r = data.data;
+                            if (r.status === 'skipped') {
+                                skipped++;
+                                abLog('⊘ "' + post.title.slice(0, 55) + '" — already has a title', 'skip');
+                            } else {
+                                done++;
+                                abState.generatedTitles++;
+                                const local = abState.posts.find(p => p.id === post.id);
+                                if (local) {
+                                    local.has_title        = true;
+                                    local._new_title       = r.title;
+                                    local._new_title_chars = r.chars;
+                                }
+                                if (r.in_range) {
+                                    abLog('✓ Title → ' + r.chars + 'c: ' + r.title, 'ok');
+                                } else {
+                                    abLog('⚠ Title generated (' + r.chars + 'c, outside range): ' + r.title, 'warn');
+                                }
+                                abUpdateSummary();
+                            }
+                        } else {
+                            errors++;
+                            const msg = typeof data.data === 'object' ? data.data.message : data.data;
+                            abLog('✗ "' + post.title.slice(0, 45) + '": ' + msg, 'err');
+                            await abSleep(5000);
+                        }
+                    } catch(e) {
+                        errors++;
+                        abLog('✗ Network error: ' + e.message, 'err');
+                        await abSleep(5000);
+                    }
+
+                    abRenderTable();
+                }
+            }
+
+            if (abState.stopped) { abLog('Stopped by user', 'skip'); }
+            else { await Promise.all(Array.from({length: Math.min(3, targets.length)}, titleWorker)); }
+
+            abSetProgress(done + skipped, targets.length);
+            abSetStatus('Done — ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors');
+            abLog('Generate missing titles complete: ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors', done > 0 ? 'ok' : 'info');
+
+            document.getElementById('ab-ai-gen-missing').disabled         = false;
+            document.getElementById('ab-ai-gen-all').disabled              = false;
+            document.getElementById('ab-ai-fix').disabled                  = false;
+            document.getElementById('ab-ai-fix-titles').disabled           = false;
+            document.getElementById('ab-ai-gen-missing-titles').disabled   = false;
+            document.getElementById('ab-ai-static').disabled               = false;
+            document.getElementById('ab-ai-stop').style.display            = 'none';
             abState.running = false;
         }
 
@@ -6247,6 +6462,7 @@ trait CS_SEO_Settings_Page {
             on('ab-ai-gen-all', function() { if (typeof abGenAll === 'function') abGenAll(1); });
             on('ab-ai-fix', function() { if (typeof abFixAll === 'function') abFixAll(); });
             on('ab-ai-fix-titles', function() { if (typeof abFixTitles === 'function') abFixTitles(); });
+            on('ab-ai-gen-missing-titles', function() { if (typeof abGenMissingTitles === 'function') abGenMissingTitles(); });
             on('ab-ai-static', function() { if (typeof abRegenStatic === 'function') abRegenStatic(); });
             on('ab-ai-score-all', function() { if (typeof abScoreAll === 'function') abScoreAll(); });
             on('ab-ai-stop', function() { if (typeof abStop === 'function') abStop(); });
@@ -6337,12 +6553,14 @@ trait CS_SEO_Settings_Page {
         (function() {
             var _ajax  = csSeoAdmin.ajaxUrl;
             var _nonce = csSeoAdmin.nonce;
-            var blcStop        = false;
-            var blcTotalLinks  = 0;
-            var blcChecked     = 0;
-            var blcBroken      = 0;
-            var blcRedirects   = 0;
-            var blcPostCount   = 0;
+            var blcStop           = false;
+            var blcTotalLinks     = 0;
+            var blcChecked        = 0;
+            var blcBroken         = 0; // unique broken URLs (used for all-OK check)
+            var blcBrokenRows     = 0; // total broken link instances across all posts
+            var blcRedirects      = 0; // unique redirect URLs
+            var blcRedirectRows   = 0; // total redirect link instances across all posts
+            var blcPostCount      = 0;
 
             function blcPost(data) {
                 return fetch(_ajax, {
@@ -6363,8 +6581,8 @@ trait CS_SEO_Settings_Page {
                 function setN(id,v){var e=document.getElementById(id);if(e) e.textContent=v;}
                 setN('blc-total-posts', blcPostCount);
                 setN('blc-total-links', blcChecked);
-                setN('blc-broken-count', blcBroken);
-                setN('blc-redirect-count', blcRedirects);
+                setN('blc-broken-count', blcBrokenRows);
+                setN('blc-redirect-count', blcRedirectRows);
             }
             function blcAddRow(item) {
                 var tbody=document.getElementById('blc-tbody'), wrap=document.getElementById('blc-results-wrap');
@@ -6372,17 +6590,21 @@ trait CS_SEO_Settings_Page {
                 if(wrap) wrap.style.display='block';
                 var cls = item.status>=300&&item.status<400 ? 'ab-badge-short' : 'ab-badge-long';
                 var tr=document.createElement('tr');
+                tr.dataset.postTitle  = (item.post_title||'').toLowerCase();
+                tr.dataset.dateTs     = item.post_date_ts||0;
+                tr.dataset.statusCode = item.status||0;
                 tr.innerHTML=
-                    '<td><a href="'+blcEsc(item.post_edit)+'" target="_blank">'+blcEsc(item.post_title)+'</a></td>'+
+                    '<td><a href="'+blcEsc(item.post_url)+'" target="_blank" rel="noopener noreferrer">'+blcEsc(item.post_title)+'</a></td>'+
                     '<td style="word-break:break-all"><a href="'+blcEsc(item.url)+'" target="_blank" rel="noopener noreferrer">'+
                         blcEsc(item.url.length>70?item.url.substring(0,70)+'\u2026':item.url)+'</a></td>'+
                     '<td style="font-size:12px;color:#50575e">'+blcEsc(item.anchor||'\u2014')+'</td>'+
+                    '<td style="white-space:nowrap;font-size:12px;color:#50575e">'+blcEsc(item.post_date||'\u2014')+'</td>'+
                     '<td><span class="ab-badge '+cls+'">'+blcEsc(item.label)+' ('+item.status+')</span></td>';
                 tbody.appendChild(tr);
             }
 
             async function blcRunScan() {
-                blcStop=false; blcChecked=0; blcBroken=0; blcRedirects=0; blcPostCount=0;
+                blcStop=false; blcChecked=0; blcBroken=0; blcBrokenRows=0; blcRedirects=0; blcRedirectRows=0; blcPostCount=0;
                 var tbody=document.getElementById('blc-tbody');
                 if(tbody) tbody.innerHTML='';
                 document.getElementById('blc-results-wrap').style.display='none';
@@ -6408,7 +6630,7 @@ trait CS_SEO_Settings_Page {
                         var er=await blcPost({action:'cs_seo_blc_extract_links',post_id:postIds[i]});
                         if(er.success&&er.data.links){
                             er.data.links.forEach(function(lk){
-                                allLinks.push({post_title:er.data.post_title,post_edit:er.data.post_edit,url:lk.url,anchor:lk.anchor});
+                                allLinks.push({post_title:er.data.post_title,post_url:er.data.post_url,post_date_ts:er.data.post_date_ts||0,post_date:er.data.post_date||'',url:lk.url,anchor:lk.anchor});
                             });
                         }
                     }
@@ -6422,16 +6644,25 @@ trait CS_SEO_Settings_Page {
                         blcSetProgress(40+(k/uniqueUrls.length)*60);
                         blcSetStatus('Checking URL '+(k+1)+' of '+uniqueUrls.length+'\u2026');
                         var url=uniqueUrls[k];
-                        var cr=await blcPost({action:'cs_seo_blc_check_url',url:url});
                         var res={status:0,ok:false,label:'Error'};
-                        if(cr.success) res={status:cr.data.status,ok:cr.data.ok,label:cr.data.label};
+                        try {
+                            var cr=await blcPost({action:'cs_seo_blc_check_url',url:url});
+                            if(cr&&cr.success) res={status:cr.data.status,ok:cr.data.ok,label:cr.data.label};
+                        } catch(urlErr) {
+                            console.warn('[BLC] error checking URL',url,urlErr.message);
+                            res={status:0,ok:false,label:'Request error'};
+                        }
                         urlCache[url]=res;
                         blcChecked++;
                         if(!res.ok){
                             if(res.status>=300&&res.status<400) blcRedirects++;
                             else blcBroken++;
                             allLinks.forEach(function(lk){
-                                if(lk.url===url) blcAddRow(Object.assign({},lk,res));
+                                if(lk.url===url){
+                                    blcAddRow(Object.assign({},lk,res));
+                                    if(res.status>=300&&res.status<400) blcRedirectRows++;
+                                    else blcBrokenRows++;
+                                }
                             });
                         }
                         blcUpdateSummary();
@@ -6454,6 +6685,33 @@ trait CS_SEO_Settings_Page {
                 if(sb) sb.addEventListener('click', blcRunScan);
                 var st=document.getElementById('blc-stop-btn');
                 if(st) st.addEventListener('click', function(){ blcStop=true; blcSetStatus('Stopping\u2026'); });
+                // ── BLC table sort ────────────────────────────────────────────
+                var blcTable=document.getElementById('blc-table');
+                if(!blcTable) return;
+                var blcSortState={col:'',dir:1};
+                blcTable.querySelectorAll('thead [data-blc-sort]').forEach(function(th){
+                    th.addEventListener('click',function(){
+                        var col=th.dataset.blcSort;
+                        var dir=(blcSortState.col===col&&blcSortState.dir===-1)?1:-1;
+                        blcSortState={col:col,dir:dir};
+                        blcTable.querySelectorAll('thead .blc-sort-icon').forEach(function(ic){ic.textContent='\u2195';ic.style.opacity='0.5';});
+                        var icon=th.querySelector('.blc-sort-icon');
+                        if(icon){icon.textContent=dir===-1?'\u2193':'\u2191';icon.style.opacity='1';}
+                        var tbody=document.getElementById('blc-tbody');
+                        if(!tbody) return;
+                        var rows=Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+                        rows.sort(function(a,b){
+                            if(col==='post_title'){
+                                var av=a.dataset.postTitle||'', bv=b.dataset.postTitle||'';
+                                return av<bv?-dir:av>bv?dir:0;
+                            }
+                            var av=parseFloat(col==='date_ts'?a.dataset.dateTs:a.dataset.statusCode)||0;
+                            var bv=parseFloat(col==='date_ts'?b.dataset.dateTs:b.dataset.statusCode)||0;
+                            return(av-bv)*dir;
+                        });
+                        rows.forEach(function(row){tbody.appendChild(row);});
+                    });
+                });
             });
         })();
 
@@ -6545,7 +6803,7 @@ trait CS_SEO_Settings_Page {
 
         // ── Title Optimiser ───────────────────────────────────────────────────
         (function() {
-            const toState = { running: false, stopped: false, sessionDone: 0, sortBy: 'date', filter: 'all', posts: [], page: 0, polling: false, pollTimer: null, lastLoggedId: 0 };
+            const toState = { running: false, stopped: false, sessionDone: 0, sortBy: 'date', filter: 'all', threshold: 10, posts: [], page: 0, polling: false, pollTimer: null, lastLoggedId: 0 };
             const TO_PAGE = 50;
 
             function toLog(msg, cls) {
@@ -6556,6 +6814,17 @@ trait CS_SEO_Settings_Page {
                 const d = document.createElement('div');
                 d.className = 'ab-log-entry' + (cls ? ' ' + cls : '');
                 d.textContent = msg;
+                log.prepend(d);
+            }
+
+            function toLogHtml(html, cls) {
+                const wrap = document.getElementById('ab-titleopt-log-wrap');
+                const log  = document.getElementById('ab-titleopt-log');
+                if (!wrap || !log) return;
+                wrap.style.display = 'block';
+                const d = document.createElement('div');
+                d.className = 'ab-log-entry' + (cls ? ' ' + cls : '');
+                d.innerHTML = html;
                 log.prepend(d);
             }
 
@@ -6595,6 +6864,15 @@ trait CS_SEO_Settings_Page {
                 }).join('');
             }
 
+            /** Returns true if this post would be included in "Apply All" with the current threshold. */
+            function toWillApply(p) {
+                if (p.status !== 'suggested') return false;
+                var thresh = toState.threshold || 0;
+                if (thresh <= 0) return true; // no threshold — all suggested titles qualify
+                if (!p.score_before || p.score_before <= 0) return false; // guard against division by zero
+                return ((p.score_after - p.score_before) / p.score_before * 100) >= thresh;
+            }
+
             window.titleOptSort = function(by) {
                 var serverSorts = { date: true, comments: true };
                 toState.sortBy = by;
@@ -6614,6 +6892,8 @@ trait CS_SEO_Settings_Page {
                         toState.posts.sort(function(a, b) { return (ord[a.status] !== undefined ? ord[a.status] : 2) - (ord[b.status] !== undefined ? ord[b.status] : 2); });
                     } else if (by === 'title') {
                         toState.posts.sort(function(a, b) { return (a.title || '').localeCompare(b.title || ''); });
+                    } else if (by === 'will_apply') {
+                        toState.posts.sort(function(a, b) { return (toWillApply(b) ? 1 : 0) - (toWillApply(a) ? 1 : 0); });
                     }
                     toState.page = 0;
                     toRenderTable();
@@ -6676,24 +6956,28 @@ trait CS_SEO_Settings_Page {
                 var cntSuggested = allPosts.filter(function(p) { return p.status === 'suggested'; }).length;
                 var cntApplied   = allPosts.filter(function(p) { return p.status === 'applied'; }).length;
                 var cntPending   = allPosts.filter(function(p) { return !p.suggested; }).length;
-                var posts = toState.filter === 'suggested' ? allPosts.filter(function(p) { return p.status === 'suggested'; })
-                          : toState.filter === 'applied'   ? allPosts.filter(function(p) { return p.status === 'applied'; })
-                          : toState.filter === 'pending'   ? allPosts.filter(function(p) { return !p.suggested; })
+                var cntWillApply = allPosts.filter(function(p) { return toWillApply(p); }).length;
+                var posts = toState.filter === 'suggested'  ? allPosts.filter(function(p) { return p.status === 'suggested'; })
+                          : toState.filter === 'applied'    ? allPosts.filter(function(p) { return p.status === 'applied'; })
+                          : toState.filter === 'pending'    ? allPosts.filter(function(p) { return !p.suggested; })
+                          : toState.filter === 'will_apply' ? allPosts.filter(function(p) { return toWillApply(p); })
                           : allPosts;
 
-                var mkFBtn = function(f, label, cnt) {
+                var mkFBtn = function(f, label, cnt, accentColor) {
                     var active = toState.filter === f;
                     var style = active
-                        ? 'background:#1d2327;color:#fff;border-color:#1d2327;font-weight:700'
+                        ? 'background:' + (accentColor || '#1d2327') + ';color:#fff;border-color:' + (accentColor || '#1d2327') + ';font-weight:700'
                         : 'background:#fff;color:#50575e;border-color:#ddd';
                     return '<button class="button" style="font-size:12px;padding:3px 10px;' + style + '" onclick="toSetFilter(\'' + f + '\')">' + label + ' <span style="opacity:0.7">(' + cnt + ')</span></button>';
                 };
+                var willApplyLabel = toState.threshold > 0 ? 'Will Apply ≥' + toState.threshold + '%' : 'Will Apply';
                 var filterBar = '<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap">' +
                     '<span style="font-size:12px;color:#50575e;font-weight:600;margin-right:2px">Filter:</span>' +
-                    mkFBtn('all',       'All',           allPosts.length) +
-                    mkFBtn('suggested', 'Pending Apply', cntSuggested) +
-                    mkFBtn('applied',   'Applied',       cntApplied) +
-                    mkFBtn('pending',   'Not Analysed',  cntPending) +
+                    mkFBtn('all',        'All',           allPosts.length) +
+                    mkFBtn('will_apply', willApplyLabel,  cntWillApply, '#1a7a34') +
+                    mkFBtn('suggested',  'Pending Apply', cntSuggested) +
+                    mkFBtn('applied',    'Applied',       cntApplied) +
+                    mkFBtn('pending',    'Not Analysed',  cntPending) +
                     '</div>';
 
                 var totalPages = Math.ceil(posts.length / TO_PAGE);
@@ -6722,6 +7006,15 @@ trait CS_SEO_Settings_Page {
                         : titleInner + editIcon;
                     var scoreArrow = (p.score_before && p.score_after && p.score_after > p.score_before)
                         ? ' <span style="color:#1a7a34;font-size:11px">↑' + (p.score_after - p.score_before) + '</span>' : '';
+                    var willApply = toWillApply(p);
+                    var gainPct   = (p.score_before > 0 && p.score_after > p.score_before)
+                        ? Math.round(((p.score_after - p.score_before) / p.score_before) * 100)
+                        : null;
+                    var willApplyCell = willApply
+                        ? '<span style="display:inline-block;background:#dcfce7;color:#1a7a34;font-weight:700;font-size:12px;padding:2px 8px;border-radius:10px;white-space:nowrap">✓ Yes' + (gainPct !== null ? ' +' + gainPct + '%' : '') + '</span>'
+                        : (p.status === 'suggested' && toState.threshold > 0
+                            ? '<span style="color:#aaa;font-size:11px">Below threshold' + (gainPct !== null ? ' (+' + gainPct + '%)' : '') + '</span>'
+                            : '<span style="color:#ddd;font-size:11px">—</span>');
                     var suggestedCell = p.suggested
                         ? '<span style="color:#3730a3;font-weight:600">' + abEsc(p.suggested) + '</span>'
                         : '<span style="color:#aaa;font-size:11px;font-style:italic">Not yet analysed</span>';
@@ -6740,6 +7033,7 @@ trait CS_SEO_Settings_Page {
                         '<td style="' + tdStyle + ';font-size:13px;max-width:240px;word-break:break-word" class="titleopt-suggested-' + p.id + '">' + suggestedCell + notesCell + '</td>' +
                         '<td style="' + tdStyle + ';max-width:160px" class="titleopt-kw-' + p.id + '">' + toKwHtml(p.keywords) + '</td>' +
                         '<td style="' + tdStyle + ';text-align:center;white-space:nowrap" class="titleopt-score-after-' + p.id + '">' + toScoreBadge(p.score_after) + scoreArrow + '</td>' +
+                        '<td style="' + tdStyle + ';text-align:center;white-space:nowrap" class="titleopt-will-apply-' + p.id + '">' + willApplyCell + '</td>' +
                         '<td style="' + tdStyle + ';text-align:center;white-space:nowrap" class="titleopt-status-' + p.id + '">' + toStatusBadge(p.status, p.stale) + '</td>' +
                         '<td style="padding:8px 10px;white-space:nowrap" class="titleopt-actions-' + p.id + '">' + actionBtns + '</td>' +
                         '</tr>';
@@ -6755,6 +7049,9 @@ trait CS_SEO_Settings_Page {
                         '</div>';
                 }
 
+                var willApplyHeader = toState.threshold > 0
+                    ? 'Will Apply ≥' + toState.threshold + '%'
+                    : 'Will Apply';
                 wrap.innerHTML = filterBar + '<table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid #ddd">' +
                     '<thead><tr>' +
                     '<th style="' + thSort + ';min-width:180px" onclick="titleOptSort(\'title\')">Post Title' + arrow('title') + '</th>' +
@@ -6763,11 +7060,20 @@ trait CS_SEO_Settings_Page {
                     '<th style="' + thBase + ';min-width:200px">Suggested Title</th>' +
                     '<th style="' + thBase + '">Keywords</th>' +
                     '<th style="' + thCenter + '" onclick="titleOptSort(\'score_after\')">SEO After' + arrow('score_after') + '</th>' +
+                    '<th style="' + thCenter + '" onclick="titleOptSort(\'will_apply\')" title="Sort by Will Apply — posts that meet the current threshold first">' + willApplyHeader + arrow('will_apply') + '</th>' +
                     '<th style="' + thCenter + '" onclick="titleOptSort(\'stale\')" title="Sort: edited posts first">Status / Edited' + arrow('stale') + '</th>' +
                     '<th style="' + thBase + '">Actions</th>' +
                     '</tr></thead>' +
                     '<tbody>' + rows + '</tbody>' +
                     '</table>' + pager;
+
+                // Keep Apply All button in sync with threshold + suggestions
+                var applyAllBtnRef = document.getElementById('ab-titleopt-apply-all');
+                if (applyAllBtnRef) {
+                    var willApplyCount = allPosts.filter(function(p) { return toWillApply(p); }).length;
+                    applyAllBtnRef.disabled = willApplyCount === 0;
+                    applyAllBtnRef.textContent = '✅ Apply to ' + willApplyCount + ' post' + (willApplyCount !== 1 ? 's' : '');
+                }
 
                 window.toState       = toState;
                 window.toRenderTable = toRenderTable;
@@ -6963,9 +7269,20 @@ trait CS_SEO_Settings_Page {
             }
 
             async function toApplyAll() {
-                var pending = (toState.posts || []).filter(function(x) { return x.status === 'suggested'; });
-                if (pending.length === 0) { alert('No suggested titles to apply. Run "Analyse All" first.'); return; }
-                if (!confirm('Apply all ' + pending.length + ' suggested titles? Each post\'s URL slug will be updated and a 301 redirect created from the old URL. This cannot be undone in bulk.')) return;
+                var pending = (toState.posts || []).filter(function(p) { return toWillApply(p); });
+                if (pending.length === 0) {
+                    if (toState.threshold > 0) {
+                        alert('No suggested titles meet the ' + toState.threshold + '% improvement threshold.\n\nTry lowering the threshold or run "Analyse All" to refresh scores.');
+                    } else {
+                        alert('No suggested titles to apply. Run "Analyse All" first.');
+                    }
+                    return;
+                }
+                var allSuggested = (toState.posts || []).filter(function(x) { return x.status === 'suggested'; });
+                var confirmMsg = toState.threshold > 0
+                    ? 'Apply ' + pending.length + ' of ' + allSuggested.length + ' suggested titles (improvement ≥' + toState.threshold + '%)?\n\nEach URL slug will be updated and a 301 redirect created. This cannot be undone in bulk.'
+                    : 'Apply all ' + pending.length + ' suggested titles? Each post\'s URL slug will be updated and a 301 redirect created from the old URL. This cannot be undone in bulk.';
+                if (!confirm(confirmMsg)) return;
 
                 var applyBtn = document.getElementById('ab-titleopt-apply-all');
                 var total = pending.length, done = 0, redirects = 0, errors = 0;
@@ -7004,10 +7321,83 @@ trait CS_SEO_Settings_Page {
                 }
 
                 toLog('✓ Done — ' + done + ' of ' + total + ' applied, ' + redirects + ' redirect' + (redirects !== 1 ? 's' : '') + (errors ? ', ' + errors + ' error(s)' : ''), 'ab-log-ok');
-                if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = '✅ Apply All Suggested'; }
+                if (applyBtn) { applyBtn.disabled = false; toRenderTable(); }
                 var remaining = (toState.posts || []).filter(function(p) { return p.status === 'suggested'; }).length;
                 if (applyBtn) applyBtn.disabled = remaining === 0;
                 await toLoad();
+            }
+
+            function toSetLinkScanResult(msg, style) {
+                var el = document.getElementById('ab-titleopt-link-scan-result');
+                if (!el) return;
+                el.textContent = msg;
+                el.style.cssText = 'display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap;' + style;
+            }
+
+            async function toScanBrokenLinks() {
+                var scanBtn = document.getElementById('ab-titleopt-scan-links');
+                var fixBtn  = document.getElementById('ab-titleopt-fix-links');
+                if (scanBtn) { scanBtn.disabled = true; scanBtn.textContent = '⟳ Scanning…'; }
+                if (fixBtn)  { fixBtn.disabled = true; }
+                toSetLinkScanResult('Scanning…', 'background:#f0f0f0;color:#50575e');
+                var logWrap = document.getElementById('ab-titleopt-log-wrap');
+                if (logWrap) logWrap.style.display = '';
+                try {
+                    var data = await abPost('cs_seo_title_scan_links', {});
+                    if (data.success) {
+                        var d = data.data;
+                        if (d.broken_posts.length === 0) {
+                            toSetLinkScanResult('✓ No broken internal links', 'background:#dcfce7;color:#1a7a34');
+                            toLog('✓ Scan complete — ' + d.redirects_checked + ' redirect(s) checked, no broken internal links found.', 'ab-log-ok');
+                            if (fixBtn) fixBtn.disabled = true;
+                        } else {
+                            toSetLinkScanResult('⚠ ' + d.broken_posts.length + ' post(s) have broken links', 'background:#fef3c7;color:#92400e');
+                            toLog('⚠ Scan complete — ' + d.redirects_checked + ' redirect(s) checked, ' + d.broken_posts.length + ' post(s) with broken links:', 'ab-log-warn');
+                            d.broken_posts.forEach(function(p) {
+                                var editLink = p.post_edit ? ' <a href="' + abEsc(p.post_edit) + '" target="_blank" rel="noopener" style="color:#2271b1">[edit]</a>' : '';
+                                toLogHtml('&nbsp;&nbsp;• ' + abEsc(p.post_title) + editLink + ' — ' + p.old_urls.length + ' old URL(s)', 'ab-log-info');
+                            });
+                            toLog('Click "Fix Broken Links" to rewrite these links to their current destinations.', 'ab-log-info');
+                            if (fixBtn) fixBtn.disabled = false;
+                        }
+                    } else {
+                        toSetLinkScanResult('✗ Scan failed', 'background:#fee2e2;color:#9b1c1c');
+                        toLog('✗ Scan failed: ' + abEsc(data.data || 'Unknown error'), 'ab-log-error');
+                        if (fixBtn) fixBtn.disabled = true;
+                    }
+                } catch (e) {
+                    toSetLinkScanResult('✗ Network error', 'background:#fee2e2;color:#9b1c1c');
+                    toLog('✗ Network error: ' + abEsc(e.message), 'ab-log-error');
+                    if (fixBtn) fixBtn.disabled = true;
+                }
+                if (scanBtn) { scanBtn.disabled = false; scanBtn.textContent = '🔍 Scan Broken Links'; }
+            }
+
+            async function toFixInternalLinks() {
+                var fixBtn  = document.getElementById('ab-titleopt-fix-links');
+                var scanBtn = document.getElementById('ab-titleopt-scan-links');
+                if (!confirm('Rewrite internal post links from old redirect sources to their current destinations?\n\nThis updates post content directly. Safe to run multiple times.')) return;
+                if (fixBtn)  { fixBtn.disabled = true; fixBtn.textContent = '⟳ Fixing…'; }
+                if (scanBtn) { scanBtn.disabled = true; }
+                var logWrap = document.getElementById('ab-titleopt-log-wrap');
+                if (logWrap) logWrap.style.display = '';
+                try {
+                    var data = await abPost('cs_seo_title_fix_links', {});
+                    if (data.success) {
+                        var d = data.data;
+                        toSetLinkScanResult('✓ Fixed — ' + d.posts_updated + ' post(s) updated', 'background:#dcfce7;color:#1a7a34');
+                        toLog('✓ Internal links fixed — ' + d.processed + ' redirect(s) scanned, ' + d.posts_updated + ' post(s) updated', 'ab-log-ok');
+                        if (fixBtn) fixBtn.disabled = true;
+                    } else {
+                        toSetLinkScanResult('✗ Fix failed', 'background:#fee2e2;color:#9b1c1c');
+                        toLog('✗ Fix failed: ' + abEsc(data.data || 'Unknown error'), 'ab-log-error');
+                    }
+                } catch (e) {
+                    toSetLinkScanResult('✗ Network error', 'background:#fee2e2;color:#9b1c1c');
+                    toLog('✗ Network error: ' + abEsc(e.message), 'ab-log-error');
+                }
+                if (fixBtn)  { fixBtn.disabled = false; fixBtn.textContent = '🔗 Fix Broken Links'; }
+                if (scanBtn) { scanBtn.disabled = false; }
             }
 
             document.addEventListener('DOMContentLoaded', function() {
@@ -7033,6 +7423,17 @@ trait CS_SEO_Settings_Page {
                 if (forceBtn) forceBtn.addEventListener('click', function() { toQueueStart(true); });
                 var applyAllBtn = document.getElementById('ab-titleopt-apply-all');
                 if (applyAllBtn) applyAllBtn.addEventListener('click', toApplyAll);
+                var threshInput = document.getElementById('ab-titleopt-threshold');
+                if (threshInput) {
+                    threshInput.addEventListener('input', function() {
+                        toState.threshold = parseFloat(this.value) || 0;
+                        toRenderTable();
+                    });
+                }
+                var scanLinksBtn = document.getElementById('ab-titleopt-scan-links');
+                if (scanLinksBtn) scanLinksBtn.addEventListener('click', toScanBrokenLinks);
+                var fixLinksBtn = document.getElementById('ab-titleopt-fix-links');
+                if (fixLinksBtn) fixLinksBtn.addEventListener('click', toFixInternalLinks);
                 var stopBtn = document.getElementById('ab-titleopt-stop');
                 if (stopBtn) stopBtn.addEventListener('click', toQueueStop);
                 var reloadBtn = document.getElementById('ab-titleopt-reload-hdr');
