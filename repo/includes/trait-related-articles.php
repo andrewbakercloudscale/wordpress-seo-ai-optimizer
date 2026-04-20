@@ -701,7 +701,21 @@ trait CS_SEO_Related_Articles {
         $has_output = is_array($top_raw) && count($top_raw) >= 2
                    && is_array($bot_raw) && count($bot_raw) >= 3;
 
-        if ($stored_fp === $current_fp && $stored_ver === self::RC_VERSION && $has_output) {
+        $generated_at = (int) get_post_meta( $pid, self::META_RC_GENERATED, true );
+        /**
+         * Maximum age in days before a cached Related Articles result is regenerated.
+         *
+         * Even when a post's content fingerprint is unchanged, related articles are
+         * refreshed after this many days so that newer posts can rotate into the list.
+         * Set to 0 to disable time-based expiry (fingerprint-only invalidation).
+         *
+         * @since 4.20.73
+         * @param int $days Number of days. Default 30.
+         */
+        $max_age     = (int) apply_filters( 'cs_seo_rc_max_age_days', 30 ) * DAY_IN_SECONDS;
+        $cache_fresh = $generated_at && ( time() - $generated_at ) < $max_age;
+
+        if ($stored_fp === $current_fp && $stored_ver === self::RC_VERSION && $has_output && $cache_fresh) {
             // Validate that linked posts still exist
             $all_valid = true;
             foreach (array_merge($top_raw, $bot_raw) as $lid) {
@@ -885,7 +899,10 @@ trait CS_SEO_Related_Articles {
                 $score += 5;
             }
 
-            $scores[$cid] = $score;
+            // Small random tiebreaker (0–9) so equal-scored posts don't always
+            // produce the same ranking. Real signal differences (40+ pts) easily
+            // dominate; this only matters when candidates are closely matched.
+            $scores[$cid] = $score + wp_rand( 0, 9 );
         }
 
         // Sort descending by score
