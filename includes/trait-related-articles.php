@@ -709,7 +709,7 @@ trait CS_SEO_Related_Articles {
          * refreshed after this many days so that newer posts can rotate into the list.
          * Set to 0 to disable time-based expiry (fingerprint-only invalidation).
          *
-         * @since 4.20.78
+         * @since 4.20.80
          * @param int $days Number of days. Default 30.
          */
         $max_age     = (int) apply_filters( 'cs_seo_rc_max_age_days', 30 ) * DAY_IN_SECONDS;

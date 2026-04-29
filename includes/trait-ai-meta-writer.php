@@ -639,7 +639,7 @@ trait CS_SEO_AI_Meta_Writer {
      * AJAX handler: generates an SEO title for posts that have none yet.
      * Skips posts that already have a custom _cs_seo_title set.
      *
-     * @since 4.20.78
+     * @since 4.20.80
      * @return void
      */
     public function ajax_generate_missing_title(): void {

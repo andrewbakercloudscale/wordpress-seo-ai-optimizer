@@ -3639,6 +3639,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-static').disabled = true;
             document.getElementById('ab-ai-score-all').disabled = true;
             document.getElementById('ab-ai-stop').style.display = 'inline-block';
+            try {
             abLog('Starting SEO scoring run...', 'info');
 
             let allPosts = [];
@@ -3671,6 +3672,7 @@ trait CS_SEO_Settings_Page {
             abSetProgress(done, targets.length);
             abSetStatus('✓ Scored ' + done + ' posts' + (errors > 0 ? ', ' + errors + ' errors' : ''));
             abLog('Score run complete: ' + done + ' scored, ' + errors + ' errors', done > 0 ? 'ok' : 'info');
+            } catch(e) { abLog('✗ Unexpected error: ' + e.message, 'err'); } finally {
             abState.running = false;
             document.getElementById('ab-ai-gen-missing').disabled         = false;
             document.getElementById('ab-ai-gen-all').disabled              = false;
@@ -3680,6 +3682,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-static').disabled               = false;
             document.getElementById('ab-ai-score-all').disabled            = false;
             document.getElementById('ab-ai-stop').style.display            = 'none';
+            }
         }
 
         // ── Generate all ──────────────────────────────────────────────────────
@@ -3697,6 +3700,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-static').disabled               = true;
             document.getElementById('ab-ai-stop').style.display            = 'inline-block';
 
+            try {
             abLog(overwrite ? 'Starting full regeneration run...' : 'Starting generation run (missing only)...', 'info');
 
             let allPosts = [];
@@ -3832,12 +3836,14 @@ trait CS_SEO_Settings_Page {
                 }
             }
 
+            } catch(e) { abLog('✗ Unexpected error: ' + e.message, 'err'); } finally {
             document.getElementById('ab-ai-gen-missing').disabled = false;
             document.getElementById('ab-ai-gen-all').disabled      = false;
             document.getElementById('ab-ai-fix').disabled          = false;
             document.getElementById('ab-ai-static').disabled       = false;
             document.getElementById('ab-ai-stop').style.display    = 'none';
             abState.running = false;
+            }
         }
 
         // ── Fix out-of-range descriptions ──────────────────────────────────────
@@ -3853,6 +3859,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-static').disabled      = true;
             document.getElementById('ab-ai-stop').style.display   = 'inline-block';
 
+            try {
             abLog('Starting fix run — scanning for short and long descriptions...', 'info');
 
             // Fetch all posts across all pages.
@@ -3876,11 +3883,6 @@ trait CS_SEO_Settings_Page {
             if (targets.length === 0) {
                 abLog('No out-of-range descriptions found — nothing to fix.', 'info');
                 abSetStatus('Nothing to fix.');
-                document.getElementById('ab-ai-gen-missing').disabled = false;
-                document.getElementById('ab-ai-gen-all').disabled     = false;
-                document.getElementById('ab-ai-fix').disabled         = false;
-                document.getElementById('ab-ai-stop').style.display   = 'none';
-                abState.running = false;
                 return;
             }
 
@@ -3936,6 +3938,7 @@ trait CS_SEO_Settings_Page {
             abSetStatus('Fix run done — ' + done + ' fixed, ' + skipped + ' skipped, ' + errors + ' errors');
             abLog('Fix run complete: ' + done + ' fixed, ' + skipped + ' skipped, ' + errors + ' errors', done > 0 ? 'ok' : 'info');
 
+            } catch(e) { abLog('✗ Unexpected error: ' + e.message, 'err'); } finally {
             document.getElementById('ab-ai-gen-missing').disabled    = false;
             document.getElementById('ab-ai-gen-all').disabled         = false;
             document.getElementById('ab-ai-fix').disabled             = false;
@@ -3943,6 +3946,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-static').disabled          = false;
             document.getElementById('ab-ai-stop').style.display       = 'none';
             abState.running = false;
+            }
         }
 
         // ── Fix Titles ────────────────────────────────────────────────────────
@@ -3960,6 +3964,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-static').disabled               = true;
             document.getElementById('ab-ai-stop').style.display            = 'inline-block';
 
+            try {
             abLog('Starting title fix run — scanning for titles outside 50–60 chars...', 'info');
 
             let allPosts = [];
@@ -3978,13 +3983,6 @@ trait CS_SEO_Settings_Page {
             if (targets.length === 0) {
                 abLog('All titles are within range — nothing to fix.', 'info');
                 abSetStatus('Nothing to fix.');
-                document.getElementById('ab-ai-gen-missing').disabled  = false;
-                document.getElementById('ab-ai-gen-all').disabled       = false;
-                document.getElementById('ab-ai-fix').disabled           = false;
-                document.getElementById('ab-ai-fix-titles').disabled    = false;
-                document.getElementById('ab-ai-static').disabled        = false;
-                document.getElementById('ab-ai-stop').style.display     = 'none';
-                abState.running = false;
                 return;
             }
 
@@ -4039,6 +4037,7 @@ trait CS_SEO_Settings_Page {
             abSetStatus('Title fix done — ' + done + ' fixed, ' + skipped + ' skipped, ' + errors + ' errors');
             abLog('Title fix complete: ' + done + ' fixed, ' + skipped + ' skipped, ' + errors + ' errors', done > 0 ? 'ok' : 'info');
 
+            } catch(e) { abLog('✗ Unexpected error: ' + e.message, 'err'); } finally {
             document.getElementById('ab-ai-gen-missing').disabled         = false;
             document.getElementById('ab-ai-gen-all').disabled              = false;
             document.getElementById('ab-ai-fix').disabled                  = false;
@@ -4047,6 +4046,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-static').disabled               = false;
             document.getElementById('ab-ai-stop').style.display            = 'none';
             abState.running = false;
+            }
         }
 
         async function abGenMissingTitles() {
@@ -4063,6 +4063,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-static').disabled               = true;
             document.getElementById('ab-ai-stop').style.display            = 'inline-block';
 
+            try {
             abLog('Generating missing titles — fetching full post list...', 'info');
 
             let allPosts = [];
@@ -4081,14 +4082,6 @@ trait CS_SEO_Settings_Page {
             if (targets.length === 0) {
                 abLog('All posts have a title tag — nothing to generate.', 'info');
                 abSetStatus('Nothing to generate.');
-                document.getElementById('ab-ai-gen-missing').disabled         = false;
-                document.getElementById('ab-ai-gen-all').disabled              = false;
-                document.getElementById('ab-ai-fix').disabled                  = false;
-                document.getElementById('ab-ai-fix-titles').disabled           = false;
-                document.getElementById('ab-ai-gen-missing-titles').disabled   = false;
-                document.getElementById('ab-ai-static').disabled               = false;
-                document.getElementById('ab-ai-stop').style.display            = 'none';
-                abState.running = false;
                 return;
             }
 
@@ -4149,6 +4142,7 @@ trait CS_SEO_Settings_Page {
             abSetStatus('Done — ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors');
             abLog('Generate missing titles complete: ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors', done > 0 ? 'ok' : 'info');
 
+            } catch(e) { abLog('✗ Unexpected error: ' + e.message, 'err'); } finally {
             document.getElementById('ab-ai-gen-missing').disabled         = false;
             document.getElementById('ab-ai-gen-all').disabled              = false;
             document.getElementById('ab-ai-fix').disabled                  = false;
@@ -4157,6 +4151,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-static').disabled               = false;
             document.getElementById('ab-ai-stop').style.display            = 'none';
             abState.running = false;
+            }
         }
 
         async function abRegenStatic() {
@@ -4170,6 +4165,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-static').disabled      = true;
             document.getElementById('ab-ai-stop').style.display   = 'inline-block';
 
+            try {
             abLog('Starting static regeneration — clearing stale OG image data for all posts...', 'info');
             abSetStatus('Regenerating static data...');
 
@@ -4211,12 +4207,14 @@ trait CS_SEO_Settings_Page {
             abSetStatus('Static regen done — ' + cleared + ' posts updated, ' + errors + ' errors');
             abLog('Static regeneration complete: ' + cleared + ' OG images cleared, ' + (done - cleared) + ' already clean, ' + errors + ' errors', cleared > 0 ? 'ok' : 'info');
 
+            } catch(e) { abLog('✗ Unexpected error: ' + e.message, 'err'); } finally {
             document.getElementById('ab-ai-gen-missing').disabled = false;
             document.getElementById('ab-ai-gen-all').disabled     = false;
             document.getElementById('ab-ai-fix').disabled         = false;
             document.getElementById('ab-ai-static').disabled      = false;
             document.getElementById('ab-ai-stop').style.display   = 'none';
             abState.running = false;
+            }
         }
 
         function abStop() { abState.stopped = true; abSetStatus('Stopping...'); }
@@ -4466,6 +4464,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-alt-force-all').disabled   = true;
             document.getElementById('ab-alt-stop').style.display   = 'inline-block';
 
+            try {
             altLog('Starting ALT text generation run' + (force ? ' (FORCE mode — all images)' : '') + '...', 'info');
 
             // In force mode: process all posts with images. In normal mode: only posts with missing ALT.
@@ -4524,10 +4523,12 @@ trait CS_SEO_Settings_Page {
             altLog('Run complete: ' + totalFixed + ' images updated, ' + errors + ' errors', totalFixed > 0 ? 'ok' : 'info');
             if (totalFixed > 0) abPost('cs_seo_rebuild_health', {}).catch(() => {});
 
+            } catch(e) { altLog('✗ Unexpected error: ' + e.message, 'err'); } finally {
             document.getElementById('ab-alt-gen-all').disabled     = false;
             document.getElementById('ab-alt-force-all').disabled   = false;
             document.getElementById('ab-alt-stop').style.display   = 'none';
             altState.running = false;
+            }
         }
 
         function altStop() { altState.stopped = true; altSetStatus('Stopping...'); }
