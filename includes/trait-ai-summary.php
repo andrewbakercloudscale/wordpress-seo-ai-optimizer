@@ -182,44 +182,72 @@ trait CS_SEO_AI_Summary {
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() at the top of this function
-        $force = !empty($_POST['force']);
+        $force      = !empty($_POST['force']);
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        $done_count = $force ? absint($_POST['done_count'] ?? 0) : 0;
 
-        $args = [
-            'post_type'      => 'post',
-            'post_status'    => 'publish',
-            'posts_per_page' => 1,
-            'fields'         => 'ids',
-            'orderby'        => 'date',
-            'order'          => 'DESC',
-        ];
-
-        if (!$force) {
-            $args['meta_query'] = [[ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- NOT EXISTS has no alternative
-                'key'     => self::META_SUM_WHAT,
-                'compare' => 'NOT EXISTS',
-            ]];
+        if ($force) {
+            // Force Regenerate All: iterate through every published post by offset so each
+            // call processes the next one without re-processing the same post.
+            $ids = get_posts([
+                'post_type'      => 'post',
+                'post_status'    => 'publish',
+                'posts_per_page' => 1,
+                'offset'         => $done_count,
+                'fields'         => 'ids',
+                'orderby'        => 'date',
+                'order'          => 'DESC',
+            ]);
+            if (empty($ids)) {
+                wp_send_json_success(['done' => true, 'remaining' => 0]);
+            }
+            $post_id   = (int) $ids[0];
+            $total     = (int) wp_count_posts('post')->publish;
+            $remaining = max(0, $total - $done_count - 1);
+        } else {
+            // Generate Missing: scan all posts and find the first where any of the three
+            // summary fields is absent or empty. This matches the has_sum logic in
+            // ajax_summary_load() and correctly handles empty-string meta values that
+            // 'NOT EXISTS' queries would silently skip.
+            $all_ids = get_posts([
+                'post_type'           => 'post',
+                'post_status'         => 'publish',
+                'posts_per_page'      => -1,
+                'fields'              => 'ids',
+                'orderby'             => 'date',
+                'order'               => 'DESC',
+                'no_found_rows'       => true,
+                'ignore_sticky_posts' => true,
+            ]);
+            if (empty($all_ids)) {
+                wp_send_json_success(['done' => true, 'remaining' => 0]);
+            }
+            // Prime the meta cache so each get_post_meta() below is served from cache.
+            update_meta_cache('post', $all_ids);
+            $post_id   = null;
+            $remaining = 0;
+            foreach ($all_ids as $id) {
+                $has_sum = !empty(get_post_meta($id, self::META_SUM_WHAT, true))
+                        && !empty(get_post_meta($id, self::META_SUM_WHY,  true))
+                        && !empty(get_post_meta($id, self::META_SUM_KEY,  true));
+                if (!$has_sum) {
+                    if ($post_id === null) {
+                        $post_id = (int) $id;
+                    }
+                    $remaining++;
+                }
+            }
+            if ($post_id === null) {
+                wp_send_json_success(['done' => true, 'remaining' => 0]);
+            }
+            $remaining--; // subtract the one we're about to process
         }
-
-        $ids = get_posts($args);
-
-        if (empty($ids)) {
-            wp_send_json_success(['done' => true, 'remaining' => 0]);
-        }
-
-        $post_id = (int) $ids[0];
 
         try {
             $summary = $this->call_ai_generate_summary($post_id);
             update_post_meta($post_id, self::META_SUM_WHAT, $summary['what']);
             update_post_meta($post_id, self::META_SUM_WHY,  $summary['why']);
             update_post_meta($post_id, self::META_SUM_KEY,  $summary['takeaway']);
-
-            // Count remaining after this one — use found_posts to avoid loading IDs.
-            $remaining_args                    = $args;
-            $remaining_args['posts_per_page']  = 1;
-            $remaining_args['no_found_rows']   = false;
-            $remaining_q = new \WP_Query( $remaining_args );
-            $remaining   = (int) $remaining_q->found_posts;
 
             wp_send_json_success([
                 'post_id'   => $post_id,
@@ -228,7 +256,7 @@ trait CS_SEO_AI_Summary {
                 'why'       => $summary['why'],
                 'takeaway'  => $summary['takeaway'],
                 'done'      => $remaining === 0,
-                'remaining' => $remaining,
+                'remaining' => max(0, $remaining),
             ]);
         } catch (\Throwable $e) {
             wp_send_json_error($e->getMessage());

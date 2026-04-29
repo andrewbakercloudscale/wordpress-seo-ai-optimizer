@@ -4662,7 +4662,7 @@ trait CS_SEO_Settings_Page {
 
             try {
                 while (!sumState.stopped) {
-                    const data = await abPost('cs_seo_summary_generate_all', { force: force ? 1 : 0 });
+                    const data = await abPost('cs_seo_summary_generate_all', { force: force ? 1 : 0, done_count: sumState.done });
                     if (!data.success) {
                         sumLog('✗ Error: ' + (data.data || 'Unknown'), 'ab-log-error');
                         break;
