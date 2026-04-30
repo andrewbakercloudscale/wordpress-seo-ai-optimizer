@@ -24,6 +24,18 @@ trait CS_SEO_Schema {
     private function print_schema_tags(): void {
         $noindex = $this->is_noindexed();
 
+        // Per-page JSON-LD schema stored by the help-doc generator in _cs_schema_json post meta.
+        // This bypasses wp_kses_post (which strips <script> tags) by keeping schema out of content entirely.
+        if (is_singular() && !$noindex) {
+            $raw = (string) get_post_meta(get_the_ID(), self::META_PAGE_SCHEMA, true);
+            if ($raw !== '') {
+                $schema = json_decode($raw, true);
+                if (is_array($schema)) {
+                    $this->print_schema_tag($schema);
+                }
+            }
+        }
+
         if ((int) $this->opts['enable_schema_website'] && (is_front_page() || is_home())) {
             $this->print_schema_tag($this->schema_website());
         }

@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.20.91
+ * Version:     4.20.92
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -121,6 +121,7 @@ final class Cs_Seo_Plugin {
     const META_SUM_KEY     = '_cs_seo_summary_takeaway';
     const META_HIDE_SUMMARY = '_cs_seo_hide_summary';
     const META_NOINDEX      = '_cs_seo_noindex';
+    const META_PAGE_SCHEMA  = '_cs_schema_json';
 
     // Related Articles meta keys
     const META_RC_TOP        = '_cs_rc_top_ids';
@@ -184,7 +185,7 @@ final class Cs_Seo_Plugin {
     // Related Articles generator version — bump when scoring logic changes
     const RC_VERSION = '1.0';
 
-    const VERSION    = '4.20.91';
+    const VERSION    = '4.20.92';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -216,7 +217,7 @@ final class Cs_Seo_Plugin {
      * Registers a WP-Cron action wrapped in a Throwable catcher so an uncaught
      * exception cannot crash the PHP-FPM worker and trigger a site-down loop.
      *
-     * @since 4.20.91
+     * @since 4.20.92
      * @param string   $hook     The WP-Cron hook name.
      * @param callable $callback The callback to invoke.
      * @return void
@@ -483,6 +484,19 @@ final class Cs_Seo_Plugin {
                 'type'              => 'integer',
                 'auth_callback'     => fn() => current_user_can('edit_posts'),
                 'sanitize_callback' => 'absint',
+            ]);
+            register_post_meta($post_type, self::META_PAGE_SCHEMA, [
+                'show_in_rest'      => true,
+                'single'            => true,
+                'type'              => 'string',
+                'auth_callback'     => fn() => current_user_can('edit_posts'),
+                'sanitize_callback' => static function (string $v): string {
+                    if ($v === '') return '';
+                    $decoded = json_decode($v, true);
+                    return is_array($decoded)
+                        ? (string) wp_json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+                        : '';
+                },
             ]);
         }
     }

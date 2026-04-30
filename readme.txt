@@ -3,7 +3,7 @@ Contributors: andrewjbaker
 Tags: seo, ai, meta description, opengraph, schema
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.20.90
+Stable tag: 4.20.92
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -317,7 +317,7 @@ The plugin scores all posts against each other using shared categories, tags, an
 
 == Changelog ==
 
-= 4.20.90 =
+= 4.20.92 =
 * feat: Add "Generate Missing Titles" button — batch-generates SEO title tags for posts with no _cs_seo_title set
 * feat: Add "Have Title Tag" counter card in the summary row alongside "Have Description"
 
