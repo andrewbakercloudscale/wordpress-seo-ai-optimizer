@@ -578,15 +578,17 @@ async function updateParentIndex(parentId) {
 }
 
 async function createOrUpdatePage(title, content, slug, parentId) {
+    const payload = { title, content, slug, status: 'publish', parent: parentId,
+        meta: { _cs_seo_plugin_icon: LOGO_URL } };
     const existing = await findPageBySlug(slug);
     if (existing) {
         console.log(`  Updating existing page (ID ${existing.id})...`);
-        const res = await restRequest('POST', `/pages/${existing.id}`, { title, content, slug, status: 'publish', parent: parentId });
+        const res = await restRequest('POST', `/pages/${existing.id}`, payload);
         if (res.status !== 200) throw new Error(`Page update failed (${res.status}): ${JSON.stringify(res.body).slice(0, 200)}`);
         return { id: res.body.id, url: res.body.link };
     }
     console.log('  Creating new page...');
-    const res = await restRequest('POST', '/pages', { title, content, slug, status: 'publish', parent: parentId });
+    const res = await restRequest('POST', '/pages', payload);
     if (res.status !== 201) throw new Error(`Page create failed (${res.status}): ${JSON.stringify(res.body).slice(0, 200)}`);
     return { id: res.body.id, url: res.body.link };
 }
