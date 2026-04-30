@@ -208,6 +208,7 @@ trait CS_SEO_Auto_Pipeline {
             'ai_summary'       => [ $this, 'auto_step_ai_summary' ],
             'related_articles' => [ $this, 'auto_step_related_articles' ],
             'readability'      => [ $this, 'auto_step_readability' ],
+            'aeo_answer'       => [ $this, 'auto_step_aeo_answer' ],
         ];
 
         foreach ( $steps as $step_name => $callable ) {
@@ -487,7 +488,39 @@ trait CS_SEO_Auto_Pipeline {
     }
 
     /**
-     * Step 6 — Related Articles generation pipeline.
+     * Step 6 — AEO (Answer Engine Optimisation) answer paragraph.
+     *
+     * @since 4.20.86
+     * @param int $post_id Post ID.
+     * @return void
+     */
+    private function auto_step_aeo_answer( int $post_id ): void {
+        if ( trim( (string) get_post_meta( $post_id, self::META_AEO_ANSWER, true ) ) ) return;
+
+        $content = $this->get_clean_content( $post_id );
+        if ( str_word_count( $content ) < 50 ) return;
+
+        $provider = $this->ai_opts['ai_provider'] ?? 'anthropic';
+        $key      = $provider === 'gemini'
+            ? trim( (string) ( $this->ai_opts['gemini_key'] ?? '' ) )
+            : trim( (string) $this->ai_opts['anthropic_key'] );
+        if ( ! $key ) return;
+
+        $model   = $this->resolve_model( trim( (string) $this->ai_opts['model'] ), $provider );
+        $title   = get_the_title( $post_id );
+        $excerpt = mb_substr( $this->truncate_content( $content, 800 ), 0, 800 );
+
+        $system   = 'You are an SEO specialist writing AEO answer paragraphs for featured snippets. Write a single paragraph of exactly 40–60 words that directly answers the implicit question behind the post title. Plain prose only — no bullet points, no headings, no markdown. Do not start with "I" or the post title. Output only the paragraph, nothing else.';
+        $user_msg = "Post title: \"{$title}\"\n\nOpening content:\n{$excerpt}";
+
+        $answer = trim( (string) $this->dispatch_ai( $provider, $key, $model, $system, $user_msg, null, 150 ), ' "\'' );
+        if ( $answer ) {
+            update_post_meta( $post_id, self::META_AEO_ANSWER, sanitize_textarea_field( $answer ) );
+        }
+    }
+
+    /**
+     * Step 7 — Related Articles generation pipeline.
      *
      * @since 4.18.0
      * @param int $post_id Post ID.

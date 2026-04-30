@@ -7,7 +7,7 @@
  * filter (primary) and loop_start action (fallback for themes that skip it).
  *
  * @package CloudScale_SEO_AI_Optimizer
- * @since   4.20.85
+ * @since   4.20.87
  */
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
@@ -22,7 +22,7 @@ trait CS_SEO_Category_SEO {
     /**
      * Renders SEO fields on category/tag edit screens.
      *
-     * @since 4.20.85
+     * @since 4.20.87
      * @param \WP_Term $term The term being edited.
      * @return void
      */
@@ -147,7 +147,7 @@ trait CS_SEO_Category_SEO {
     /**
      * Saves SEO term meta when a category/tag edit form is submitted.
      *
-     * @since 4.20.85
+     * @since 4.20.87
      * @param int $term_id The term ID being updated.
      * @return void
      */
@@ -181,7 +181,7 @@ trait CS_SEO_Category_SEO {
      *
      * Primary injection path — fires when the theme calls the_archive_description().
      *
-     * @since 4.20.85
+     * @since 4.20.87
      * @param string $description Existing archive description HTML.
      * @return string
      */
@@ -202,7 +202,7 @@ trait CS_SEO_Category_SEO {
      * Used for themes that do not call the_archive_description(). Skipped if
      * the intro was already output via cat_seo_archive_description().
      *
-     * @since 4.20.85
+     * @since 4.20.87
      * @param \WP_Query $query The current WP_Query object.
      * @return void
      */
@@ -221,7 +221,7 @@ trait CS_SEO_Category_SEO {
     /**
      * Wraps plain-text paragraphs in <p> tags when no block-level elements are present.
      *
-     * @since 4.20.85
+     * @since 4.20.87
      * @param string $intro Raw intro text.
      * @return string HTML-ready intro.
      */
@@ -240,7 +240,7 @@ trait CS_SEO_Category_SEO {
     /**
      * AJAX handler: uses AI to generate SEO title, meta description, and intro for a term.
      *
-     * @since 4.20.85
+     * @since 4.20.87
      * @return void
      */
     public function ajax_cat_seo_ai_gen(): void {
@@ -321,7 +321,7 @@ trait CS_SEO_Category_SEO {
     /**
      * AJAX handler: returns all categories with their current SEO meta values.
      *
-     * @since 4.20.85
+     * @since 4.20.87
      * @return void
      */
     public function ajax_cat_seo_list(): void {
