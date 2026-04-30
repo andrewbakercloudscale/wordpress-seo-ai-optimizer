@@ -152,7 +152,7 @@ trait CS_SEO_Summary_Box {
 
     /**
      * Prepends the AEO direct-answer paragraph as a naked <p> before the summary box.
-     * Runs at the_content priority 8 — before prepend_summary_box (priority 10).
+     * Runs at the_content priority 25 — after inject_related_links (priority 20).
      * Google's featured snippet extractor reads this as the page's primary prose answer.
      *
      * @since 4.20.83

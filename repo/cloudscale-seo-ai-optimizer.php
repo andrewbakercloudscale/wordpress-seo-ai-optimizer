@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.20.90
+ * Version:     4.20.91
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -176,7 +176,7 @@ final class Cs_Seo_Plugin {
     // Related Articles generator version — bump when scoring logic changes
     const RC_VERSION = '1.0';
 
-    const VERSION    = '4.20.90';
+    const VERSION    = '4.20.91';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -233,7 +233,7 @@ final class Cs_Seo_Plugin {
         add_action('save_post',      [$this, 'on_save_post_readability'], 20, 2);
         add_action('save_post',    function() { delete_transient('cs_seo_llms_txt'); delete_transient(self::SITEMAP_URLS_CACHE); });
         add_action('deleted_post', function() { delete_transient('cs_seo_llms_txt'); delete_transient(self::SITEMAP_URLS_CACHE); });
-        add_filter('the_content',    [$this, 'prepend_aeo_answer'], 8);
+        add_filter('the_content',    [$this, 'prepend_aeo_answer'], 25);
         add_filter('the_content',    [$this, 'prepend_summary_box']);
         add_filter('the_content',    [$this, 'inject_related_links'], 20);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_rc_front_styles']);
