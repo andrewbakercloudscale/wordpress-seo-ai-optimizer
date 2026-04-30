@@ -63,8 +63,8 @@ echo ""
 if [[ "$FORCE" -eq 1 ]]; then
     echo -e "\033[1;33m⚠️  --force passed — skipping standards review.\033[0m"
     echo ""
-elif [[ ! -x "$CLAUDE" ]]; then
-    echo -e "\033[1;31mERROR: claude CLI not found at $CLAUDE.\033[0m"
+elif ! command -v "$CLAUDE" &>/dev/null; then
+    echo -e "\033[1;31mERROR: claude CLI not found ($CLAUDE not in PATH).\033[0m"
     echo "       Install claude CLI or pass --force to skip the review."
     exit 1
 else
