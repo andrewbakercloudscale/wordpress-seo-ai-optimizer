@@ -30,6 +30,14 @@ trait CS_SEO_Frontend_Head {
             return $default;
         }
 
+        if (is_category() || is_tag()) {
+            $term = get_queried_object();
+            if ($term instanceof \WP_Term) {
+                $custom = trim((string) get_term_meta($term->term_id, self::META_TERM_TITLE, true));
+                if ($custom !== '') return $custom;
+            }
+        }
+
         $suffix = (string) $this->opts['title_suffix'];
         if ($suffix && substr($default, -strlen($suffix)) !== $suffix) {
             return $default . $suffix;
@@ -224,6 +232,15 @@ trait CS_SEO_Frontend_Head {
                 return $this->clip(Cs_Seo_Utils::text_from_html((string) $post->post_content), 160);
             }
         }
+
+        if (is_category() || is_tag()) {
+            $term = get_queried_object();
+            if ($term instanceof \WP_Term) {
+                $custom = trim((string) get_term_meta($term->term_id, self::META_TERM_DESC, true));
+                if ($custom) return $this->clip($custom, 160);
+            }
+        }
+
         $d = trim((string) $this->opts['default_desc']);
         return $d ? $this->clip($d, 160) : '';
     }

@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.20.80
+ * Version:     4.20.82
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -55,6 +55,7 @@ require_once __DIR__ . '/includes/trait-admin.php';
 require_once __DIR__ . '/includes/trait-gutenberg.php';
 require_once __DIR__ . '/includes/trait-font-optimizer.php';
 require_once __DIR__ . '/includes/trait-category-fixer.php';
+require_once __DIR__ . '/includes/trait-category-seo.php';
 require_once __DIR__ . '/includes/trait-settings-page.php';
 require_once __DIR__ . '/includes/trait-settings-assets.php';
 require_once __DIR__ . '/includes/trait-robots-txt.php';
@@ -95,6 +96,7 @@ final class Cs_Seo_Plugin {
     use CS_SEO_Gutenberg;
     use CS_SEO_Font_Optimizer;
     use CS_SEO_Category_Fixer;
+    use CS_SEO_Category_SEO;
     use CS_SEO_Settings_Page;
     use CS_SEO_Settings_Assets;
     use CS_SEO_Robots_Txt;
@@ -148,6 +150,11 @@ final class Cs_Seo_Plugin {
     const META_AUTO_COMPLETE = '_cs_seo_auto_run_complete';
     const META_FOCUS_KW      = '_cs_seo_focus_keyword';
 
+    // Category SEO term meta keys
+    const META_TERM_TITLE = 'cs_seo_term_title';
+    const META_TERM_DESC  = 'cs_seo_term_desc';
+    const META_TERM_INTRO = 'cs_seo_term_intro';
+
     // Title Optimiser meta keys
     const META_TITLE_OPT_SUGGESTED    = '_cs_seo_title_opt_suggested';
     const META_TITLE_OPT_ORIGINAL     = '_cs_seo_title_opt_original';
@@ -174,7 +181,7 @@ final class Cs_Seo_Plugin {
     // Related Articles generator version — bump when scoring logic changes
     const RC_VERSION = '1.0';
 
-    const VERSION    = '4.20.80';
+    const VERSION    = '4.20.82';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -206,7 +213,7 @@ final class Cs_Seo_Plugin {
      * Registers a WP-Cron action wrapped in a Throwable catcher so an uncaught
      * exception cannot crash the PHP-FPM worker and trigger a site-down loop.
      *
-     * @since 4.20.80
+     * @since 4.20.82
      * @param string   $hook     The WP-Cron hook name.
      * @param callable $callback The callback to invoke.
      * @return void
@@ -358,6 +365,16 @@ final class Cs_Seo_Plugin {
         add_action('wp_ajax_cs_seo_catmig_posts',  [$this, 'ajax_catmig_posts']);
         add_action('wp_ajax_cs_seo_catmig_apply',  [$this, 'ajax_catmig_apply']);
         add_action('wp_ajax_cs_seo_catmig_delete', [$this, 'ajax_catmig_delete']);
+
+        // Category SEO — term meta edit fields and frontend injection
+        add_action( 'category_edit_form_fields', [ $this, 'cat_seo_edit_fields' ] );
+        add_action( 'post_tag_edit_form_fields', [ $this, 'cat_seo_edit_fields' ] );
+        add_action( 'edited_category',           [ $this, 'cat_seo_save_fields' ] );
+        add_action( 'edited_post_tag',           [ $this, 'cat_seo_save_fields' ] );
+        add_filter( 'the_archive_description',   [ $this, 'cat_seo_archive_description' ] );
+        add_action( 'loop_start',                [ $this, 'cat_seo_loop_start_intro' ] );
+        add_action( 'wp_ajax_cs_seo_cat_seo_ai_gen', [ $this, 'ajax_cat_seo_ai_gen' ] );
+        add_action( 'wp_ajax_cs_seo_cat_seo_list',   [ $this, 'ajax_cat_seo_list' ] );
 
         // Related Articles — run pipeline synchronously on publish (no API, no cron dependency).
         add_action('transition_post_status', [$this, 'rc_on_post_publish'], 20, 3);
