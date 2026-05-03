@@ -50,6 +50,9 @@ trait CS_SEO_Schema {
             $art = $this->schema_article();
             if ($art) $this->print_schema_tag($art);
         }
+        if ((int) ($this->opts['enable_schema_speakable'] ?? 0) && is_singular() && !$noindex) {
+            $this->print_schema_tag($this->schema_speakable());
+        }
     }
 
     /**
@@ -202,6 +205,18 @@ trait CS_SEO_Schema {
 
         if (count($items) <= 1) return null;
         return ['@context' => 'https://schema.org', '@type' => 'BreadcrumbList', 'itemListElement' => $items];
+    }
+
+    private function schema_speakable(): array {
+        return [
+            '@context' => 'https://schema.org',
+            '@type'    => 'WebPage',
+            'url'      => $this->canonical_url(),
+            'speakable' => [
+                '@type'       => 'SpeakableSpecification',
+                'cssSelector' => [ 'h1', '.entry-title', '.entry-content > p:first-child', 'article > p:first-of-type' ],
+            ],
+        ];
     }
 
     // =========================================================================

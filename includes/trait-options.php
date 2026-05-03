@@ -30,6 +30,7 @@ trait CS_SEO_Options {
             'enable_schema_person'    => 1,
             'enable_schema_website'   => 1,
             'enable_schema_article'   => 1,
+            'enable_schema_speakable' => 0,
             'enable_schema_breadcrumbs' => 1,
             'show_summary_box'          => 1,
             'strip_tracking_params'   => 1,

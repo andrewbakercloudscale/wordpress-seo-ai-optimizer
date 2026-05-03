@@ -37,6 +37,14 @@ trait CS_SEO_Site_Audit {
             return;
         }
 
+        if ( $action === 'enable_speakable_schema' ) {
+            $opts = get_option( self::OPT, [] );
+            $opts['enable_schema_speakable'] = 1;
+            update_option( self::OPT, $opts );
+            wp_send_json_success( [ 'message' => 'Speakable schema enabled. Re-run audit to confirm.' ] );
+            return;
+        }
+
         if ( $action === 'add_archive_redirects' ) {
             $posts_url  = get_post_type_archive_link( 'post' ) ?: home_url( '/' );
             $redirects  = get_option( 'cs_seo_redirects', [] );
@@ -1186,7 +1194,7 @@ trait CS_SEO_Site_Audit {
             'FAQPage / QAPage schema'            => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'generate_faq_schema' ],
             'HowTo schema on step-by-step posts' => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'generate_howto_schema' ],
             'Answer-first paragraphs on top posts' => [ 'tab' => 'aitools', 'label' => 'Generate AEO',        'sel' => '#ab-ai-gen-aeo',           'href' => '' ],
-            'Speakable schema'                   => [ 'tab' => 'seo',     'label' => 'Schema Settings',       'sel' => '',                         'href' => '' ],
+            'Speakable schema'                   => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'enable_speakable_schema' ],
             'Category intro text (descriptions)' => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'gen_cat_descs' ],
             'Category SEO meta descriptions set' => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'gen_cat_descs' ],
             '/blog/ and /posts/ duplicate archive pages' => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'add_archive_redirects' ],
@@ -1209,6 +1217,17 @@ trait CS_SEO_Site_Audit {
                     window.scrollTo({top:0, behavior:'smooth'});
                 }
             }, 250);
+        }
+
+        // One-click: enable Speakable schema.
+        function csAuditEnableSpeakable(btn) {
+            btn.disabled = true; btn.textContent = '⏳ Enabling…';
+            var fd = new FormData();
+            fd.append('action','cs_seo_audit_quickfix'); fd.append('quickfix','enable_speakable_schema'); fd.append('nonce',csSeoAdmin.nonce);
+            fetch(csSeoAdmin.ajaxUrl,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(r){
+                btn.textContent = r.success ? '✅ Enabled — re-run audit' : '❌ ' + (r.data||'Error');
+                btn.style.background = r.success ? '#10b981' : '#ef4444';
+            }).catch(function(){ btn.textContent = '❌ Network error'; btn.style.background='#ef4444'; });
         }
 
         // AI: generate HowTo JSON-LD schema for top post.
@@ -1339,6 +1358,11 @@ trait CS_SEO_Site_Audit {
                                     ✦ Generate All with AI
                                 </button>
                                 <span style="display:block;font-size:10px;color:#6b7280;margin-top:3px"></span>
+                            <?php elseif ( $inline === 'enable_speakable_schema' ) : ?>
+                                <button type="button" onclick="csAuditEnableSpeakable(this)"
+                                    style="padding:4px 11px;font-size:11px;font-weight:600;background:#7c3aed;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap">
+                                    ⚡ Enable Now
+                                </button>
                             <?php elseif ( $inline === 'generate_howto_schema' ) : ?>
                                 <button type="button" onclick="csAuditGenHowToSchema(this)"
                                     style="padding:4px 11px;font-size:11px;font-weight:600;background:#0e7490;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap">

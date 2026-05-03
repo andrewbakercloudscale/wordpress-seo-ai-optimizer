@@ -1322,7 +1322,7 @@ trait CS_SEO_Category_Fixer {
      *
      * Accepts `source_id` (int), `target_id` (int), and `new_name` (string, optional).
      *
-     * @since 4.21.34
+     * @since 4.21.35
      * @return void
      */
     public function ajax_catmerge_overlap(): void {
