@@ -209,6 +209,7 @@ trait CS_SEO_Auto_Pipeline {
             'related_articles' => [ $this, 'auto_step_related_articles' ],
             'readability'      => [ $this, 'auto_step_readability' ],
             'aeo_answer'       => [ $this, 'auto_step_aeo_answer' ],
+            'faq_schema'       => [ $this, 'auto_step_faq_schema' ],
         ];
 
         foreach ( $steps as $step_name => $callable ) {
@@ -516,6 +517,38 @@ trait CS_SEO_Auto_Pipeline {
         $answer = trim( (string) $this->dispatch_ai( $provider, $key, $model, $system, $user_msg, null, 150 ), ' "\'' );
         if ( $answer ) {
             update_post_meta( $post_id, self::META_AEO_ANSWER, sanitize_textarea_field( $answer ) );
+        }
+    }
+
+    private function auto_step_faq_schema( int $post_id ): void {
+        if ( trim( (string) get_post_meta( $post_id, self::META_PAGE_SCHEMA, true ) ) ) return;
+
+        $content = $this->get_clean_content( $post_id );
+        if ( str_word_count( $content ) < 100 ) return;
+
+        $provider = $this->ai_opts['ai_provider'] ?? 'anthropic';
+        $key      = $provider === 'gemini'
+            ? trim( (string) ( $this->ai_opts['gemini_key'] ?? '' ) )
+            : trim( (string) $this->ai_opts['anthropic_key'] );
+        if ( ! $key ) return;
+
+        $model   = $this->resolve_model( trim( (string) $this->ai_opts['model'] ), $provider );
+        $title   = get_the_title( $post_id );
+        $excerpt = mb_substr( $this->truncate_content( $content, 3000 ), 0, 3000 );
+
+        $system   = 'You are an SEO expert. Generate a FAQPage JSON-LD schema for the article. Return ONLY a valid JSON object — no markdown, no explanation.';
+        $user_msg = "Article title: {$title}\n\nContent:\n{$excerpt}\n\nGenerate a FAQPage schema with 4-5 questions a reader would ask, with concise answers from the article content. Return ONLY:\n"
+            . '{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"...","acceptedAnswer":{"@type":"Answer","text":"..."}},...]}';
+
+        try {
+            $raw    = $this->dispatch_ai( $provider, $key, $model, $system, $user_msg, null, 1000 );
+            $clean  = trim( (string) preg_replace( '/^```(?:json)?\s*/i', '', preg_replace( '/```\s*$/i', '', trim( $raw ) ) ) );
+            $schema = json_decode( $clean, true );
+            if ( is_array( $schema ) && ( $schema['@type'] ?? '' ) === 'FAQPage' ) {
+                update_post_meta( $post_id, self::META_PAGE_SCHEMA, wp_json_encode( $schema ) );
+            }
+        } catch ( \Throwable $e ) {
+            // Non-fatal — pipeline continues.
         }
     }
 

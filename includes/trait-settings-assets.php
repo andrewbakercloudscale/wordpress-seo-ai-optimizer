@@ -62,6 +62,7 @@ table.ab-posts { width:100%; min-width:640px; border-collapse:collapse; margin-t
 table.ab-posts th { text-align:left; padding:8px 10px; border-bottom:2px solid #c3c4c7; font-size:12px; color:#50575e; font-weight:600; }
 table.ab-posts td { padding:9px 10px; border-bottom:1px solid #f0f0f1; font-size:13px; vertical-align:top; }
 table.ab-posts tr:hover td { background:#f6f7f7; }
+table.ab-posts.ab-compact .ab-col-extra { display:none; }
 .ab-badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:11px; font-weight:600; }
 .ab-score-badge { display:inline-block; padding:3px 9px; border-radius:12px; font-size:11px; font-weight:700; white-space:nowrap; cursor:pointer; transition:opacity 0.15s; }
 .ab-score-badge:hover { opacity:0.8; }
@@ -95,7 +96,7 @@ table.ab-posts tr:hover td { background:#f6f7f7; }
 .ab-summary-lbl  { font-size:11px; color:#50575e; margin-top:4px; }
 .ab-zone-card { border-radius:8px; overflow:hidden; box-shadow:0 6px 28px rgba(30,100,200,0.55), 0 2px 8px rgba(30,100,200,0.35); margin:24px 0 0; }
 .ab-zone-header { display:flex; align-items:center; gap:10px; padding:13px 20px; font-size:15px; font-weight:700; color:#fff; letter-spacing:0.01em; }
-.ab-zone-header .ab-toggle-card-btn, .ab-zone-header .ab-explain-btn { display:inline-flex !important; align-items:center !important; height:30px !important; min-height:0 !important; padding:0 12px !important; line-height:1 !important; font-size:12px !important; font-weight:600 !important; box-sizing:border-box !important; vertical-align:middle; }
+.ab-zone-header .ab-toggle-card-btn, .ab-zone-header .ab-explain-btn, .ab-zone-header button, .ab-zone-header .button { display:inline-flex !important; align-items:center !important; height:30px !important; min-height:0 !important; padding:0 12px !important; line-height:1 !important; font-size:12px !important; font-weight:600 !important; box-sizing:border-box !important; vertical-align:middle; }
 .ab-zone-header .ab-zone-icon { font-size:17px; }
 .ab-zone-body { background:#f4f5f7; padding:4px 0 20px; }
 .ab-zone-body .form-table th { padding-left:20px; }

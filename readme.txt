@@ -1,20 +1,24 @@
 === CloudScale SEO AI Optimizer ===
 Contributors: andrewjbaker
-Tags: seo, ai, meta description, opengraph, schema
+Tags: free yoast alternative, ai seo, claude ai, seo audit, schema generator
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.21.35
+Stable tag: 4.21.44
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-AI-powered SEO & AEO: meta descriptions, auto linking, category management, ALT text. Bring your own Claude or Gemini API key. Free, open source.
+Free Yoast alternative with AI. Meta descriptions, schema, site audit & one-click fixes. Use your own Claude or Gemini key. No subscription, ever.
 
 == Description ==
 
-CloudScale SEO AI Optimizer is a completely free SEO plugin built for technical bloggers and site owners who want full control without the overhead of Yoast or RankMath. There is no Pro version, no upsells, no feature gates, and no licence keys.
+**Stop paying $99/year for Yoast Premium.** CloudScale SEO AI Optimizer replaces Yoast Premium and RankMath Pro with a completely free plugin that uses your own Anthropic Claude or Google Gemini API key. No subscription. No Pro version. No licence keys. No upsells. Everything works out of the box.
 
-It handles the essentials cleanly and adds a full AI toolkit that uses either the Anthropic Claude API or the Google Gemini API to generate meta descriptions, ALT text, summaries, SEO scores, focus keywords, internal links, and related articles — all from WP Admin, with no extra subscriptions required.
+The AI generation costs less than $0.10 to run across 100 posts using Claude Haiku. Google Gemini has a free tier sufficient for most personal blogs. You pay the AI provider directly — the plugin charges nothing.
+
+**Setup takes 2 minutes:** Install → paste your free API key (get one at console.anthropic.com or aistudio.google.com) → click Generate Missing. Done.
+
+It handles all the technical SEO WordPress leaves out — sitemaps, robots.txt, structured data, OpenGraph, canonical URLs — and adds a full AI toolkit that generates meta descriptions, ALT text, article summaries, FAQ schema, and related article links in bulk. A built-in **Site Audit** scores your entire SEO setup across 20+ checks and surfaces **one-click quick fixes** so you can resolve issues without leaving the audit panel.
 
 = Core SEO Features =
 
@@ -316,6 +320,15 @@ The plugin scores all posts against each other using shared categories, tags, an
 10. Dashboard widget showing SEO health pills with colour-coded coverage scores
 
 == Changelog ==
+
+= 4.21.44 =
+* Add: Schema column in AI Meta Description Writer table — shows ✓/✗ per-post JSON-LD schema coverage; sortable
+* Add: First-run welcome banner — guides new installs through getting an API key with direct links to Anthropic and Gemini
+* Add: FAQ schema auto-generation in Auto Pipeline — every new post publish generates FAQPage JSON-LD automatically
+* Add: SEO Site Audit section added to help documentation
+* Change: WordPress.org tags updated to free yoast alternative, ai seo, claude ai, seo audit, schema generator
+* Change: readme.txt short description and opening paragraph rewritten to lead with the value proposition
+* Fix: Help docs table of contents numbering — replaced CSS columns layout with two separate ordered lists
 
 = 4.20.93 =
 * feat: Add "Generate Missing Titles" button — batch-generates SEO title tags for posts with no _cs_seo_title set

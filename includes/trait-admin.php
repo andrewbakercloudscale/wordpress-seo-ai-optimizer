@@ -15,7 +15,43 @@ trait CS_SEO_Admin {
      * @return void
      */
     public function admin_notices(): void {
-        // Show post-rename confirmation if the backup flag is set
+        // ── Welcome / API key setup notice (shown after first activation) ────
+        if (current_user_can('manage_options') && get_option('cs_seo_show_welcome')) {
+            if (isset($_GET['_cs_dismiss_welcome']) && check_admin_referer('cs_dismiss_welcome')) {
+                delete_option('cs_seo_show_welcome');
+                update_option('cs_seo_welcome_shown', 1);
+            } else {
+                $settings_url = esc_url(admin_url('tools.php?page=cs-seo-optimizer#ai'));
+                $dismiss_url  = esc_url(wp_nonce_url(add_query_arg('_cs_dismiss_welcome', '1'), 'cs_dismiss_welcome'));
+                echo '<div class="notice" style="border-left:4px solid #22c55e;padding:0;overflow:hidden;background:#fff;">';
+                echo '<div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#0e6b8f 100%);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;">';
+                echo '<span style="font-size:24px">🚀</span>';
+                echo '<strong style="font-size:15px">' . esc_html__( 'CloudScale SEO Optimizer is installed! You\'re 2 minutes from AI-powered SEO.', 'cloudscale-seo-ai-optimizer' ) . '</strong>';
+                echo '</div>';
+                echo '<div style="padding:16px 20px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;">';
+                echo '<div style="flex:1;min-width:260px;">';
+                echo '<p style="margin:0 0 8px;font-weight:700;color:#0f172a;">Step 1 — Get a free API key (takes 60 seconds)</p>';
+                echo '<p style="margin:0 0 6px;color:#374151;">• <strong>Anthropic Claude</strong> (recommended): ';
+                echo '<a href="https://console.anthropic.com/" target="_blank" rel="noopener" style="color:#2563eb;">console.anthropic.com</a>';
+                echo ' → Sign up → API Keys → Create Key</p>';
+                echo '<p style="margin:0;color:#374151;">• <strong>Google Gemini</strong> (free tier): ';
+                echo '<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:#2563eb;">aistudio.google.com</a>';
+                echo ' → Sign in → Create API Key</p>';
+                echo '</div>';
+                echo '<div style="flex:1;min-width:200px;">';
+                echo '<p style="margin:0 0 8px;font-weight:700;color:#0f172a;">Step 2 — Paste it in AI Settings</p>';
+                echo '<p style="margin:0;color:#374151;">Go to <strong>SEO Optimizer → AI Settings</strong>, paste your key, click <strong>Save</strong>, then click <strong>Test Key</strong> to confirm it works.</p>';
+                echo '</div>';
+                echo '<div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;">';
+                echo '<a href="' . $settings_url . '" class="button button-primary" style="white-space:nowrap">' . esc_html__( '→ Go to AI Settings', 'cloudscale-seo-ai-optimizer' ) . '</a>';
+                echo '<a href="' . $dismiss_url . '" style="font-size:12px;color:#6b7280;">' . esc_html__( 'Dismiss', 'cloudscale-seo-ai-optimizer' ) . '</a>';
+                echo '</div>';
+                echo '</div>';
+                echo '</div>';
+            }
+        }
+
+        // ── Robots.txt rename confirmation ───────────────────────────────────
         $bak = get_option('cs_seo_robots_bak');
         if ($bak !== false) {
             // Dismiss handler — requires both capability and valid nonce.

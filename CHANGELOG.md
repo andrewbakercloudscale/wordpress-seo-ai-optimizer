@@ -3,6 +3,21 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.21.40] - 2026-05-03
+### Added
+- **Schema column in batch table** — `has_schema` indicator (✓/✗) added to the AI Meta Description Writer post table so you can see at a glance which posts have per-post JSON-LD schema (FAQPage/HowTo); column is sortable; pages and homepage show a dash
+- **First-run welcome banner** — dismissible onboarding notice shown to admins after plugin activation; walks through getting a free Anthropic Claude or Google Gemini API key with direct links; links to AI Settings panel
+- **FAQ schema auto-generation in Auto Pipeline** — every new post publish now automatically generates a FAQPage JSON-LD block via AI and saves it to `_cs_schema_json`; skips posts that already have schema; requires 100+ word content
+- **SEO Site Audit panel in help documentation** — full section with screenshot, feature explanation, and audit category descriptions added to the published help page
+- **Auto Pipeline explain button updated** — now includes the FAQ Schema step description
+- **Schema column explain button** — added to the batch table tooltip
+### Changed
+- **WordPress.org tags** — updated to `free yoast alternative, ai seo, claude ai, seo audit, schema generator` for improved discoverability over generic `seo, ai, schema` tags
+- **readme.txt short description** — leads with "Free Yoast alternative with AI" USP; setup now explained in one sentence
+- **readme.txt description** — opening paragraph rewritten to lead with the value proposition and cost comparison
+- **Help docs TOC** — fixed two-column layout numbering (was broken by CSS columns); now uses two separate `<ol>` elements with `start` attribute; SEO Site Audit section added as item 4
+- **Competitor comparison** — updated to include site-wide audit and one-click quick fixes
+
 ## [4.20.83] - 2026-04-30
 ### Added
 - **AEO Answer Paragraph** — new `_cs_seo_aeo_answer` meta field adds a 40–60 word direct-answer paragraph as the first `<p>` in post content (priority 8, before the summary box at priority 10); Google's featured-snippet extractor reads plain prose as the primary answer, enabling position-zero extraction on queries implied by the post title

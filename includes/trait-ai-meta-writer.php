@@ -1009,6 +1009,7 @@ trait CS_SEO_AI_Meta_Writer {
                 'title_chars'       => mb_strlen($effective_title),
                 'has_title'         => $custom_title !== '',
                 'has_aeo'           => trim((string) get_post_meta($p->ID, self::META_AEO_ANSWER, true)) !== '',
+            'has_schema'        => trim((string) get_post_meta($p->ID, self::META_PAGE_SCHEMA, true)) !== '',
                 'type'              => $p->post_type,
                 'date'              => get_the_date('Y-m-d', $p->ID),
                 'has_desc'          => $desc !== '',

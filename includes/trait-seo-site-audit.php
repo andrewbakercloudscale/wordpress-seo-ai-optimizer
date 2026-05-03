@@ -119,7 +119,7 @@ trait CS_SEO_Site_Audit {
         }
 
         if ( $action === 'generate_faq_schema' ) {
-            $posts = get_posts( [ 'numberposts' => 3, 'post_status' => 'publish', 'orderby' => 'comment_count', 'order' => 'DESC' ] );
+            $posts = get_posts( [ 'numberposts' => 20, 'post_status' => 'publish', 'orderby' => 'comment_count', 'order' => 'DESC', 'post_type' => 'post' ] );
             if ( empty( $posts ) ) { wp_send_json_error( 'No published posts found.' ); return; }
 
             $provider = $this->ai_opts['ai_provider'] ?? 'anthropic';
@@ -131,6 +131,7 @@ trait CS_SEO_Site_Audit {
 
             $saved = 0;
             foreach ( $posts as $p ) {
+                if ( trim( (string) get_post_meta( $p->ID, self::META_PAGE_SCHEMA, true ) ) ) continue;
                 $content = wp_strip_all_tags( (string) $p->post_content );
                 if ( mb_strlen( $content ) < 100 ) continue;
                 $excerpt = mb_substr( $content, 0, 3000 );
@@ -152,7 +153,7 @@ trait CS_SEO_Site_Audit {
                     // continue to next post
                 }
             }
-            if ( $saved === 0 ) { wp_send_json_error( 'AI did not return valid FAQPage schema.' ); return; }
+            if ( $saved === 0 ) { wp_send_json_error( 'AI did not return valid FAQPage schema — posts may already have schema set.' ); return; }
             wp_send_json_success( [ 'message' => "FAQPage schema generated and saved to {$saved} post(s). Re-run audit to confirm." ] );
             return;
         }

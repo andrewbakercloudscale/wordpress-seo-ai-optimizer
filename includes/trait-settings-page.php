@@ -79,10 +79,10 @@ trait CS_SEO_Settings_Page {
         <?php /* ── TAB NAV ── */ ?>
 
         <div class="ab-tabs">
-            <button class="ab-tab active" data-tab="seo">📊 <?php esc_html_e( 'Optimise SEO', 'cloudscale-seo-ai-optimizer' ); ?></button>
-            <button class="ab-tab"        data-tab="aitools">✨ <?php esc_html_e( 'AI Tools', 'cloudscale-seo-ai-optimizer' ); ?></button>
-            <button class="ab-tab"        data-tab="siteaudit">🔍 <?php esc_html_e( 'SEO Site Audit', 'cloudscale-seo-ai-optimizer' ); ?></button>
-            <button class="ab-tab"        data-tab="sitemap">🗺 <?php esc_html_e( 'Sitemap, Robots &amp; Redirects', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab active" data-tab="seo">⚙ <?php esc_html_e( 'Settings', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="siteaudit">🔍 <?php esc_html_e( 'Site Audit', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="aitools">✨ <?php esc_html_e( 'AI Content', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="sitemap">🗺 <?php esc_html_e( 'Technical SEO', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="perf">⚡ <?php esc_html_e( 'Performance', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="catfix">🏷 <?php esc_html_e( 'Categories', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="batch">🔄 <?php esc_html_e( 'Scheduled Batch', 'cloudscale-seo-ai-optimizer' ); ?></button>
@@ -405,6 +405,27 @@ trait CS_SEO_Settings_Page {
         <?php /* ══════════════════ AI TOOLS PANE ══════════════════ */ ?>
         <div class="ab-pane" id="ab-pane-aitools">
 
+            <?php /* ── Auto Pipeline status hero ── */
+            $pipeline_on = (int)($ai['auto_run_enabled'] ?? 0);
+            if ( $pipeline_on ) : ?>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #22c55e;border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <span style="font-size:22px">⚡</span>
+                <div style="flex:1;min-width:200px;">
+                    <strong style="color:#14532d;font-size:14px;"><?php esc_html_e( 'Auto Pipeline is active', 'cloudscale-seo-ai-optimizer' ); ?></strong>
+                    <p style="margin:2px 0 0;color:#166534;font-size:12px;"><?php esc_html_e( 'Every post you publish will automatically receive a meta description, ALT text, AI summary, and FAQ schema — no manual work required.', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                </div>
+            </div>
+            <?php else : ?>
+            <div style="background:#fefce8;border:1px solid #fde68a;border-left:4px solid #f59e0b;border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <span style="font-size:22px">💤</span>
+                <div style="flex:1;min-width:200px;">
+                    <strong style="color:#78350f;font-size:14px;"><?php esc_html_e( 'Auto Pipeline is off', 'cloudscale-seo-ai-optimizer' ); ?></strong>
+                    <p style="margin:2px 0 0;color:#92400e;font-size:12px;"><?php esc_html_e( 'Enable it below to automatically process every new post you publish — meta description, ALT text, summary box, and FAQ schema all generated in the background.', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                </div>
+                <a href="#ab-card-auto-pipeline" style="background:#f59e0b;color:#fff;border-radius:6px;padding:7px 16px;font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap;"><?php esc_html_e( '→ Enable it', 'cloudscale-seo-ai-optimizer' ); ?></a>
+            </div>
+            <?php endif; ?>
+
             <?php /* ── Auto Pipeline Card ── */ ?>
             <form method="post" action="options.php" style="margin-bottom:24px;">
                 <?php settings_fields('cs_seo_ai_group'); ?>
@@ -413,10 +434,11 @@ trait CS_SEO_Settings_Page {
                     <span><span class="ab-zone-icon">⚡</span> <?php esc_html_e( 'Auto Pipeline', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
                     <?php $this->explain_btn('auto_pipeline', '⚡ Auto Pipeline — How it works', [
-                        ['rec'=>'ℹ️ Info',         'name'=>'What it does',          'desc'=>'Automatically runs every AI operation — meta description, focus keyword, ALT text for attached images, internal link suggestions, AI summary box, Related Articles, and readability scoring — immediately when a post is published or updated. Each step runs in a background HTTP request so publish is never blocked.'],
+                        ['rec'=>'ℹ️ Info',         'name'=>'What it does',          'desc'=>'Automatically runs every AI operation — meta description, focus keyword, ALT text for attached images, internal link suggestions, AI summary box, FAQ schema, Related Articles, and readability scoring — immediately when a post is published or updated. Each step runs in a background HTTP request so publish is never blocked.'],
                         ['rec'=>'✅ Recommended',  'name'=>'Run on first publish',  'desc'=>'Triggers once when a post goes from any status to Published. Will not re-run on subsequent saves unless "Re-run on update" is also enabled. Prevents duplicate API calls on minor edits.'],
                         ['rec'=>'⬜ Optional',     'name'=>'Re-run on update',      'desc'=>'Re-triggers the full pipeline every time an already-published post is saved. Useful for keeping AI content fresh when you make major content changes. Each re-run replaces all previous AI-generated data for that post.'],
                         ['rec'=>'ℹ️ Info',         'name'=>'Minimum content',       'desc'=>'All AI steps silently skip if the post has fewer than 50 words. This prevents generating meaningless output for stubs, drafts accidentally published, or test posts.'],
+                        ['rec'=>'ℹ️ Info',         'name'=>'FAQ Schema (auto)',     'desc'=>'On every new post publish, the pipeline generates a FAQPage JSON-LD schema block and saves it to the post. This appears automatically in search results as expandable Q&A entries. Only runs if no schema already exists for the post and the content is at least 100 words.'],
                         ['rec'=>'ℹ️ Info',         'name'=>'Related Articles',      'desc'=>'Related Articles generation always runs synchronously on publish regardless of whether the Auto Pipeline toggle is enabled — it is purely local (no API calls) and fast enough to run inline.'],
                     ]); ?>
                     </span>
@@ -458,7 +480,7 @@ trait CS_SEO_Settings_Page {
                     <span><span class="ab-zone-icon">✦</span> <?php esc_html_e( 'Update Posts with AI Descriptions', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
                         <button class="button" id="ab-reload-hdr" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-update-posts" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
+                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-update-posts" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('updateposts', '✦ Update Posts — How this works', [
                         ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Writes the short text snippet that appears under your page title in Google search results — using AI to craft a compelling 140–155 character summary for each post.'],
                         ['rec'=>'ℹ️ Info','name'=>'Total Posts','desc'=>'The total number of published posts and pages on your site that are eligible for meta description generation.'],
@@ -475,10 +497,11 @@ trait CS_SEO_Settings_Page {
                         ['rec'=>'ℹ️ Info','name'=>'ALT Images column','desc'=>'Shows how many images in each post are still missing ALT text. ⚠ yellow means images need attention — generating the description will fix them automatically. ✓ green means all images have ALT text.'],
                         ['rec'=>'ℹ️ Info','name'=>'Title column','desc'=>'Shows the character count of each post\'s effective title tag (custom SEO title if set, otherwise the WordPress post title). Green = 50–60 chars (ideal). Amber = 40–69 chars (acceptable). Red = outside that range (too short or too long for Google). Hover the badge to see the full title text. Use Fix Titles to auto-fix all out-of-range titles in one pass.'],
                         ['rec'=>'ℹ️ Info','name'=>'SEO Score column','desc'=>'AI-generated score (0–100%) rating how well each article is optimised for search engine indexing. Considers: title keyword clarity, meta description quality, content depth and specificity, and search intent alignment. Score is generated automatically when you click Generate on a row, or run Score All. Click any badge to re-score that post. Green ≥ 75, Amber 50–74, Red < 50. Run time for Score All depends on your selected model — faster/cheaper models score more posts per minute than higher-quality ones.'],
+                        ['rec'=>'ℹ️ Info','name'=>'Schema column','desc'=>'Shows whether each post has a per-post JSON-LD schema block (FAQPage, HowTo, or custom). ✓ green = schema present and will be injected into the page head for Google to read. ✗ red = no schema. Use the SEO Site Audit → "✦ Generate FAQ with AI" quick fix to generate FAQ schema for your top posts in one click, or the Auto Pipeline generates it automatically on new publishes.'],
                     ]); ?>
                     </span>
                 </div>
-                <div class="ab-zone-body" style="padding:20px 24px 24px;display:none;">
+                <div class="ab-zone-body" style="padding:20px 24px 24px;">
 
                 <?php /* ── API key warning banner ── */ ?>
                 <div class="ab-api-key-warning" id="ab-api-warn">
@@ -534,6 +557,7 @@ trait CS_SEO_Settings_Page {
                 </div>
 
                 <?php /* ── Post table ── */ ?>
+                <div id="ab-cols-row" style="display:none;text-align:right;margin-bottom:6px"><button type="button" class="button" id="ab-extra-cols-btn" onclick="abToggleExtraCols()" style="font-size:11px">⊕ More columns</button></div>
                 <div id="ab-posts-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
                 <div class="ab-pager" id="ab-pager" style="display:none">
                     <button class="button" id="ab-prev">← Prev</button>
@@ -1161,13 +1185,8 @@ trait CS_SEO_Settings_Page {
                         ['rec'=>'ℹ️ Info','name'=>'Pagination','desc'=>'Results are shown 200 at a time. Use Prev/Next to browse all your URLs. The count at the bottom right shows which URLs you\'re viewing out of the total.'],
                         ['rec'=>'ℹ️ Info','name'=>'View live sitemap','desc'=>'The link opens your actual sitemap.xml in a new tab — this is what Google sees. The index file lists all your sub-sitemaps (one per post type). Click through to see the raw XML.'],
                     ]); ?>
-                    <button id="ab-sitemap-load"                        style="background:#f0b429;border:none;border-radius:6px;color:#1d2327;font-size:13px;font-weight:700;padding:7px 18px;cursor:pointer;letter-spacing:0.02em;box-shadow:0 2px 6px rgba(0,0,0,0.25);transition:background 0.15s">
-                        ⬇ Load Preview
-                    </button>
-                    <button id="ab-sitemap-copy" class="button"
-                        style="font-size:11px;padding:2px 10px;margin-left:6px">
-                        ⎘ Copy URLs
-                    </button>
+                    <button id="ab-sitemap-load" class="button" style="background:#f0b429;color:#1d2327;border-color:#c8911a;font-weight:700">⬇ Load Preview</button>
+                    <button id="ab-sitemap-copy" class="button">⎘ Copy URLs</button>
                 </div>
             </div>
             <div class="ab-zone-body" style="padding:16px 20px">
@@ -2679,6 +2698,14 @@ trait CS_SEO_Settings_Page {
             if (id === 'catfix') {
                 if (cdDrift && cdDrift.length > 0) cdRender(cdTotalPosts);
             }
+            // Auto-load the meta description post table when AI Content tab activates.
+            if (id === 'aitools') {
+                const updateCard = document.querySelector('.ab-card-update-posts');
+                if (updateCard && !updateCard.dataset.loaded) {
+                    updateCard.dataset.loaded = '1';
+                    if (typeof abLoadPosts === 'function') abLoadPosts();
+                }
+            }
         }
 
         // Restore the active tab — URL ?tab= takes priority over localStorage.
@@ -2708,6 +2735,14 @@ trait CS_SEO_Settings_Page {
             sortKey:       null,
             sortDir:       'desc',
         };
+
+        let abExtraCols = false;
+        function abToggleExtraCols() {
+            abExtraCols = !abExtraCols;
+            const btn = document.getElementById('ab-extra-cols-btn');
+            if (btn) btn.textContent = abExtraCols ? '⊖ Fewer columns' : '⊕ More columns';
+            abRenderTable();
+        }
 
         const abNonce     = csSeoAdmin.nonce;
         const abAjax      = csSeoAdmin.ajaxUrl;
@@ -3539,10 +3574,12 @@ trait CS_SEO_Settings_Page {
 
         function abRenderTable() {
             const wrap = document.getElementById('ab-posts-wrap');
+            const colsRow = document.getElementById('ab-cols-row');
             if (!abState.posts.length) {
                 wrap.innerHTML = '<p style="color:#50575e">No posts found.</p>';
                 return;
             }
+            if (colsRow) colsRow.style.display = 'block';
             let sorted = abState.posts.slice();
             if (abState.sortKey) {
                 const pinIdx = sorted.findIndex(p => p.is_homepage);
@@ -3659,31 +3696,39 @@ trait CS_SEO_Settings_Page {
                         ? '<span style="display:inline-block;background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;white-space:nowrap">✓</span>'
                         : '<span style="display:inline-block;background:#f8d7da;color:#842029;border:1px solid #f5c2c7;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;white-space:nowrap">✗</span>';
 
+                const schemaBadge = (p.is_homepage || p.no_post || p.type === 'page')
+                    ? '<span style="color:#aaa;font-size:11px">—</span>'
+                    : p.has_schema
+                        ? '<span style="display:inline-block;background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;white-space:nowrap">✓</span>'
+                        : '<span style="display:inline-block;background:#f8d7da;color:#842029;border:1px solid #f5c2c7;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;white-space:nowrap">✗</span>';
+
                 return '<tr id="ab-row-' + p.id + '" style="' + rowStyle + '">' +
                     '<td><strong>' + typeLabel + titleLink + '</strong>' +
                     noPostNote + '</td>' +
-                    '<td style="text-align:center;font-size:12px;color:#555;white-space:nowrap">' + abEsc(p.date || '—') + '</td>' +
+                    '<td class="ab-col-extra" style="text-align:center;font-size:12px;color:#555;white-space:nowrap">' + abEsc(p.date || '—') + '</td>' +
                     '<td>' + descCell + '</td>' +
-                    '<td style="text-align:center">' + titleBadge + '</td>' +
-                    '<td style="text-align:center">' + altCell + '</td>' +
-                    '<td style="text-align:center" class="ab-aeo-cell">' + aeoBadge + '</td>' +
+                    '<td class="ab-col-extra" style="text-align:center">' + titleBadge + '</td>' +
+                    '<td class="ab-col-extra" style="text-align:center">' + altCell + '</td>' +
+                    '<td class="ab-col-extra ab-aeo-cell" style="text-align:center">' + aeoBadge + '</td>' +
+                    '<td class="ab-col-extra ab-schema-cell" style="text-align:center">' + schemaBadge + '</td>' +
                     '<td style="text-align:center" class="ab-score-cell">' + abScoreBadge(p) + '</td>' +
-                    '<td style="text-align:center" class="ab-r-cell">' + abReadabilityBadge(p) + '</td>' +
+                    '<td class="ab-col-extra ab-r-cell" style="text-align:center">' + abReadabilityBadge(p) + '</td>' +
                     '<td>' + actionCell + '</td>' +
                 '</tr>';
             }).join('');
 
-            wrap.innerHTML = '<table class="ab-posts" style="min-width:900px">' +
+            wrap.innerHTML = '<table class="ab-posts' + (abExtraCols ? '' : ' ab-compact') + '" style="min-width:' + (abExtraCols ? '960' : '640') + 'px">' +
                 '<thead><tr>' +
-                '<th style="width:20%;cursor:pointer;user-select:none" onclick="abSortBy(\'title\')">Post' + abSortIcon('title') + '</th>' +
-                '<th style="width:8%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'date\')">Date' + abSortIcon('date') + '</th>' +
-                '<th style="width:25%;cursor:pointer;user-select:none" onclick="abSortBy(\'desc\')">Description' + abSortIcon('desc') + '</th>' +
-                '<th style="width:6%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'title_chars\')">Title' + abSortIcon('title_chars') + '</th>' +
-                '<th style="width:6%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'alt\')">ALT' + abSortIcon('alt') + '</th>' +
-                '<th style="width:5%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'aeo\')">AEO' + abSortIcon('aeo') + '</th>' +
-                '<th style="width:8%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'score\')">SEO Score' + abSortIcon('score') + '</th>' +
-                '<th style="width:10%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'readability\')">Readability' + abSortIcon('readability') + '</th>' +
-                '<th style="width:10%">Action</th>' +
+                '<th style="width:' + (abExtraCols ? '19' : '30') + '%;cursor:pointer;user-select:none" onclick="abSortBy(\'title\')">Post' + abSortIcon('title') + '</th>' +
+                '<th class="ab-col-extra" style="width:7%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'date\')">Date' + abSortIcon('date') + '</th>' +
+                '<th style="width:' + (abExtraCols ? '24' : '40') + '%;cursor:pointer;user-select:none" onclick="abSortBy(\'desc\')">Description' + abSortIcon('desc') + '</th>' +
+                '<th class="ab-col-extra" style="width:6%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'title_chars\')">Title' + abSortIcon('title_chars') + '</th>' +
+                '<th class="ab-col-extra" style="width:5%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'alt\')">ALT' + abSortIcon('alt') + '</th>' +
+                '<th class="ab-col-extra" style="width:5%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'aeo\')">AEO' + abSortIcon('aeo') + '</th>' +
+                '<th class="ab-col-extra" style="width:5%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'has_schema\')" title="FAQ / HowTo schema">Schema' + abSortIcon('has_schema') + '</th>' +
+                '<th style="width:' + (abExtraCols ? '8' : '14') + '%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'score\')">SEO Score' + abSortIcon('score') + '</th>' +
+                '<th class="ab-col-extra" style="width:10%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'readability\')">Readability' + abSortIcon('readability') + '</th>' +
+                '<th style="width:' + (abExtraCols ? '11' : '16') + '%">Action</th>' +
                 '</tr></thead>' +
                 '<tbody>' + rows + '</tbody></table>';
         }

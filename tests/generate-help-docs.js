@@ -52,6 +52,8 @@ const PANELS = [
     { tab: 'aitools', cardClass: 'ab-card-summary',         file: 'panel-summary.png',        label: 'AI Summary Box',                 expand: true,  trimRows: true },
     { tab: 'aitools', cardClass: 'ab-card-rc-settings-card',file: 'panel-rc-settings.png',    label: 'Related Articles — Settings',    expand: true  },
     { tab: 'aitools', cardClass: 'ab-card-rc-table',        file: 'panel-rc-table.png',       label: 'Related Articles — Management',  expand: true,  trimRows: true, rcTrigger: true },
+    // SEO Site Audit Tab
+    { tab: 'siteaudit', cardClass: 'ab-card-siteaudit',    file: 'panel-siteaudit.png',       label: 'SEO Site Audit',                 expand: false, runAudit: true },
     // Sitemap & Robots Tab
     { tab: 'sitemap', cardClass: 'ab-card-features',        file: 'panel-features.png',       label: 'SEO Features',                   expand: false },
     { tab: 'sitemap', cardClass: 'ab-card-sitemap-settings',file: 'panel-sitemap.png',        label: 'XML Sitemap Settings',           expand: false },
@@ -80,8 +82,8 @@ const DOCS = {
 'ab-card-identity': `
 <div style="background:#f0f9ff;border-left:4px solid #0e6b8f;padding:18px 22px;border-radius:0 8px 8px 0;margin-bottom:28px;">
 <p style="margin:0 0 10px;font-size:1.3em;font-weight:800;color:#0f172a;">Why CloudScale SEO Optimizer?</p>
-<p style="margin:0 0 10px;">Yoast SEO locks most of its features — redirect management, internal linking suggestions, social previews, and AI generation — behind Yoast Premium at $99/year per site. RankMath Free gives you a solid base but charges $59+/year the moment you want AI-powered generation or advanced schema. All in One SEO's AI writing tools cost $49+/year on their Plus plan.</p>
-<p style="margin:0 0 10px;">CloudScale SEO Optimizer uses Anthropic Claude 4 and Google Gemini 2.5 Pro — the same frontier models that SEO agencies charge thousands per month to access — to generate meta descriptions, ALT text, summary boxes, and related article links in bulk. Automatic XML sitemap, robots.txt editor, llms.txt generation, font optimiser, render-blocking JS/CSS removal, category health and drift detection, automatic redirects, and a full batch scheduler are all included. Free. No subscription, no premium tier, no API key required for the bundled plan.</p>
+<p style="margin:0 0 10px;">Yoast SEO locks most of its features — redirect management, internal linking suggestions, social previews, and AI generation — behind Yoast Premium at $99/year per site. RankMath Free gives you a solid base but charges $59+/year the moment you want AI-powered generation or advanced schema. All in One SEO's AI writing tools cost $49+/year on their Plus plan. None of them include a site-wide SEO audit that identifies every gap across your entire site with one-click quick fixes to resolve them.</p>
+<p style="margin:0 0 10px;">CloudScale SEO Optimizer uses Anthropic Claude 4 and Google Gemini 2.0 Flash — the same frontier models that SEO agencies charge thousands per month to access — to generate meta descriptions, ALT text, summary boxes, FAQ schema, HowTo schema, and related article links in bulk. The built-in <strong>Site Audit</strong> scores your entire SEO setup across 20+ checks (schema coverage, category SEO, structured data, sitemap, performance, and more) and surfaces one-click quick fixes: enable a missing schema type, generate FAQ schema for your top posts, add archive redirects, fix duplicate content — all without leaving the audit panel. Automatic XML sitemap, robots.txt editor, llms.txt generation, font optimiser, render-blocking JS/CSS removal, category health and drift detection, automatic redirects, and a full batch scheduler are all included. Free. No subscription, no premium tier, no upsell.</p>
 <p style="margin:0;"><strong>Configure Site Identity first.</strong> Target audience and Writing tone are injected into every AI request — they are the single biggest quality lever before you run any bulk generation.</p>
 </div>
 <p>When someone searches for your name or your site on Google, how does Google decide what to show? It reads structured signals embedded in your pages: your site name, your homepage title, your preferred language, your social profiles. Without those signals, Google guesses, and it often gets things wrong. The <strong>Site Identity</strong> panel is where you set the record straight.</p>
@@ -227,6 +229,28 @@ const DOCS = {
 <li><strong>Retry Failed</strong>: Re-runs all posts that are in the Error state.</li>
 <li><strong>Reset All</strong>: Clears all related article data across your entire site. Use this only if you want to start completely fresh. All posts will return to Pending and no related article blocks will be shown until you re-run the batch.</li>
 </ul>`,
+
+'ab-card-siteaudit': `
+<p>The <strong>SEO Site Audit</strong> runs a comprehensive, live scan of your entire site in one click. Unlike page-level checkers that only test a single URL, this audit evaluates 20+ checks across every aspect of your SEO setup: structured data, schema coverage, metadata, category SEO, sitemap, security headers, WordPress hardening, robots.txt, llms.txt, performance, and AEO readiness. Each category is scored out of 100 and a weighted overall score shows you your site's SEO health at a glance.</p>
+<p>The audit is designed around <strong>one-click quick fixes</strong>. Every issue it identifies shows an inline action button: you don't need to navigate to another settings panel to fix it. Generate FAQ schema for your top 20 posts, enable Speakable schema, add archive redirects for /blog/ and /posts/ URLs, enable breadcrumb schema — all from directly inside the audit results.</p>
+<ul>
+<li><strong>Audit URL</strong>: By default set to your site's homepage. The audit fetches this URL live (including through your CDN and any caching layers), so the results reflect exactly what Google sees when it crawls your site. Change the URL to test a competitor or any other public URL — results for other domains are stored in Ad-hoc Audits and don't overwrite your own site's history.</li>
+<li><strong>▶ Run Audit</strong>: Starts the full scan. This runs live HTTP checks so it takes 20–40 seconds. Your previous result stays visible while the new scan runs.</li>
+<li><strong>Score History chart</strong>: After you've run two or more audits, a trend chart appears showing how your overall score has moved over time. Use this to confirm that changes you make are improving your score, and to spot regressions.</li>
+</ul>
+<p><strong>Understanding the audit categories:</strong></p>
+<ul>
+<li><strong>Schema</strong>: Checks for Person, WebSite, Article, Breadcrumb, Speakable, FAQPage, and HowTo structured data blocks. Google uses these to generate rich results — expandable FAQ entries, breadcrumb trails in search results, voice search answers. Each missing schema type is flagged with a quick fix to enable it.</li>
+<li><strong>Metadata</strong>: Checks your homepage title, meta description, OG tags, Twitter Cards, and canonical URL. These control how your pages appear in search results and social previews.</li>
+<li><strong>Content</strong>: Checks whether your posts have AI-generated summaries, AEO answer paragraphs, and alt text on images. These are the signals that modern AI-powered search engines read to decide whether to feature your content in AI Overviews and answer boxes.</li>
+<li><strong>Category Pages</strong>: Checks whether your WordPress category pages have custom SEO descriptions and intro text. Category pages are often a site's highest-traffic entry points from Google, yet most WordPress sites leave them completely undescribed.</li>
+<li><strong>Sitemap</strong>: Confirms your XML sitemap is enabled, accessible, and correctly structured. A missing or broken sitemap is one of the most common reasons new posts take weeks to get indexed.</li>
+<li><strong>Security Headers</strong>: Checks for X-Content-Type-Options, X-Frame-Options, Referrer-Policy, and Content-Security-Policy headers. Google uses security as a ranking signal, and browsers show security warnings for sites that fail these checks.</li>
+<li><strong>WordPress Hardening</strong>: Checks that your XML-RPC endpoint is protected, the WP-Login URL is hidden, and WordPress version information isn't exposed in page source or HTTP headers. These are the three most commonly exploited WordPress attack vectors.</li>
+<li><strong>Robots / llms.txt</strong>: Confirms both files exist, are syntactically valid, and don't accidentally block legitimate crawlers.</li>
+<li><strong>Performance</strong>: Checks page load time, server response time, and whether your pages pass Core Web Vitals thresholds. Slow pages rank lower than equivalent fast pages.</li>
+</ul>
+<p style="background:#f0fdf4;border:2px solid #22c55e;border-radius:8px;padding:14px 18px;margin-top:20px;color:#14532d"><strong>✅ Start here after initial setup.</strong> Run the audit once after configuring the plugin for the first time to see your baseline score. Each time you enable a feature or apply a quick fix, re-run the audit to confirm the score improved. The score history chart makes it easy to track your progress over time.</p>`,
 
 'ab-card-features': `
 <p>The <strong>SEO Features</strong> panel is the central switch board for every technical SEO capability the plugin provides. Each feature can be toggled independently. Turn on what you need, turn off what you don't, and none of your settings are lost when you toggle something off.</p>
@@ -627,17 +651,19 @@ ${img(panel.file, panel.label)}
     }
 
     const TAB_TITLES = {
-        seo:     '📊 SEO Settings',
-        aitools: '✨ AI Tools',
-        sitemap: '🗺 Sitemap, Robots &amp; Redirects',
-        perf:    '⚡ Performance',
-        catfix:  '🏷 Categories',
-        batch:   '🔄 Scheduled Batch',
+        seo:        '📊 SEO Settings',
+        aitools:    '✨ AI Tools',
+        siteaudit:  '🔍 SEO Site Audit',
+        sitemap:    '🗺 Sitemap, Robots &amp; Redirects',
+        perf:       '⚡ Performance',
+        catfix:     '🏷 Categories',
+        batch:      '🔄 Scheduled Batch',
     };
 
     const TAB_INTROS = {
         seo:     'Before any AI tools or sitemaps can do their job, Google needs to understand the basic facts about your website: who runs it, what it\'s called, and what kind of content it contains. The SEO Settings tab is where you establish that foundation. Fill in your site identity and author details once, and the plugin will embed that information into every page as structured data that search engines can read directly. This tab is also where you connect your AI provider (Anthropic Claude or Google Gemini) and configure the Auto Pipeline, which automatically processes every post you publish so you never have to manually trigger AI generation again.',
         aitools: 'If you have a WordPress site with tens or hundreds of posts, there\'s a good chance most of them are missing a meta description, the short paragraph that appears under your page title in Google Search results. Without it, Google writes its own snippet, which is often a random sentence pulled from your content. The AI Tools tab fixes this in bulk. Load your posts, click Generate Missing, and the AI writes compelling, correctly-sized meta descriptions for every post that doesn\'t have one. The same tab handles image ALT text (important for both accessibility and Google Image Search), AI-generated article summary boxes that help readers decide whether to read, and the Related Articles system that builds an internal linking network across your entire site automatically.',
+        siteaudit: 'The SEO Site Audit gives you a single, scored overview of your entire SEO health — not just one page at a time, but your whole site in one pass. It runs 20+ automated checks across schema, metadata, content, security, performance, and technical SEO, then scores each category out of 100 and shows you exactly what to fix. For every issue it detects, it provides an inline one-click quick fix: enable a missing schema type, generate FAQ schema for your top posts, set up archive redirects, activate Speakable schema — without leaving the audit panel. Run it after initial setup to establish a baseline, then re-run it each time you add features to confirm your score improves.',
         sitemap: 'A sitemap tells Google which pages exist on your site and when they were last updated. It is the fastest way to ensure new content gets discovered and indexed. Without one, Google has to find your pages by following links, which can take weeks for new posts. This tab controls your XML sitemap, your robots.txt file (which tells crawlers what they are and are not allowed to access), and your llms.txt file, a new standard that gives AI assistants like ChatGPT and Perplexity a structured, accurate summary of your site so they represent your content correctly in their answers.',
         perf:    'Page speed is a direct Google ranking factor. Slow pages rank lower, and Google measures speed using Core Web Vitals, the real-world performance metrics that appear in Google Search Console. This tab provides three performance optimisations that are safe to enable on virtually any WordPress site: local font hosting (which eliminates a slow Google Fonts network request and improves GDPR compliance), JavaScript deferral (which lets your page render before scripts run, reducing Time to Interactive), and HTML minification (which shrinks page size by removing unnecessary whitespace). The HTTPS URL Fixer is also here, essential if you ever migrated your site from HTTP to HTTPS and have old hardcoded links still pointing to the insecure version.',
         catfix:  'Your category structure is more important for SEO than most WordPress site owners realise. Google uses categories as a signal for topical authority. If a category contains a jumbled mix of unrelated posts, it tells Google your site lacks focus on that topic. The Categories tab gives you four tools to fix this: the Category Fixer scans every post and tells you if it\'s in the wrong category; the Category Health dashboard grades each category based on post count and recency so you can see at a glance which topics are strong and which are thin; Category Drift Detection uses AI to identify categories that have become catch-all buckets for loosely related content, with specific suggestions for where to move each post; and Migrate Categories lets you retire thin or redundant categories entirely by reassigning their posts to better ones and deleting the empty category — all in one workflow.',
@@ -660,57 +686,66 @@ ${img(panel.file, panel.label)}
 
 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:28px 36px;margin:32px 0;">
 <div style="font-size:1em;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;margin:0 0 16px;">Contents</div>
-<ol style="columns:2;gap:0 32px;margin:0;padding-left:22px;">
+<div style="display:flex;gap:32px;align-items:flex-start;">
+<ol style="margin:0;padding-left:22px;flex:1;">
 <li><a href="#setup">First-time setup</a></li>
 <li><a href="#seo">📊 SEO Settings</a>
-  <ol>
-    <li><a href="#ab-card-identity">Site Identity &amp; Schema</a></li>
-    <li><a href="#ab-card-person">Person Schema</a></li>
-    <li><a href="#ab-card-ai">AI Settings</a></li>
-  </ol>
+  <ul style="list-style:none;padding-left:12px;margin:3px 0 4px;">
+    <li><span style="color:#94a3b8;font-size:0.85em">2.1</span> <a href="#ab-card-identity">Site Identity &amp; Schema</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">2.2</span> <a href="#ab-card-person">Person Schema</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">2.3</span> <a href="#ab-card-ai">AI Settings</a></li>
+  </ul>
 </li>
 <li><a href="#aitools">✨ AI Tools</a>
-  <ol>
-    <li><a href="#ab-card-auto-pipeline">Auto Pipeline</a></li>
-    <li><a href="#ab-card-update-posts">AI Meta Description Writer</a></li>
-    <li><a href="#ab-card-alt">AI ALT Text Generator</a></li>
-    <li><a href="#ab-card-summary">AI Summary Box</a></li>
-    <li><a href="#ab-card-rc-settings-card">Related Articles — Settings</a></li>
-    <li><a href="#ab-card-rc-table">Related Articles — Management</a></li>
-  </ol>
+  <ul style="list-style:none;padding-left:12px;margin:3px 0 4px;">
+    <li><span style="color:#94a3b8;font-size:0.85em">3.1</span> <a href="#ab-card-auto-pipeline">Auto Pipeline</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">3.2</span> <a href="#ab-card-update-posts">AI Meta Description Writer</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">3.3</span> <a href="#ab-card-alt">AI ALT Text Generator</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">3.4</span> <a href="#ab-card-summary">AI Summary Box</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">3.5</span> <a href="#ab-card-rc-settings-card">Related Articles — Settings</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">3.6</span> <a href="#ab-card-rc-table">Related Articles — Management</a></li>
+  </ul>
+</li>
+<li><a href="#siteaudit">🔍 SEO Site Audit</a>
+  <ul style="list-style:none;padding-left:12px;margin:3px 0 4px;">
+    <li><span style="color:#94a3b8;font-size:0.85em">4.1</span> <a href="#ab-card-siteaudit">Audit Dashboard &amp; Quick Fixes</a></li>
+  </ul>
 </li>
 <li><a href="#sitemap">🗺 Sitemap, Robots &amp; Redirects</a>
-  <ol>
-    <li><a href="#ab-card-features">SEO Features</a></li>
-    <li><a href="#ab-card-sitemap-settings">XML Sitemap Settings</a></li>
-    <li><a href="#ab-card-robots">Robots.txt Editor</a></li>
-    <li><a href="#ab-card-llms">llms.txt</a></li>
-    <li><a href="#ab-card-redirects">Automatic Redirects</a></li>
-  </ol>
+  <ul style="list-style:none;padding-left:12px;margin:3px 0 4px;">
+    <li><span style="color:#94a3b8;font-size:0.85em">5.1</span> <a href="#ab-card-features">SEO Features</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">5.2</span> <a href="#ab-card-sitemap-settings">XML Sitemap Settings</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">5.3</span> <a href="#ab-card-robots">Robots.txt Editor</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">5.4</span> <a href="#ab-card-llms">llms.txt</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">5.5</span> <a href="#ab-card-redirects">Automatic Redirects</a></li>
+  </ul>
 </li>
+</ol>
+<ol start="6" style="margin:0;padding-left:22px;flex:1;">
 <li><a href="#perf">⚡ Performance</a>
-  <ol>
-    <li><a href="#ab-card-fonts">Font Optimiser</a></li>
-    <li><a href="#ab-card-render">JS, CSS &amp; HTML Optimisation</a></li>
-    <li><a href="#ab-card-https">HTTPS URL Fixer</a></li>
-  </ol>
+  <ul style="list-style:none;padding-left:12px;margin:3px 0 4px;">
+    <li><span style="color:#94a3b8;font-size:0.85em">6.1</span> <a href="#ab-card-fonts">Font Optimiser</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">6.2</span> <a href="#ab-card-render">JS, CSS &amp; HTML Optimisation</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">6.3</span> <a href="#ab-card-https">HTTPS URL Fixer</a></li>
+  </ul>
 </li>
 <li><a href="#catfix">🏷 Categories</a>
-  <ol>
-    <li><a href="#ab-card-catfix">Category Fixer</a></li>
-    <li><a href="#ab-card-cathealth">Category Health</a></li>
-    <li><a href="#ab-card-catdrift">Category Drift Detection</a></li>
-    <li><a href="#ab-card-catmig">🔄 Migrate Categories</a></li>
-  </ol>
+  <ul style="list-style:none;padding-left:12px;margin:3px 0 4px;">
+    <li><span style="color:#94a3b8;font-size:0.85em">7.1</span> <a href="#ab-card-catfix">Category Fixer</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">7.2</span> <a href="#ab-card-cathealth">Category Health</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">7.3</span> <a href="#ab-card-catdrift">Category Drift Detection</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">7.4</span> <a href="#ab-card-catmig">🔄 Migrate Categories</a></li>
+  </ul>
 </li>
 <li><a href="#batch">🔄 Scheduled Batch</a>
-  <ol>
-    <li><a href="#ab-card-schedule">Batch Schedule</a></li>
-    <li><a href="#ab-card-lastrun">Last Run Log</a></li>
-  </ol>
+  <ul style="list-style:none;padding-left:12px;margin:3px 0 4px;">
+    <li><span style="color:#94a3b8;font-size:0.85em">8.1</span> <a href="#ab-card-schedule">Batch Schedule</a></li>
+    <li><span style="color:#94a3b8;font-size:0.85em">8.2</span> <a href="#ab-card-lastrun">Last Run Log</a></li>
+  </ul>
 </li>
 <li><a href="#glossary">Glossary of terms</a></li>
 </ol>
+</div>
 </div>
 
 <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:28px 36px;margin:32px 0;" id="setup">
@@ -847,6 +882,19 @@ ${img(panel.file, panel.label)}
                     { timeout: 30000 }
                 ).catch(() => {});
                 await page.waitForTimeout(800);
+            }
+        }
+
+        // SEO Site Audit: click Run Audit and wait for results to render
+        if (panel.runAudit) {
+            const auditBtn = page.locator('#cs-run-audit-btn');
+            if (await auditBtn.isVisible().catch(() => false)) {
+                await auditBtn.click();
+                await page.waitForFunction(
+                    () => { const r = document.getElementById('cs-audit-results'); return r && r.style.display !== 'none' && r.textContent && r.textContent.length > 50; },
+                    { timeout: 60000 }
+                ).catch(() => {});
+                await page.waitForTimeout(1500);
             }
         }
 
