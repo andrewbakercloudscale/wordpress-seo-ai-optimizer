@@ -511,7 +511,7 @@ trait CS_SEO_Site_Audit {
             $cats_meta  = 0;
             if ( is_array( $cats ) ) {
                 foreach ( $cats as $cat ) {
-                    if ( trim( $cat->description ) || get_term_meta( $cat->term_id, self::META_TERM_INTRO, true ) ) $cats_desc++;
+                    if ( trim( $cat->description ) || get_term_meta( $cat->term_id, self::META_TERM_INTRO, true ) || get_term_meta( $cat->term_id, self::META_TERM_DESC, true ) ) $cats_desc++;
                     if ( get_term_meta( $cat->term_id, self::META_TERM_DESC, true ) ) $cats_meta++;
                 }
             }
