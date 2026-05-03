@@ -70,6 +70,45 @@ trait CS_SEO_Site_Audit {
             return;
         }
 
+        if ( $action === 'generate_faq_schema' ) {
+            $posts = get_posts( [ 'numberposts' => 3, 'post_status' => 'publish', 'orderby' => 'comment_count', 'order' => 'DESC' ] );
+            if ( empty( $posts ) ) { wp_send_json_error( 'No published posts found.' ); return; }
+
+            $provider = $this->ai_opts['ai_provider'] ?? 'anthropic';
+            $key      = $provider === 'gemini'
+                ? trim( (string) ( $this->ai_opts['gemini_key'] ?? '' ) )
+                : trim( (string) ( $this->ai_opts['anthropic_key'] ?? '' ) );
+            $model    = $this->resolve_model( trim( (string) ( $this->ai_opts['model'] ?? '' ) ), $provider );
+            if ( ! $key ) { wp_send_json_error( 'No AI API key configured.' ); return; }
+
+            $saved = 0;
+            foreach ( $posts as $p ) {
+                $content = wp_strip_all_tags( (string) $p->post_content );
+                if ( mb_strlen( $content ) < 100 ) continue;
+                $excerpt = mb_substr( $content, 0, 3000 );
+
+                $system   = 'You are an SEO expert. Generate a FAQPage JSON-LD schema object for the given article. Return ONLY a valid JSON object — no markdown, no explanation.';
+                $user_msg = "Article title: " . get_the_title( $p ) . "\n\nContent excerpt:\n" . $excerpt
+                    . "\n\nGenerate a FAQPage schema with 4-5 natural questions a reader would ask, with concise answers derived from the article. Return ONLY this JSON object:\n"
+                    . '{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"...","acceptedAnswer":{"@type":"Answer","text":"..."}},...]}';
+
+                try {
+                    $raw    = $this->dispatch_ai( $provider, $key, $model, $system, $user_msg, null, 1000 );
+                    $clean  = trim( (string) preg_replace( '/^```(?:json)?\s*/i', '', preg_replace( '/```\s*$/i', '', trim( $raw ) ) ) );
+                    $schema = json_decode( $clean, true );
+                    if ( is_array( $schema ) && isset( $schema['@type'] ) && $schema['@type'] === 'FAQPage' ) {
+                        update_post_meta( $p->ID, self::META_PAGE_SCHEMA, wp_json_encode( $schema ) );
+                        $saved++;
+                    }
+                } catch ( \Throwable $e ) {
+                    // continue to next post
+                }
+            }
+            if ( $saved === 0 ) { wp_send_json_error( 'AI did not return valid FAQPage schema.' ); return; }
+            wp_send_json_success( [ 'message' => "FAQPage schema generated and saved to {$saved} post(s). Re-run audit to confirm." ] );
+            return;
+        }
+
         wp_send_json_error( 'Unknown action.' );
     }
 
@@ -107,11 +146,14 @@ trait CS_SEO_Site_Audit {
     // ── Internal HTTP helper ──────────────────────────────────────────────────
 
     private function seo_audit_http( string $url, int $timeout = 10, bool $follow = false ): array {
+        // Add cache-buster so Cloudflare and any reverse proxy always returns a fresh response.
+        $url  = add_query_arg( 'cs_audit', time(), $url );
         $resp = wp_remote_get( $url, [
             'timeout'     => $timeout,
             'sslverify'   => false,
             'redirection' => $follow ? 5 : 0,
             'user-agent'  => 'Mozilla/5.0 (compatible; CS-SEO-Audit/1.0)',
+            'headers'     => [ 'Cache-Control' => 'no-cache', 'Pragma' => 'no-cache' ],
         ] );
         if ( is_wp_error( $resp ) ) {
             return [ 'code' => 0, 'headers' => [], 'body' => '', 'error' => $resp->get_error_message() ];
@@ -1101,7 +1143,7 @@ trait CS_SEO_Site_Audit {
             'Person knowsAbout'                  => [ 'tab' => 'seo',     'label' => 'Add sameAs/knowsAbout', 'sel' => 'textarea[name*="sameas"]', 'href' => '' ],
             'BlogPosting publisher @type'        => [ 'tab' => 'seo',     'label' => 'Schema Settings',       'sel' => '',                         'href' => '' ],
             'BreadcrumbList schema'              => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'enable_breadcrumbs' ],
-            'FAQPage / QAPage schema'            => [ 'tab' => '',        'label' => '',                      'sel' => '',                         'href' => '' ],
+            'FAQPage / QAPage schema'            => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'generate_faq_schema' ],
             'HowTo schema on step-by-step posts' => [ 'tab' => '',        'label' => '',                      'sel' => '',                         'href' => '' ],
             'Answer-first paragraphs on top posts' => [ 'tab' => 'aitools', 'label' => 'Generate AEO',        'sel' => '#ab-ai-gen-aeo',           'href' => '' ],
             'Speakable schema'                   => [ 'tab' => 'seo',     'label' => 'Schema Settings',       'sel' => '',                         'href' => '' ],
@@ -1127,6 +1169,18 @@ trait CS_SEO_Site_Audit {
                     window.scrollTo({top:0, behavior:'smooth'});
                 }
             }, 250);
+        }
+
+        // AI: generate FAQPage JSON-LD schema for top posts.
+        function csAuditGenFaqSchema(btn) {
+            btn.disabled = true; btn.textContent = '⏳ Generating…';
+            var fd = new FormData();
+            fd.append('action','cs_seo_audit_quickfix'); fd.append('quickfix','generate_faq_schema'); fd.append('nonce',csSeoAdmin.nonce);
+            fetch(csSeoAdmin.ajaxUrl,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(r){
+                btn.textContent = r.success ? '✅ Done — re-run audit' : '❌ ' + (r.data||'Error');
+                btn.style.background = r.success ? '#10b981' : '#ef4444';
+                if (r.success && btn.nextElementSibling) btn.nextElementSibling.textContent = r.data && r.data.message ? r.data.message : '';
+            }).catch(function(){ btn.textContent = '❌ Network error'; btn.style.background='#ef4444'; });
         }
 
         // One-click: add 301 redirects for /blog/ and /posts/ duplicate archives.
@@ -1231,6 +1285,12 @@ trait CS_SEO_Site_Audit {
                                 <button type="button" onclick="csAuditGenCatDescs(this,'desc')"
                                     style="padding:4px 11px;font-size:11px;font-weight:600;background:#0284c7;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap">
                                     ✦ Generate All with AI
+                                </button>
+                                <span style="display:block;font-size:10px;color:#6b7280;margin-top:3px"></span>
+                            <?php elseif ( $inline === 'generate_faq_schema' ) : ?>
+                                <button type="button" onclick="csAuditGenFaqSchema(this)"
+                                    style="padding:4px 11px;font-size:11px;font-weight:600;background:#7c3aed;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap">
+                                    ✦ Generate FAQ with AI
                                 </button>
                                 <span style="display:block;font-size:10px;color:#6b7280;margin-top:3px"></span>
                             <?php elseif ( $inline === 'add_archive_redirects' ) : ?>
