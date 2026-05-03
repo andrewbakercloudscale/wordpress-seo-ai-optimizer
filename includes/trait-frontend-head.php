@@ -20,7 +20,7 @@ trait CS_SEO_Frontend_Head {
 
         if (is_front_page() || is_home()) {
             $t = trim((string) $this->opts['home_title']);
-            return $t ?: $default;
+            return $t ?: (string) $this->opts['site_name'];
         }
 
         if (is_singular()) {

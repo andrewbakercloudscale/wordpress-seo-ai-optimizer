@@ -20,7 +20,7 @@ trait CS_SEO_Frontend_Head {
 
         if (is_front_page() || is_home()) {
             $t = trim((string) $this->opts['home_title']);
-            return $t ?: $default;
+            return $t ?: (string) $this->opts['site_name'];
         }
 
         if (is_singular()) {
@@ -28,6 +28,14 @@ trait CS_SEO_Frontend_Head {
             $custom = trim((string) get_post_meta($pid, self::META_TITLE, true));
             if ($custom !== '') return $custom;
             return $default;
+        }
+
+        if (is_category() || is_tag()) {
+            $term = get_queried_object();
+            if ($term instanceof \WP_Term) {
+                $custom = trim((string) get_term_meta($term->term_id, self::META_TERM_TITLE, true));
+                if ($custom !== '') return $custom;
+            }
         }
 
         $suffix = (string) $this->opts['title_suffix'];
@@ -54,17 +62,10 @@ trait CS_SEO_Frontend_Head {
     }
 
     /**
-     * Add defer attribute to enqueued frontend scripts to eliminate render blocking.
-     * Skips the admin area, login page, and a built-in safety exclusion list, plus
-     * any handles or URL substrings the site owner has added in settings.
-     *
-     * Why defer and not async?
-     *   defer  — scripts execute after HTML parsing, in order. Safe for almost everything.
-     *   async  — scripts execute as soon as downloaded, out of order. Breaks scripts that
-     *            depend on each other (e.g. jQuery + plugins).
-     */
-    /**
      * Adds the defer attribute to frontend script tags to eliminate render blocking.
+     *
+     * Uses defer (not async): defer preserves execution order and is safe for scripts
+     * with dependencies (e.g. jQuery + plugins). Async executes out-of-order and breaks them.
      *
      * @since 4.9.3
      * @param string $tag    The full `<script>` HTML tag.
@@ -120,10 +121,17 @@ trait CS_SEO_Frontend_Head {
             if (strpos($src_lower,   $ex) !== false) return $tag;
         }
 
-        // Inject defer — replace the first <script occurrence to handle both
-        // <script and <script type="text/javascript".
+        // Inject defer attribute. Plugin requires WP 6.0; wp_enqueue_script() 'strategy'
+        // parameter was added in WP 6.3. Filter approach is used for 6.0–6.2 compatibility.
+        // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NoExplicitVersion -- defer applied via filter, not enqueue strategy; WP 6.0 compat
         return str_replace('<script ', '<script defer ', $tag);
     }
+    /**
+     * Builds the complete SEO <head> block: canonical, meta description, robots, and OG tags.
+     *
+     * @since 4.0.0
+     * @return string HTML string ready for output in <head>.
+     */
     private function build_seo_block(): string {
         $out = "\n<!-- CloudScale SEO AI Optimizer " . self::VERSION . " -->\n";
 
@@ -151,6 +159,12 @@ trait CS_SEO_Frontend_Head {
     // Canonical / URL helpers
     // =========================================================================
 
+    /**
+     * Returns the canonical URL for the current page, or an empty string if not applicable.
+     *
+     * @since 4.0.0
+     * @return string Canonical URL, or empty string.
+     */
     private function canonical_url(): string {
         if (is_singular()) return $this->clean_url((string) get_permalink((int) get_queried_object_id()));
         if (is_front_page() || is_home()) return $this->clean_url(home_url('/'));
@@ -158,6 +172,13 @@ trait CS_SEO_Frontend_Head {
         return '';
     }
 
+    /**
+     * Strips UTM and other tracking parameters from a URL when the option is enabled.
+     *
+     * @since 4.0.0
+     * @param string $url The URL to clean.
+     * @return string The URL with tracking parameters removed, or the original URL unchanged.
+     */
     private function clean_url(string $url): string {
         if (!(int) $this->opts['strip_tracking_params']) return $url;
         $p = wp_parse_url($url);
@@ -186,6 +207,14 @@ trait CS_SEO_Frontend_Head {
     // Meta description
     // =========================================================================
 
+    /**
+     * Returns the meta description for the current page.
+     *
+     * Priority: custom SEO meta field → post excerpt → post content → site default.
+     *
+     * @since 4.0.0
+     * @return string Meta description, clipped to 160 characters.
+     */
     private function meta_desc(): string {
         if (is_front_page() || is_home()) {
             $h = trim((string) $this->opts['home_desc']);
@@ -198,25 +227,35 @@ trait CS_SEO_Frontend_Head {
             $post = get_post($pid);
             if ($post) {
                 if (!empty($post->post_excerpt)) {
-                    return $this->clip($this->text_from_html((string) $post->post_excerpt), 160);
+                    return $this->clip(Cs_Seo_Utils::text_from_html((string) $post->post_excerpt), 160);
                 }
-                return $this->clip($this->text_from_html((string) $post->post_content), 160);
+                return $this->clip(Cs_Seo_Utils::text_from_html((string) $post->post_content), 160);
             }
         }
+
+        if (is_category() || is_tag()) {
+            $term = get_queried_object();
+            if ($term instanceof \WP_Term) {
+                $custom = trim((string) get_term_meta($term->term_id, self::META_TERM_DESC, true));
+                if ($custom) return $this->clip($custom, 160);
+            }
+        }
+
         $d = trim((string) $this->opts['default_desc']);
         return $d ? $this->clip($d, 160) : '';
     }
 
-    private function text_from_html(string $raw): string {
-        $raw = strip_shortcodes($raw);
-        $raw = wp_strip_all_tags($raw);
-        return (string) preg_replace('/\s+/', ' ', $raw);
-    }
 
     // =========================================================================
     // Robots
     // =========================================================================
 
+    /**
+     * Returns the robots meta content string for the current page, or empty if no restrictions apply.
+     *
+     * @since 4.0.0
+     * @return string Robots directive (e.g. 'noindex,follow') or empty string.
+     */
     private function robots(): string {
         if ((int) $this->opts['noindex_search']          && is_search())     return 'noindex,follow';
         if ((int) $this->opts['noindex_404']             && is_404())        return 'noindex,follow';
@@ -230,6 +269,12 @@ trait CS_SEO_Frontend_Head {
         return '';
     }
 
+    /**
+     * Returns true if the current page has a noindex robots directive.
+     *
+     * @since 4.0.0
+     * @return bool
+     */
     private function is_noindexed(): bool {
         return $this->robots() !== '';
     }
@@ -238,11 +283,6 @@ trait CS_SEO_Frontend_Head {
     // OG image size registration
     // =========================================================================
 
-    /**
-     * Register a 1200×630 hard-cropped image size for OG tags.
-     * This matches the aspect ratio required by WhatsApp, Facebook, and LinkedIn
-     * for reliable thumbnail display in link previews.
-     */
     /**
      * Registers a 1200×630 hard-cropped image size for OG/social preview images.
      *
@@ -257,6 +297,14 @@ trait CS_SEO_Frontend_Head {
     // OG image
     // =========================================================================
 
+    /**
+     * Returns OG image data for the current page.
+     *
+     * Priority: custom OG image → featured image → site default → none.
+     *
+     * @since 4.0.0
+     * @return array Associative array with keys 'url', 'width', 'height', 'type', 'alt'.
+     */
     private function og_image_data(): array {
         $url = ''; $width = 0; $height = 0; $type = ''; $alt = '';
 
@@ -423,6 +471,12 @@ trait CS_SEO_Frontend_Head {
     // OG / Twitter
     // =========================================================================
 
+    /**
+     * Renders the Open Graph and Twitter Card meta tags for the current page.
+     *
+     * @since 4.0.0
+     * @return string HTML meta tags ready for output in <head>.
+     */
     private function render_og_tags(): string {
         $title   = $this->page_title();
         $desc    = $this->meta_desc();
@@ -454,16 +508,18 @@ trait CS_SEO_Frontend_Head {
             if (!empty($cats[0])) $og['article:section'] = $cats[0]->name;
         }
 
+        $url_keys = ['og:url', 'article:author'];
         foreach ($og as $k => $v) {
             if ((string)$v === '') continue;
-            $out .= '<meta property="' . esc_attr($k) . '" content="' . esc_attr((string)$v) . '">' . "\n";
+            $escaped = in_array($k, $url_keys, true) ? esc_url((string)$v) : esc_attr((string)$v);
+            $out .= '<meta property="' . esc_attr($k) . '" content="' . $escaped . '">' . "\n";
         }
 
         if ($img['url']) {
-            $out .= '<meta property="og:image" content="'        . esc_attr($img['url'])            . '">' . "\n";
+            $out .= '<meta property="og:image" content="'        . esc_url($img['url'])            . '">' . "\n";
             // og:image:secure_url is required by WhatsApp's scraper for HTTPS pages to reliably show link preview thumbnails.
             if (str_starts_with($img['url'], 'https://')) {
-                $out .= '<meta property="og:image:secure_url" content="' . esc_attr($img['url']) . '">' . "\n";
+                $out .= '<meta property="og:image:secure_url" content="' . esc_url($img['url']) . '">' . "\n";
             }
             if ($img['width'])  $out .= '<meta property="og:image:width" content="'  . esc_attr((string)$img['width'])  . '">' . "\n";
             if ($img['height']) $out .= '<meta property="og:image:height" content="' . esc_attr((string)$img['height']) . '">' . "\n";
@@ -474,7 +530,7 @@ trait CS_SEO_Frontend_Head {
         $out .= '<meta name="twitter:card" content="'        . esc_attr($img['url'] ? 'summary_large_image' : 'summary') . '">' . "\n";
         $out .= '<meta name="twitter:title" content="'       . esc_attr($title)      . '">' . "\n";
         if ($desc)       $out .= '<meta name="twitter:description" content="' . esc_attr($desc)      . '">' . "\n";
-        if ($img['url']) $out .= '<meta name="twitter:image" content="'       . esc_attr($img['url']) . '">' . "\n";
+        if ($img['url']) $out .= '<meta name="twitter:image" content="'       . esc_url($img['url']) . '">' . "\n";
         if ($img['alt']) $out .= '<meta name="twitter:image:alt" content="'   . esc_attr($img['alt']) . '">' . "\n";
         if ($twitter)    $out .= '<meta name="twitter:site" content="'        . esc_attr($twitter)    . '">' . "\n";
         if ($twitter)    $out .= '<meta name="twitter:creator" content="'     . esc_attr($twitter)    . '">' . "\n";

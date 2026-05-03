@@ -1317,6 +1317,164 @@ trait CS_SEO_Category_Fixer {
     }
 
     /**
+     * AJAX handler: merges two categories — moves all posts from source into target,
+     * optionally renames the target, and deletes the source term.
+     *
+     * Accepts `source_id` (int), `target_id` (int), and `new_name` (string, optional).
+     *
+     * @since 4.21.30
+     * @return void
+     */
+    public function ajax_catmerge_overlap(): void {
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+
+        $source_id = absint( wp_unslash( $_POST['source_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        $target_id = absint( wp_unslash( $_POST['target_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        if ( ! $source_id || ! $target_id || $source_id === $target_id ) {
+            wp_send_json_error( 'Invalid.' );
+            return;
+        }
+
+        global $wpdb;
+        $src_ttid = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE term_id = %d AND taxonomy = 'category'",
+            $source_id
+        ) );
+        $tgt_ttid = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE term_id = %d AND taxonomy = 'category'",
+            $target_id
+        ) );
+        if ( ! $src_ttid || ! $tgt_ttid ) {
+            wp_send_json_error( 'Not found.' );
+            return;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $overlap = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->term_relationships} src
+             JOIN {$wpdb->term_relationships} tgt ON src.object_id = tgt.object_id
+             WHERE src.term_taxonomy_id = %d AND tgt.term_taxonomy_id = %d",
+            $src_ttid, $tgt_ttid
+        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $src_count = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d", $src_ttid
+        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $tgt_count = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d", $tgt_ttid
+        ) );
+
+        wp_send_json_success( [
+            'unique'  => $src_count + $tgt_count - $overlap,
+            'overlap' => $overlap,
+        ] );
+    }
+
+    public function ajax_catmerge(): void {
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked above
+        $source_id = absint( wp_unslash( $_POST['source_id'] ?? 0 ) );
+        $target_id = absint( wp_unslash( $_POST['target_id'] ?? 0 ) );
+        $new_name  = sanitize_text_field( wp_unslash( $_POST['new_name'] ?? '' ) );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+        if ( ! $source_id || ! $target_id || $source_id === $target_id ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Invalid category selection.' ] );
+            return;
+        }
+        $source = get_category( $source_id );
+        $target = get_category( $target_id );
+        if ( ! $source || is_wp_error( $source ) || ! $target || is_wp_error( $target ) ) {
+            wp_send_json( [ 'success' => false, 'error' => 'One or both categories not found.' ] );
+            return;
+        }
+        if ( strtolower( $source->slug ) === 'uncategorized' || strtolower( $target->slug ) === 'uncategorized' ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Cannot merge with the Uncategorized category.' ] );
+            return;
+        }
+
+        global $wpdb;
+
+        // Resolve term_taxonomy_ids — one query each, avoids per-post hook overhead.
+        $src_ttid = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE term_id = %d AND taxonomy = 'category'",
+            $source_id
+        ) );
+        $tgt_ttid = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE term_id = %d AND taxonomy = 'category'",
+            $target_id
+        ) );
+        if ( ! $src_ttid || ! $tgt_ttid ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Term taxonomy record not found.' ] );
+            return;
+        }
+
+        // How many posts are in the source category.
+        $total_in_source = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",
+            $src_ttid
+        ) );
+
+        // Add target to every post in source that doesn't already have it — single bulk INSERT.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->query( $wpdb->prepare(
+            "INSERT IGNORE INTO {$wpdb->term_relationships} (object_id, term_taxonomy_id, term_order)
+             SELECT object_id, %d, 0 FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",
+            $tgt_ttid,
+            $src_ttid
+        ) );
+        $newly_added = (int) $wpdb->rows_affected;
+
+        // Remove all source relationships in one DELETE.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->delete( $wpdb->term_relationships, [ 'term_taxonomy_id' => $src_ttid ], [ '%d' ] );
+
+        // Recount target accurately.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $new_count = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",
+            $tgt_ttid
+        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update( $wpdb->term_taxonomy, [ 'count' => $new_count ], [ 'term_taxonomy_id' => $tgt_ttid ], [ '%d' ], [ '%d' ] );
+
+        // Rename target if requested — use wp_update_term so slug deduplication is handled.
+        if ( $new_name && $new_name !== $target->name ) {
+            wp_update_term( $target_id, 'category', [ 'name' => $new_name ] );
+        }
+
+        // Verify source is actually empty before deleting.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $remaining = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",
+            $src_ttid
+        ) );
+        if ( $remaining > 0 ) {
+            wp_send_json( [ 'success' => false, 'error' => "Safety check failed: source category still has {$remaining} post(s) after migration. No categories were deleted." ] );
+            return;
+        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update( $wpdb->term_taxonomy, [ 'count' => 0 ], [ 'term_taxonomy_id' => $src_ttid ], [ '%d' ], [ '%d' ] );
+        wp_delete_term( $source_id, 'category' );
+
+        clean_term_cache( [ $source_id, $target_id ], 'category' );
+
+        $updated_target = get_category( $target_id );
+        wp_send_json( [
+            'success'     => true,
+            'total'       => $total_in_source,
+            'added'       => $newly_added,
+            'skipped'     => $total_in_source - $newly_added,
+            'final_name'  => $updated_target ? $updated_target->name : ( $new_name ?: $target->name ),
+            'final_count' => $new_count,
+        ] );
+    }
+
+    /**
      * AJAX handler: moves a single post from its current (drift-flagged) category to the AI-suggested target.
      *
      * Accepts `post_id` (int), `from_cat_id` (int), and `to_cat_name` (string).

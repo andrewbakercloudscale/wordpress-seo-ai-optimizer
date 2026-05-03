@@ -3,100 +3,24 @@
 <head><meta charset="UTF-8"><title>CloudScale SEO AI Optimizer — Help</title></head>
 <body>
 <!-- wp:html -->
-<div class="cs-help-docs" style="max-width:900px;margin:0 auto;">
+<div style="max-width:900px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a202c;line-height:1.7;">
 
-<style>
-/* ── CloudScale SEO AI Optimizer — Help Page Styles ─────────────────────── */
-.cs-help-docs { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1a202c; line-height: 1.7; max-width: 900px; }
-.cs-help-docs a { color: #2563eb; }
-.cs-help-docs code { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1px 6px; font-size: 0.88em; }
-
-/* Hero header */
-.cs-hero { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0e6b8f 100%); color: #fff; border-radius: 12px; padding: 48px 40px; margin-bottom: 40px; }
-.cs-hero h1 { font-size: 2.2em; font-weight: 800; margin: 0 0 12px; letter-spacing: -0.02em; color: #fff; }
-.cs-hero p { font-size: 1.1em; margin: 0; opacity: 0.85; max-width: 680px; }
-.cs-hero .cs-badge { display: inline-block; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 4px 14px; font-size: 0.8em; font-weight: 600; margin-bottom: 16px; letter-spacing: 0.05em; text-transform: uppercase; }
-.cs-download-btn, .cs-wporg-btn, .cs-github-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: 8px; text-decoration: none; font-size: 1em; font-weight: 700; letter-spacing: 0.01em; transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.15s ease; will-change: transform; }
-.cs-download-btn { background: #22c55e; color: #fff !important; box-shadow: 0 2px 6px rgba(34,197,94,0.35); }
-.cs-wporg-btn { background: #3858e9; color: #fff !important; box-shadow: 0 2px 6px rgba(56,88,233,0.35); }
-.cs-github-btn { background: #24292f; color: #fff !important; box-shadow: 0 2px 6px rgba(0,0,0,0.35); }
-.cs-download-btn:hover { transform: translateY(-6px) scale(1.06); box-shadow: 0 14px 28px rgba(34,197,94,0.45), 0 4px 10px rgba(34,197,94,0.3); color: #fff !important; }
-.cs-wporg-btn:hover { transform: translateY(-6px) scale(1.06); box-shadow: 0 14px 28px rgba(56,88,233,0.45), 0 4px 10px rgba(56,88,233,0.3); color: #fff !important; }
-.cs-github-btn:hover { transform: translateY(-6px) scale(1.06); box-shadow: 0 14px 28px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.3); color: #fff !important; }
-.cs-download-btn:active, .cs-wporg-btn:active, .cs-github-btn:active { transform: translateY(-2px) scale(1.02); transition-duration: 0.07s; }
-
-/* Table of contents */
-.cs-toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 28px 36px; margin: 32px 0; }
-.cs-toc-title { font-size: 1em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin: 0 0 16px; }
-.cs-toc > ol { columns: 2; gap: 0 32px; margin: 0; padding-left: 22px; }
-.cs-toc > ol > li { break-inside: avoid; margin-bottom: 6px; }
-.cs-toc > ol > li > ol { margin: 4px 0 0; padding-left: 18px; list-style-type: lower-alpha; }
-.cs-toc > ol > li > ol > li { margin: 2px 0; }
-.cs-toc li a { color: #2563eb; text-decoration: none; font-weight: 500; font-size: 0.95em; }
-.cs-toc li a:hover { text-decoration: underline; }
-
-/* Setup checklist */
-.cs-setup { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 28px 36px; margin: 32px 0; }
-.cs-setup-title { font-size: 1.2em; font-weight: 700; color: #14532d; margin: 0 0 16px; }
-.cs-setup ol { margin: 0; padding-left: 20px; }
-.cs-setup li { margin: 8px 0; color: #166534; }
-.cs-setup li strong { color: #14532d; }
-
-/* Tab section dividers */
-.cs-tab-section { margin: 56px 0 0; }
-.cs-tab-heading { font-size: 2em; font-weight: 800; color: #0f172a; padding: 0 0 16px; border-bottom: 3px solid #0e6b8f; margin: 0 0 8px; letter-spacing: -0.01em; }
-.cs-tab-intro { color: #475569; font-size: 1.05em; margin: 10px 0 32px; }
-
-/* Panel sections */
-.cs-panel-section { margin: 36px 0 0; }
-.cs-panel-no-screenshot { background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px 28px; }
-.cs-panel-heading { font-size: 1.45em; font-weight: 700; color: #1e293b; margin: 0 0 16px; padding: 0 0 10px; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center; gap: 10px; }
-.cs-panel-heading::before { content: ""; display: inline-block; width: 4px; height: 1.2em; background: #0e6b8f; border-radius: 2px; flex-shrink: 0; }
-
-/* Screenshots */
-.cs-screenshot { margin: 20px 0 24px; }
-.cs-screenshot img { max-width: 100%; border-radius: 8px; border: 1px solid #d1d5db; box-shadow: 0 4px 20px rgba(0,0,0,0.10); display: block; }
-
-/* Panel body */
-.cs-panel-body { color: #334155; }
-.cs-panel-body p { margin: 0 0 12px; }
-.cs-panel-body ul, .cs-panel-body ol { padding-left: 22px; margin: 8px 0 16px; }
-.cs-panel-body li { margin: 6px 0; }
-.cs-panel-body strong { color: #1e293b; }
-
-/* Gated panel note */
-.cs-gated-note { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; font-size: 0.92em; color: #92400e; margin-top: 16px; }
-
-/* Explain-button tip */
-.cs-tip-box { background: #f0f9ff; border: 1px solid #bae6fd; border-left: 4px solid #0284c7; border-radius: 8px; padding: 16px 20px; margin: 24px 0; font-size: 0.97em; color: #0c4a6e; }
-
-/* Section dividers */
-.cs-divider { border: none; border-top: 1px solid #e2e8f0; margin: 40px 0; }
-
-/* Glossary */
-.cs-glossary { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 28px 36px; margin-top: 40px; }
-.cs-glossary h2 { font-size: 1.8em; font-weight: 800; color: #0f172a; margin: 0 0 24px; }
-.cs-glossary dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 24px; align-items: baseline; }
-.cs-glossary dt { font-weight: 700; color: #0e6b8f; font-size: 0.95em; }
-.cs-glossary dd { margin: 0; color: #475569; font-size: 0.95em; }
-</style>
-
-<div class="cs-hero">
+<div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#0e6b8f 100%);color:#fff;border-radius:12px;padding:48px 40px;margin-bottom:40px;">
 <div style="display:flex;align-items:center;gap:20px;margin-bottom:16px;">
 <div style="flex:1;min-width:0;">
-<div class="cs-badge">Free &amp; Open Source — No Pro Version, No Upsells, No Subscriptions</div>
-<h1 style="margin-bottom:0;">CloudScale SEO AI Optimizer</h1>
+<div style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 14px;font-size:0.8em;font-weight:600;margin-bottom:16px;letter-spacing:0.05em;text-transform:uppercase;">Free &amp; Open Source — No Pro Version, No Upsells, No Subscriptions</div>
+<h1 style="margin-bottom:0;font-size:2.2em;font-weight:800;letter-spacing:-0.02em;color:#fff;">CloudScale SEO AI Optimizer</h1>
 </div>
 <img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/cloudscale-seo-ai-icon.jpg" alt="CloudScale SEO AI Optimizer icon" style="flex-shrink:0;width:96px;height:96px;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.4);object-fit:cover;">
 </div>
 <p>CloudScale SEO AI Optimizer is a free WordPress plugin that combines complete technical SEO with an AI-powered content suite. It writes your meta descriptions, ALT text, and article summaries using your own Anthropic Claude or Google Gemini API key, builds an automatic internal linking network across your entire site, and handles all the technical SEO that WordPress leaves out: sitemaps, robots.txt, structured data schemas, social sharing tags, and performance optimisations that improve your Core Web Vitals scores.</p>
 <p style="margin-top:12px;opacity:0.85">There is no Pro version, no upsell, no monthly subscription, and no feature locked behind a licence key. Everything the plugin does is documented on this page.</p>
-<div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:20px;"><a class="cs-download-btn" href="https://your-s3-bucket.s3.af-south-1.amazonaws.com/cloudscale-seo-ai-optimizer.zip">⬇ Download Latest Version (.zip)</a><a class="cs-wporg-btn" href="https://wordpress.org/plugins/cloudscale-seo-ai-optimizer/" target="_blank" rel="noopener">⭐ View on WordPress.org</a><a class="cs-github-btn" href="https://github.com/andrewbakercloudscale/wordpress-seo-ai-optimizer" target="_blank" rel="noopener"><svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> View on GitHub</a></div>
+<div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:20px;"><a href="https://andrewninjawordpress.s3.af-south-1.amazonaws.com/cloudscale-seo-ai-optimizer.zip" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:1em;font-weight:700;background:#22c55e;color:#fff;box-shadow:0 2px 6px rgba(34,197,94,0.35);">⬇ Download Latest Version (.zip)</a><a href="https://wordpress.org/plugins/cloudscale-seo-ai-optimizer/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:1em;font-weight:700;background:#3858e9;color:#fff;box-shadow:0 2px 6px rgba(56,88,233,0.35);">⭐ View on WordPress.org</a><a href="https://github.com/andrewbakercloudscale/wordpress-seo-ai-optimizer" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:1em;font-weight:700;background:#24292f;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.35);"><svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> View on GitHub</a></div>
 </div>
 
-<div class="cs-toc">
-<div class="cs-toc-title">Contents</div>
-<ol>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:28px 36px;margin:32px 0;">
+<div style="font-size:1em;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;margin:0 0 16px;">Contents</div>
+<ol style="columns:2;gap:0 32px;margin:0;padding-left:22px;">
 <li><a href="#setup">First-time setup</a></li>
 <li><a href="#seo">📊 SEO Settings</a>
   <ol>
@@ -149,9 +73,9 @@
 </ol>
 </div>
 
-<div class="cs-setup" id="setup">
-<div class="cs-setup-title">✅ First-time setup checklist</div>
-<ol>
+<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:28px 36px;margin:32px 0;" id="setup">
+<div style="font-size:1.2em;font-weight:700;color:#14532d;margin:0 0 16px;">✅ First-time setup checklist</div>
+<ol style="margin:0;padding-left:20px;color:#166534;">
 <li>Go to the <strong>SEO Settings</strong> tab → <strong>Site Identity</strong> panel and fill in your Site name, Locale, and Default OG image.</li>
 <li>Still in Site Identity, fill in <strong>Target audience</strong> and <strong>Writing tone</strong>. These are injected into every AI request and have the biggest single impact on output quality.</li>
 <li>In the <strong>AI Settings</strong> panel, add your Anthropic Claude or Google Gemini API key and click <strong>Test Key</strong> to confirm it works. (<a href="https://console.anthropic.com/" target="_blank" rel="noopener">Get a Claude key</a> · <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Get a Gemini key</a>)</li>
@@ -161,20 +85,26 @@
 </ol>
 </div>
 
-<div class="cs-tip-box">
+<div style="background:#f0f9ff;border:1px solid #bae6fd;border-left:4px solid #0284c7;border-radius:8px;padding:16px 20px;margin:24px 0;font-size:0.97em;color:#0c4a6e;">
 <strong>💡 Explain buttons: inline help while you work.</strong> Every panel in the plugin settings has a <strong>?</strong> button in its header. Click it for a detailed pop-up explaining each field in that panel, covering what it does, whether it's recommended or optional, and exactly what to fill in. Use the Explain buttons when you're actively configuring a panel; use this page when you want the full context and the why behind each feature.
 </div>
 
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-tab-section">
-<h2 class="cs-tab-heading" id="seo">📊 SEO Settings</h2>
-<p class="cs-tab-intro">Before any AI tools or sitemaps can do their job, Google needs to understand the basic facts about your website: who runs it, what it's called, and what kind of content it contains. The SEO Settings tab is where you establish that foundation. Fill in your site identity and author details once, and the plugin will embed that information into every page as structured data that search engines can read directly. This tab is also where you connect your AI provider (Anthropic Claude or Google Gemini) and configure the Auto Pipeline, which automatically processes every post you publish so you never have to manually trigger AI generation again.</p>
+<div style="margin:56px 0 0;">
+<h2 style="font-size:2em;font-weight:800;color:#0f172a;padding:0 0 16px;border-bottom:3px solid #0e6b8f;margin:0 0 8px;letter-spacing:-0.01em;background:transparent;" id="seo">📊 SEO Settings</h2>
+<p style="color:#475569;font-size:1.05em;margin:10px 0 32px;">Before any AI tools or sitemaps can do their job, Google needs to understand the basic facts about your website: who runs it, what it's called, and what kind of content it contains. The SEO Settings tab is where you establish that foundation. Fill in your site identity and author details once, and the plugin will embed that information into every page as structured data that search engines can read directly. This tab is also where you connect your AI provider (Anthropic Claude or Google Gemini) and configure the Auto Pipeline, which automatically processes every post you publish so you never have to manually trigger AI generation again.</p>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-identity">Site Identity & Schema</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-identity-8.jpg" alt="Site Identity & Schema" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-identity"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>Site Identity & Schema</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-identity-11.jpg" alt="Site Identity & Schema" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
+<div style="background:#f0f9ff;border-left:4px solid #0e6b8f;padding:18px 22px;border-radius:0 8px 8px 0;margin-bottom:28px;">
+<p style="margin:0 0 10px;font-size:1.3em;font-weight:800;color:#0f172a;">Why CloudScale SEO Optimizer?</p>
+<p style="margin:0 0 10px;">Yoast SEO locks most of its features — redirect management, internal linking suggestions, social previews, and AI generation — behind Yoast Premium at $99/year per site. RankMath Free gives you a solid base but charges $59+/year the moment you want AI-powered generation or advanced schema. All in One SEO's AI writing tools cost $49+/year on their Plus plan.</p>
+<p style="margin:0 0 10px;">CloudScale SEO Optimizer uses Anthropic Claude 4 and Google Gemini 2.5 Pro — the same frontier models that SEO agencies charge thousands per month to access — to generate meta descriptions, ALT text, summary boxes, and related article links in bulk. Automatic XML sitemap, robots.txt editor, llms.txt generation, font optimiser, render-blocking JS/CSS removal, category health and drift detection, automatic redirects, and a full batch scheduler are all included. Free. No subscription, no premium tier, no API key required for the bundled plan.</p>
+<p style="margin:0;"><strong>Configure Site Identity first.</strong> Target audience and Writing tone are injected into every AI request — they are the single biggest quality lever before you run any bulk generation.</p>
+</div>
 <p>When someone searches for your name or your site on Google, how does Google decide what to show? It reads structured signals embedded in your pages: your site name, your homepage title, your preferred language, your social profiles. Without those signals, Google guesses, and it often gets things wrong. The <strong>Site Identity</strong> panel is where you set the record straight.</p>
 <p>Everything you configure here is automatically embedded into every page on your site as meta tags, OpenGraph tags (which control how your pages look when shared on social media), and JSON-LD structured data (which Google reads to build rich search results). You only configure this once, and the plugin handles the rest.</p>
 <ul>
@@ -190,12 +120,12 @@
 </ul>
 <p style="background:#f0effe;border:2px solid #6366f1;border-radius:8px;padding:14px 18px;margin-top:20px;color:#1e1b4b"><strong>✨ Fill in Target audience and Writing tone before generating anything.</strong> These two fields are injected into every single AI request as site context. They are the single biggest quality lever available without touching the system prompt, and they cost nothing to set. Leaving them blank means the AI writes for a generic, imaginary reader rather than yours.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-person">Person Schema</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-person-8.jpg" alt="Person Schema" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-person"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>Person Schema</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-person-11.jpg" alt="Person Schema" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>Have you ever noticed how some people have a "Knowledge Panel" on Google, the box on the right side of search results that shows their photo, title, and links to their social profiles? That's powered by Person structured data. Even if you never reach Knowledge Panel status, telling Google who you are helps it connect your articles to your identity, which strengthens your E-E-A-T signals (Experience, Expertise, Authoritativeness, Trustworthiness), one of Google's key quality criteria for ranking content, especially in technical and professional subject areas.</p>
 <p>The <strong>Person Schema</strong> panel embeds this identity information into your pages as JSON-LD structured data. Nothing visible is added to your pages; it sits in the page source where Google can read it. The key is the <strong>sameAs</strong> field: by linking to your LinkedIn, GitHub, Twitter/X, and other profiles, you give Google the cross-references it needs to confirm that the "Andrew Baker" who wrote this post is the same "Andrew Baker" on LinkedIn, confirming that they're a real, credible person.</p>
 <ul>
@@ -206,12 +136,12 @@
 <li><strong>sameAs URLs (one per line)</strong>: Links to your profiles on LinkedIn, GitHub, Twitter/X, Wikipedia, Google Scholar, or any other authoritative platform. Each link is a cross-reference Google can verify. The more authoritative the profiles you list, the stronger the identity signal. LinkedIn and GitHub are especially valuable for technical authors.</li>
 </ul></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-ai">AI Settings</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-ai-8.jpg" alt="AI Settings" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-ai"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>AI Settings</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-ai-11.jpg" alt="AI Settings" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>All the AI features in this plugin (meta description generation, ALT text writing, article summaries, SEO scoring, and category analysis) run through a single connection to your chosen AI provider. This plugin does not run its own AI service and does not charge for AI usage. You bring your own API key from either <strong>Anthropic Claude</strong> or <strong>Google Gemini</strong>, and the plugin sends your content directly to that provider's API. Your API key is stored in your WordPress database and never shared with anyone.</p>
 <p>The cost of running AI through your own API key is typically very small. For a site with 100 posts, generating meta descriptions for all of them using Claude Haiku costs less than $0.10. Google Gemini has a free tier that is sufficient for most personal blogs. There is no subscription, no per-site licence, and no hidden fee imposed by this plugin. You pay the AI provider directly, and only for what you use.</p>
 <ul>
@@ -230,17 +160,17 @@
 <p><strong>The right way to customise AI output quality:</strong> The most effective customisation is to fill in <strong>Target audience</strong> and <strong>Writing tone</strong> in the <strong>Site Identity</strong> panel, not to rewrite the system prompt. Those two fields are injected into every AI request automatically, and they produce an immediate, visible improvement in how well the generated copy matches your brand and readers. The system prompt is an advanced option for structural requirements only: writing in a language other than English, enforcing specific formatting rules, or other niche cases.</p>
 <p>Always click <strong>Test Key</strong> after adding your API key and before running any bulk operations. This makes a minimal API call to confirm the key is valid, the provider account is active, and the selected model is available.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 </div>
 
-<div class="cs-tab-section">
-<h2 class="cs-tab-heading" id="aitools">✨ AI Tools</h2>
-<p class="cs-tab-intro">If you have a WordPress site with tens or hundreds of posts, there's a good chance most of them are missing a meta description, the short paragraph that appears under your page title in Google Search results. Without it, Google writes its own snippet, which is often a random sentence pulled from your content. The AI Tools tab fixes this in bulk. Load your posts, click Generate Missing, and the AI writes compelling, correctly-sized meta descriptions for every post that doesn't have one. The same tab handles image ALT text (important for both accessibility and Google Image Search), AI-generated article summary boxes that help readers decide whether to read, and the Related Articles system that builds an internal linking network across your entire site automatically.</p>
+<div style="margin:56px 0 0;">
+<h2 style="font-size:2em;font-weight:800;color:#0f172a;padding:0 0 16px;border-bottom:3px solid #0e6b8f;margin:0 0 8px;letter-spacing:-0.01em;background:transparent;" id="aitools">✨ AI Tools</h2>
+<p style="color:#475569;font-size:1.05em;margin:10px 0 32px;">If you have a WordPress site with tens or hundreds of posts, there's a good chance most of them are missing a meta description, the short paragraph that appears under your page title in Google Search results. Without it, Google writes its own snippet, which is often a random sentence pulled from your content. The AI Tools tab fixes this in bulk. Load your posts, click Generate Missing, and the AI writes compelling, correctly-sized meta descriptions for every post that doesn't have one. The same tab handles image ALT text (important for both accessibility and Google Image Search), AI-generated article summary boxes that help readers decide whether to read, and the Related Articles system that builds an internal linking network across your entire site automatically.</p>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-auto-pipeline">Auto Pipeline</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-auto-pipeline-8.jpg" alt="Auto Pipeline" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-auto-pipeline"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>Auto Pipeline</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-auto-pipeline-11.jpg" alt="Auto Pipeline" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>If you're starting from scratch with a new post, the Auto Pipeline means you never have to think about SEO again. Write your post, hit Publish, and within seconds the plugin has generated your meta description, scored your content, and created your AI summary box, all without you touching anything. This is the "set it and forget it" approach to keeping your site SEO-optimised as you publish.</p>
 <p>The pipeline runs as a background HTTP request immediately after WordPress saves the post, so the Publish button itself does not feel slow. Each step runs independently. If the meta description generation succeeds but the SEO scoring fails (e.g. due to a temporary API timeout), the description is still saved. The pipeline is designed to be safe: by default, it only fills in missing content and will not overwrite descriptions you've already written manually.</p>
 <ul>
@@ -250,12 +180,12 @@
 </ul>
 <p><strong>Note on timing:</strong> The pipeline fires a background HTTP request, so it won't block your post save. However, if you check the meta description immediately after publishing, it may not have been written yet. Wait a few seconds and refresh the post.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-update-posts">AI Meta Description Writer</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-metadesc-8.jpg" alt="AI Meta Description Writer" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-update-posts"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>AI Meta Description Writer</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-metadesc-14.jpg" alt="AI Meta Description Writer" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>The meta description is the short snippet that appears under your page title in Google Search results, usually two or three lines describing what the page is about. It is often the deciding factor in whether a searcher clicks your result or the one below it. When you don't write one, Google generates its own, usually by pulling a random sentence from your page content. That sentence is rarely your best pitch to a potential reader.</p>
 <p>The <strong>AI Meta Description Writer</strong> solves this problem in bulk. It shows you every post and page on your site, the current status of each meta description, and lets you generate AI-written descriptions for all of them in a single operation. The AI reads your post title and content, then writes a compelling, correctly-sized description in your site's voice. For a site with 100 posts, this typically takes 2–3 minutes and costs less than $0.10 in API fees.</p>
 <p><strong>Understanding the status badges:</strong></p>
@@ -278,12 +208,12 @@
 <li><strong>Stop</strong>: Halts a running bulk operation after the current post finishes. Any posts already processed are saved.</li>
 </ul></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-alt">AI ALT Text Generator</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-alttext-8.jpg" alt="AI ALT Text Generator" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-alt"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>AI ALT Text Generator</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-alttext-14.jpg" alt="AI ALT Text Generator" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>When someone uses a screen reader because they have a visual impairment, every image on your site that has no ALT text is invisible to them. They get silence where there should be a description. At the same time, Google's web crawler cannot "see" images either. It reads ALT text to understand what an image depicts, whether that image is relevant to the page topic, and whether it should appear in Google Image Search results. A site full of images with empty ALT attributes is failing both its users and its search rankings.</p>
 <p>The <strong>AI ALT Text Generator</strong> fixes this across your entire site in one bulk operation. It scans every post and page, identifies images with missing ALT attributes, and uses AI to write concise, contextually accurate descriptions for each one. The AI reads both the image filename and a short excerpt of the surrounding post content, so the ALT text it generates actually describes the image in context, not just a generic label.</p>
 <p>ALT text is also generated automatically during meta description generation when you use Generate Missing or Generate in the Meta Description Writer. If you've already run that, your images may already have ALT text. This dedicated panel is for auditing and bulk-processing images specifically.</p>
@@ -295,12 +225,12 @@
 <li><strong>Force Regenerate All</strong>: Rewrites ALL ALT text across your entire site, including images that already have it. Use this if you want to improve the quality of previously generated ALT text or standardise the style. A confirmation prompt appears before it runs.</li>
 </ul></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-summary">AI Summary Box</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-summary-8.jpg" alt="AI Summary Box" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-summary"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>AI Summary Box</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-summary-11.jpg" alt="AI Summary Box" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>Most readers decide within the first few seconds whether an article is worth their time. If your post opens with a long preamble before getting to the point, readers bounce, and Google notices bounce rates. The <strong>AI Summary Box</strong> solves this by generating a three-sentence structured summary that appears at the very top of each post, before the article text. Readers see at a glance what the article is about, why it matters, and what they'll take away from it.</p>
 <p>The summary box also has an SEO benefit that isn't visible to readers. The three fields are embedded into the Article JSON-LD structured data for each post, which Google can read and potentially surface as featured snippets or in AI Overviews. Providing a clean, structured summary increases the chance that Google quotes your content directly in answer boxes. This is a core goal of AEO (Answer Engine Optimisation).</p>
 <p>The appearance of the summary box on your site is controlled by the <strong>"Show AI summary box on posts"</strong> checkbox in the SEO Features panel. You can generate and store summaries without showing the box. The JSON-LD benefit exists regardless of whether the box is visible on your pages.</p>
@@ -317,12 +247,12 @@
 <li><strong>Generate All (force)</strong>: Regenerates summaries for every post, replacing all existing ones. Use this if you've changed your AI prompt or want to refresh the content style across your site.</li>
 </ul></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-rc-settings-card">Related Articles — Settings</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-rc-settings-8.jpg" alt="Related Articles — Settings" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-rc-settings-card"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>Related Articles — Settings</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-rc-settings-12.jpg" alt="Related Articles — Settings" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>One of the best signals Google uses to understand a site's topical authority is internal linking: how well your posts link to each other around a common topic. A site where every post on cloud computing links to related cloud computing posts tells Google (and readers) that you are a serious resource on that topic. Building this network manually across dozens or hundreds of posts is impractical. The <strong>Related Articles</strong> feature builds it automatically.</p>
 <p>Related Articles analyses every post on your site and builds a relevance network by matching posts on shared categories, tags, and (if you've generated AI summaries) the semantic similarity of the content itself. It then injects a "Related Articles" block near the top of each post and a "You Might Also Like" block at the bottom. This keeps readers on your site longer, increases pages-per-session, and creates the kind of internal linking structure that Google rewards with stronger topical authority scores.</p>
 <p>This is a purely local feature. It makes no API calls and costs nothing to run. All matching is done server-side using your existing WordPress data and your AI-generated summaries.</p>
@@ -339,12 +269,12 @@
 <li><strong>Excluded categories</strong>: Posts in these categories will never appear as related article suggestions on any post. Use this to exclude categories like "Announcements", "About", or "Sponsored" that shouldn't appear in contextual article recommendations.</li>
 </ul></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-rc-table">Related Articles — Management</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-rc-table-8.jpg" alt="Related Articles — Management" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-rc-table"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>Related Articles — Management</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-rc-table-14.jpg" alt="Related Articles — Management" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>The <strong>Related Articles Management</strong> table is your control panel for the related articles network. When you first enable the feature, all posts start as "Pending". They haven't been processed yet and won't show related article blocks on the frontend. Run the batch operation here to process your entire site and go from zero to a complete internal linking network in one click.</p>
 <p>After changing your settings (for example, adding a new matching criterion, changing the number of links shown, or excluding a category), you'll need to re-run existing posts for the change to take effect. Use the "Re-run Complete" batch button to refresh all already-processed posts.</p>
 <ul>
@@ -364,17 +294,17 @@
 <li><strong>Reset All</strong>: Clears all related article data across your entire site. Use this only if you want to start completely fresh. All posts will return to Pending and no related article blocks will be shown until you re-run the batch.</li>
 </ul></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 </div>
 
-<div class="cs-tab-section">
-<h2 class="cs-tab-heading" id="sitemap">🗺 Sitemap, Robots &amp; Redirects</h2>
-<p class="cs-tab-intro">A sitemap tells Google which pages exist on your site and when they were last updated. It is the fastest way to ensure new content gets discovered and indexed. Without one, Google has to find your pages by following links, which can take weeks for new posts. This tab controls your XML sitemap, your robots.txt file (which tells crawlers what they are and are not allowed to access), and your llms.txt file, a new standard that gives AI assistants like ChatGPT and Perplexity a structured, accurate summary of your site so they represent your content correctly in their answers.</p>
+<div style="margin:56px 0 0;">
+<h2 style="font-size:2em;font-weight:800;color:#0f172a;padding:0 0 16px;border-bottom:3px solid #0e6b8f;margin:0 0 8px;letter-spacing:-0.01em;background:transparent;" id="sitemap">🗺 Sitemap, Robots &amp; Redirects</h2>
+<p style="color:#475569;font-size:1.05em;margin:10px 0 32px;">A sitemap tells Google which pages exist on your site and when they were last updated. It is the fastest way to ensure new content gets discovered and indexed. Without one, Google has to find your pages by following links, which can take weeks for new posts. This tab controls your XML sitemap, your robots.txt file (which tells crawlers what they are and are not allowed to access), and your llms.txt file, a new standard that gives AI assistants like ChatGPT and Perplexity a structured, accurate summary of your site so they represent your content correctly in their answers.</p>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-features">SEO Features</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-features-8.jpg" alt="SEO Features" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-features"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>SEO Features</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-features-11.jpg" alt="SEO Features" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>The <strong>SEO Features</strong> panel is the central switch board for every technical SEO capability the plugin provides. Each feature can be toggled independently. Turn on what you need, turn off what you don't, and none of your settings are lost when you toggle something off.</p>
 <p>If you're setting up the plugin for the first time, the recommended approach is to enable all the Recommended items below, save, then come back and fine-tune after you've checked how your pages look in Google Search Console.</p>
 <p><strong>Social sharing (OpenGraph &amp; Twitter Cards):</strong></p>
@@ -403,12 +333,12 @@
 <li><strong>noindex tag archives</strong>: Tag archive pages are thin if your tags are used loosely. Enable this if your tags are inconsistent or duplicative. Leave off if your tag pages are genuinely curated topic hubs with unique value.</li>
 </ul></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-sitemap-settings">XML Sitemap Settings</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-sitemap-8.jpg" alt="XML Sitemap Settings" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-sitemap-settings"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>XML Sitemap Settings</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-sitemap-11.jpg" alt="XML Sitemap Settings" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>A sitemap is the most direct line of communication between your website and Google. When you publish a new post, Google might not discover it for days or weeks if it has to find the page by following links. With a sitemap, you're effectively handing Google a complete, up-to-date list of every important URL on your site. Google re-crawls that list regularly to find new content fast.</p>
 <p>The first thing you should do after enabling the sitemap is submit its URL to <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a> under Sitemaps. This is a one-time step that tells Google to start monitoring your sitemap. After that, the plugin keeps the sitemap updated automatically every time you publish or update a post.</p>
 <ul>
@@ -420,12 +350,12 @@
 <p>The sitemap automatically handles large sites: if you have more than 5,000 URLs, it creates multiple child sitemaps (<code>/sitemap-1.xml</code>, <code>/sitemap-2.xml</code>, etc.) and the index at <code>/sitemap.xml</code> lists them all. A plain-text version is available at <code>/sitemap.txt</code> for tools that prefer that format.</p>
 <p>Use the <strong>Sitemap Preview</strong> panel (visible when you scroll down on this tab) to browse exactly which URLs are in your sitemap before submitting it to Google.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-robots">Robots.txt Editor</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-robots-8.jpg" alt="Robots.txt Editor" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-robots"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>Robots.txt Editor</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-robots-11.jpg" alt="Robots.txt Editor" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>When a search engine crawler (or any bot) arrives at your website, the very first file it reads is <code>robots.txt</code> at the root of your domain. This file is a set of instructions that tells crawlers what they are and are not allowed to access. Without a well-configured robots.txt, crawlers may waste time in your admin area, checkout pages, or other non-public sections, consuming server resources and crawl budget that would be better spent on your actual content.</p>
 <p>The <strong>Robots.txt Editor</strong> gives you full control over this file directly from your WordPress admin, without needing FTP or server access.</p>
 <ul>
@@ -440,12 +370,12 @@
 </ul>
 <p><strong>Critical distinction:</strong> robots.txt controls <em>crawl access</em>, not <em>indexing</em>. A page you block in robots.txt may still appear in Google's search results if other sites link to it. Google knows it exists but cannot read it. If you want a page removed from Google's index, use the noindex meta tag (configured in the SEO Features panel) instead of robots.txt. If you want both (no crawling and no indexing), you need both.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-llms">llms.txt</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-llms-8.jpg" alt="llms.txt" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-llms"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>llms.txt</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-llms-11.jpg" alt="llms.txt" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>When someone asks ChatGPT, Perplexity, or Claude a question that your site could answer, the AI either knows about your site (because it was included in training data) or it visits your site in real time via web browsing. In both cases, a machine is trying to understand your content from raw HTML, which is full of navigation menus, sidebars, cookie banners, and other noise that gets in the way of the actual content.</p>
 <p><strong>llms.txt</strong> is the solution. It's a plain-text file at <code>/llms.txt</code> that gives AI systems a clean, structured summary of your website: your name, your site's purpose, and a list of your key posts and pages with their URLs and meta descriptions. Think of it as <code>robots.txt</code> for AI, or a table of contents written specifically for machine readers. It's an emerging standard proposed in 2024 and gaining adoption rapidly as AI-powered search becomes mainstream.</p>
 <p>Publishing a well-structured llms.txt is one of the most important AEO (Answer Engine Optimisation) steps you can take. It gives you direct control over how AI systems represent your content in their answers, rather than leaving them to guess from your raw HTML.</p>
@@ -454,12 +384,12 @@
 </ul>
 <p>Use the <strong>Load Preview</strong> button to see a live preview of your llms.txt in your admin area before sharing it or submitting it to AI search indices. The <a href="https://llmstxt.org/" target="_blank" rel="noopener">llms.txt specification</a> is an open standard. Read more about it and why it matters at llmstxt.org.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-redirects">Automatic Redirects</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-redirects-8-scaled.jpg" alt="Automatic Redirects" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-redirects"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>Automatic Redirects</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-redirects-14-scaled.jpg" alt="Automatic Redirects" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>Every time you rename a post slug (something as simple as changing <code>/my-post</code> to <code>/my-better-post</code>), the old URL becomes a dead link. Any visitor who bookmarked it, any backlink pointing to it, any Google result still showing the old URL: they all land on a 404. The <strong>Automatic Redirects</strong> panel prevents this silently and automatically.</p>
 <p>When you save a post with a changed slug, the plugin records the old path and creates a permanent 301 redirect from it to the new URL. No manual step is required. The next time any visitor or crawler follows the old URL, they are instantly forwarded to the correct page. For Google, a 301 transfers all ranking signals (backlinks, PageRank, indexed content) from the old URL to the new one, so you don't lose any SEO value from the rename.</p>
 <ul>
@@ -470,17 +400,17 @@
 <li><strong>Delete</strong>: Removes the redirect entry. The old URL will return a 404 again. Only delete redirects you are confident are no longer needed.</li>
 </ul></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 </div>
 
-<div class="cs-tab-section">
-<h2 class="cs-tab-heading" id="perf">⚡ Performance</h2>
-<p class="cs-tab-intro">Page speed is a direct Google ranking factor. Slow pages rank lower, and Google measures speed using Core Web Vitals, the real-world performance metrics that appear in Google Search Console. This tab provides three performance optimisations that are safe to enable on virtually any WordPress site: local font hosting (which eliminates a slow Google Fonts network request and improves GDPR compliance), JavaScript deferral (which lets your page render before scripts run, reducing Time to Interactive), and HTML minification (which shrinks page size by removing unnecessary whitespace). The HTTPS URL Fixer is also here, essential if you ever migrated your site from HTTP to HTTPS and have old hardcoded links still pointing to the insecure version.</p>
+<div style="margin:56px 0 0;">
+<h2 style="font-size:2em;font-weight:800;color:#0f172a;padding:0 0 16px;border-bottom:3px solid #0e6b8f;margin:0 0 8px;letter-spacing:-0.01em;background:transparent;" id="perf">⚡ Performance</h2>
+<p style="color:#475569;font-size:1.05em;margin:10px 0 32px;">Page speed is a direct Google ranking factor. Slow pages rank lower, and Google measures speed using Core Web Vitals, the real-world performance metrics that appear in Google Search Console. This tab provides three performance optimisations that are safe to enable on virtually any WordPress site: local font hosting (which eliminates a slow Google Fonts network request and improves GDPR compliance), JavaScript deferral (which lets your page render before scripts run, reducing Time to Interactive), and HTML minification (which shrinks page size by removing unnecessary whitespace). The HTTPS URL Fixer is also here, essential if you ever migrated your site from HTTP to HTTPS and have old hardcoded links still pointing to the insecure version.</p>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-fonts">Font Optimiser</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-fonts-8.jpg" alt="Font Optimiser" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-fonts"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>Font Optimiser</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-fonts-11.jpg" alt="Font Optimiser" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>Most WordPress themes load their fonts from Google Fonts, a free CDN that serves web fonts from Google's servers. This is convenient for theme developers, but it has two significant downsides for your site. First, it's slow: every page load requires the browser to make an extra network request to <code>fonts.googleapis.com</code>, wait for a DNS lookup, establish a connection, and download the font stylesheet before text on your page can render. This directly hurts your Core Web Vitals scores, specifically LCP (Largest Contentful Paint), which Google uses as a direct ranking factor. Second, it's a GDPR problem: when a visitor's browser requests a font from Google's CDN, their IP address is sent to Google. Under the EU's General Data Protection Regulation, this is a transfer of personal data to a third party without your visitor's explicit consent. German and Austrian courts have already ruled against sites doing this.</p>
 <p>The <strong>Font Optimiser</strong> solves both problems by downloading the font files from Google's CDN to your own server and rewriting the references in your theme to point to the local copies. The fonts look identical, but they now load from your domain with no external request, no GDPR exposure, and faster rendering.</p>
 <p><strong>How to use it:</strong></p>
@@ -491,12 +421,12 @@
 </ol>
 <p>After applying, check your site's PageSpeed Insights score at <a href="https://pagespeed.web.dev/" target="_blank" rel="noopener">pagespeed.web.dev</a>. The "Eliminate render-blocking resources" warning for Google Fonts should be gone.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-render">JS, CSS & HTML Optimisation</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-render-8.jpg" alt="JS, CSS & HTML Optimisation" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-render"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>JS, CSS & HTML Optimisation</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-render-11.jpg" alt="JS, CSS & HTML Optimisation" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>Page load speed is a confirmed Google ranking factor, and Google measures it using Core Web Vitals, the real-world performance metrics visible in Google Search Console. The three optimisations in this panel target specific speed metrics that appear in those reports. None of them change how your site looks. They only change how quickly it gets to a usable state in the browser.</p>
 <ul>
 <li><strong>Defer non-critical fonts</strong>: Fonts that aren't used to render the visible text on a page (for example, icon fonts loaded in the footer) can be loaded asynchronously. This allows the browser to render visible content first, rather than waiting for every font file to download before showing anything. Helps with the First Contentful Paint (FCP) metric.</li>
@@ -507,11 +437,11 @@
 </ul>
 <p><strong>How to verify the improvements:</strong> Run your site through <a href="https://pagespeed.web.dev/" target="_blank" rel="noopener">PageSpeed Insights</a> before and after enabling these features. The "Reduce unused JavaScript" and "Avoid chaining critical requests" diagnostics should improve after enabling JS deferral. The overall page size should decrease after enabling HTML minification.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section cs-panel-no-screenshot">
-<h3 class="cs-panel-heading" id="ab-card-https">HTTPS URL Fixer</h3>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;background:#fafafa;border:1px solid #e5e7eb;border-radius:8px;padding:24px 28px;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-https"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>HTTPS URL Fixer</h3>
+<div style="color:#334155;">
 <p>When a site moves from HTTP to HTTPS, the server-side redirect ensures visitors always land on the secure version. But the database is full of old hardcoded <code>http://</code> links: image URLs embedded in post content, internal links written years ago, and theme option values. These old HTTP references cause "mixed content" browser warnings, where the browser detects that a secure page is loading resources over an insecure connection and blocks or flags them. Mixed content warnings can also suppress the padlock icon in the browser's address bar, eroding visitor trust.</p>
 <p>The <strong>HTTPS URL Fixer</strong> solves this with a targeted database search and replace. It finds every occurrence of <code>http://yourdomain.com</code> in your WordPress database and rewrites them to <code>https://yourdomain.com</code>. It handles serialised PHP data correctly (used by themes and some plugins to store settings), so the replace operation doesn't break anything.</p>
 <p><strong>How to use it:</strong></p>
@@ -521,20 +451,20 @@
 <li>Click <strong>Fix Selected</strong>: the plugin updates all matching rows. The operation is logged so you can see exactly what changed.</li>
 </ol>
 <p><strong>Important:</strong> Always take a full database backup before running any bulk find-and-replace operation. While the HTTPS Fixer is designed to be safe and reversible for standard WordPress data, a backup is your safety net if something unexpected happens in a complex database with non-standard plugins or custom tables.</p>
-<p class="cs-gated-note"><strong>Note:</strong> this panel only appears once an AI API key has been saved in the AI Settings panel above.</p>
+<p style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px 14px;font-size:0.92em;color:#92400e;margin-top:16px;"><strong>Note:</strong> this panel only appears once an AI API key has been saved in the AI Settings panel above.</p>
 </div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 </div>
 
-<div class="cs-tab-section">
-<h2 class="cs-tab-heading" id="catfix">🏷 Categories</h2>
-<p class="cs-tab-intro">Your category structure is more important for SEO than most WordPress site owners realise. Google uses categories as a signal for topical authority. If a category contains a jumbled mix of unrelated posts, it tells Google your site lacks focus on that topic. The Categories tab gives you four tools to fix this: the Category Fixer scans every post and tells you if it's in the wrong category; the Category Health dashboard grades each category based on post count and recency so you can see at a glance which topics are strong and which are thin; Category Drift Detection uses AI to identify categories that have become catch-all buckets for loosely related content, with specific suggestions for where to move each post; and Migrate Categories lets you retire thin or redundant categories entirely by reassigning their posts to better ones and deleting the empty category — all in one workflow.</p>
+<div style="margin:56px 0 0;">
+<h2 style="font-size:2em;font-weight:800;color:#0f172a;padding:0 0 16px;border-bottom:3px solid #0e6b8f;margin:0 0 8px;letter-spacing:-0.01em;background:transparent;" id="catfix">🏷 Categories</h2>
+<p style="color:#475569;font-size:1.05em;margin:10px 0 32px;">Your category structure is more important for SEO than most WordPress site owners realise. Google uses categories as a signal for topical authority. If a category contains a jumbled mix of unrelated posts, it tells Google your site lacks focus on that topic. The Categories tab gives you four tools to fix this: the Category Fixer scans every post and tells you if it's in the wrong category; the Category Health dashboard grades each category based on post count and recency so you can see at a glance which topics are strong and which are thin; Category Drift Detection uses AI to identify categories that have become catch-all buckets for loosely related content, with specific suggestions for where to move each post; and Migrate Categories lets you retire thin or redundant categories entirely by reassigning their posts to better ones and deleting the empty category — all in one workflow.</p>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-catfix">Category Fixer</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-catfix-8.jpg" alt="Category Fixer" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-catfix"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>Category Fixer</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-catfix-14.jpg" alt="Category Fixer" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>Imagine a filing cabinet where half the folders have the wrong documents in them. That's what a miscategorised WordPress site looks like to Google. When a blog post about AWS Lambda is filed under "Personal" instead of "Cloud Computing", Google gets a confused signal about what topics each section of your site covers, which weakens your topical authority across the board. Google rewards sites that demonstrate consistent expertise in a topic, and consistent categorisation is a fundamental part of that signal.</p>
 <p>The <strong>Category Fixer</strong> audits every published post on your site and compares its content to its current category assignment. It uses keyword scoring to identify mismatches and can also use your configured AI provider for more nuanced analysis of ambiguous cases. The result is a prioritised list of suggested recategorisations. Review each one and decide whether to apply it.</p>
 <p><strong>How to use it:</strong></p>
@@ -547,12 +477,12 @@
 <p><strong>Filter tabs</strong> at the top let you narrow the view to: All posts, Changed (suggestions pending), Unchanged (post is already well-categorised), Low-confidence (suggestions the algorithm is less certain about), and Uncategorised (posts with no category at all, which should be addressed first).</p>
 <p>The <strong>🤖 AI Analyse</strong> button sends the selected posts to your AI provider for a deeper, semantic analysis. Use this for posts where keyword scoring produces a suggestion you're not sure about, or for posts that cover multiple topics and need a human-plus-AI judgment call.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-cathealth">Category Health</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-cathealth-8.jpg" alt="Category Health" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-cathealth"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>Category Health</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-cathealth-11.jpg" alt="Category Health" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>Not all categories are created equal. A category with 25 posts about AWS architecture sends a strong topical signal to Google. A category with one post from 2021 that was never followed up sends essentially no signal at all, and it wastes crawl budget. Google allocates a limited amount of crawl budget to each site, and spending some of it on thin, empty category pages is a wasted opportunity to get your actual content crawled more frequently.</p>
 <p>The <strong>Category Health Dashboard</strong> gives you an at-a-glance quality grade for every category on your site, so you can see immediately which categories are working for you and which ones are dragging down your topical authority. The grading is based on post count and recency. A category you stopped writing about three years ago signals to Google that your site has abandoned that topic.</p>
 <p><strong>Health grades and what to do about each:</strong></p>
@@ -566,12 +496,12 @@
 </ul>
 <p>Click any grade badge at the top of the table to filter the view. Click <strong>▼ Show posts</strong> in any row to see which posts belong to that category, useful when deciding whether to merge or delete a weak category.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-catdrift">Category Drift Detection</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-catdrift-8.jpg" alt="Category Drift Detection" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-catdrift"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>Category Drift Detection</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-catdrift-11.jpg" alt="Category Drift Detection" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>Over time, a category that started with a clear focus can quietly drift into something much less coherent. A "Technology" category that began with cloud computing posts might now contain posts about personal productivity, book reviews, and hardware reviews, because they're all vaguely "tech". This kind of category drift is one of the most common reasons sites fail to rank well for their core topics. Google reads the aggregate of everything in a category to understand what that section of your site is about, and a catch-all category produces a confused, diluted signal.</p>
 <p><strong>Category Drift Detection</strong> uses AI to do what's hard to see manually: read the titles of all the posts in each category and identify when they've stopped talking about the same topic. It flags categories that have become catch-alls and gives you specific recommendations for which posts to move where, so you can restore topical coherence to your category structure.</p>
 <p><strong>How to use it:</strong></p>
@@ -591,12 +521,12 @@
 </ol>
 <p>Moves are applied immediately to the post's WordPress category assignments. The analysis cache is updated after each move so the displayed state always reflects the current situation.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-catmig">🔄 Migrate Categories</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-catmig-5.jpg" alt="🔄 Migrate Categories" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-catmig"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>🔄 Migrate Categories</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-catmig-14.jpg" alt="🔄 Migrate Categories" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>Over time, most WordPress sites accumulate categories that have grown thin: a category you tried once with three posts, a duplicate of something already covered elsewhere, or a topic that never had enough content to build real topical authority. These thin categories dilute your site's authority signal. Google sees a category with two or three posts and concludes you're not a serious resource on that topic.</p>
 <p>The <strong>Migrate Categories</strong> panel lets you retire weak categories cleanly. Instead of manually reassigning each post and then hunting down the empty category to delete it, this panel does everything in one place: shows you all the candidates for retirement (sorted by fewest posts first), lets you choose what to do with each post, and then deletes the empty category when you're done.</p>
 <p><strong>How to use it:</strong></p>
@@ -615,17 +545,17 @@
 <p>Click <strong>← Back to Categories</strong> to return to the category list and start working on a different category. The category list refreshes automatically so already-emptied categories disappear from the list.</p>
 <p><strong>When to use this panel:</strong> Run the <strong>Category Health</strong> panel first to identify your weakest categories (grade D or F with very few posts). Those are the prime candidates to migrate. Cross-reference with <strong>Category Drift Detection</strong> to see whether a low-count category is better merged into an adjacent topic rather than deleted outright. Migrate Categories is the execution step — use it after you've decided which categories to retire.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 </div>
 
-<div class="cs-tab-section">
-<h2 class="cs-tab-heading" id="batch">🔄 Scheduled Batch</h2>
-<p class="cs-tab-intro">Most AI generation tasks in this plugin are triggered manually: you click a button and it runs. The Scheduled Batch tab automates this so new posts that haven't been processed yet get picked up automatically on a schedule. Enable it, choose whether to generate missing meta descriptions, summaries, or SEO scores on each run, and set a frequency. The batch processor only fills in missing content. It will never overwrite descriptions or summaries you've already written. Check the Last Run Log after each run to confirm it's working and see exactly what was processed.</p>
+<div style="margin:56px 0 0;">
+<h2 style="font-size:2em;font-weight:800;color:#0f172a;padding:0 0 16px;border-bottom:3px solid #0e6b8f;margin:0 0 8px;letter-spacing:-0.01em;background:transparent;" id="batch">🔄 Scheduled Batch</h2>
+<p style="color:#475569;font-size:1.05em;margin:10px 0 32px;">Most AI generation tasks in this plugin are triggered manually: you click a button and it runs. The Scheduled Batch tab automates this so new posts that haven't been processed yet get picked up automatically on a schedule. Enable it, choose whether to generate missing meta descriptions, summaries, or SEO scores on each run, and set a frequency. The batch processor only fills in missing content. It will never overwrite descriptions or summaries you've already written. Check the Last Run Log after each run to confirm it's working and see exactly what was processed.</p>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-schedule">Batch Schedule</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-schedule-11.jpg" alt="Batch Schedule" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-schedule"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>Batch Schedule</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-schedule-21.jpg" alt="Batch Schedule" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>The AI generation tools in the AI Tools tab are all manually triggered: you click a button and they run. That works for a one-time audit of your existing content, but what about the post you publish next week, or the week after? Without automation, every new post needs a manual visit to the admin to generate its meta description, ALT text, and summary. The <strong>Scheduled Batch</strong> solves this by running a background job on a schedule, automatically filling in AI content for any posts that don't have it yet.</p>
 <p>The batch processor is designed to be safe and non-destructive: it only creates content where none exists. It will never overwrite a meta description you've written manually, a summary that was generated last week, or an SEO score from the previous run. If you want to force-regenerate content, use the individual bulk tools in the AI Tools tab. The batch processor's job is to catch anything that slips through: new posts, posts that failed during a previous run, or posts that existed before you installed the plugin.</p>
 <ul>
@@ -637,12 +567,12 @@
 </ul>
 <p><strong>A note on WordPress Cron:</strong> WordPress's built-in cron system runs when a visitor loads a page on your site. It doesn't run on a true server-side schedule. If your site has very low overnight traffic, a scheduled "Daily" job might not run until the first visitor the next morning. For sites that need precise scheduling, set up a real server cron job (via cPanel, Linux crontab, or your hosting control panel) to call <code>wp-cron.php</code> on your preferred schedule. This is a one-time server configuration that makes WordPress Cron behave like a real scheduler.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 
-<div class="cs-panel-section">
-<h3 class="cs-panel-heading" id="ab-card-lastrun">Last Run Log</h3>
-<figure class="cs-screenshot"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-lastrun-8.jpg" alt="Last Run Log" /></figure>
-<div class="cs-panel-body">
+<div style="margin:36px 0 0;">
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="ab-card-lastrun"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>Last Run Log</h3>
+<figure style="margin:20px 0 24px;"><img src="https://andrewbaker.ninja/wp-content/uploads/2026/04/panel-lastrun-11.jpg" alt="Last Run Log" style="max-width:100%;border-radius:8px;border:1px solid #d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.10);display:block;" /></figure>
+<div style="color:#334155;">
 <p>After enabling the Scheduled Batch, how do you know it's actually running? The <strong>Last Run Log</strong> is your confirmation. After each batch run, the plugin records exactly what it did: how many posts it checked, how many descriptions it wrote, how many summaries it created, how many SEO scores it calculated, and whether any posts failed. Check this log periodically to confirm the automation is working and to catch any recurring errors.</p>
 <ul>
 <li><strong>Run date/time</strong>: When the most recent batch ran. If this is more than 24 hours ago and you have "Daily" frequency enabled, the batch may not be running. Check that WordPress Cron is functioning (see the note about WordPress Cron in the Batch Schedule section above).</li>
@@ -661,31 +591,31 @@
 </ul>
 <p>Click <strong>Run Now</strong> to trigger a manual batch run immediately, useful for testing that the batch is configured correctly or to process a batch outside its scheduled time after making changes.</p></div>
 </div>
-<hr class="cs-divider"/>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>
 </div>
 
-<div class="cs-glossary" id="glossary">
-<h2>Glossary of terms</h2>
-<dl>
-<dt>AEO</dt><dd>Answer Engine Optimisation. The practice of structuring content so it is understood and surfaced by AI-powered answer engines such as Google's AI Overviews, Perplexity, and ChatGPT Browse, as well as traditional search engines.</dd>
-<dt>API</dt><dd>Application Programming Interface. A standard way for software to communicate with another service. In this plugin, you supply an API key so WordPress can send requests to Anthropic Claude or Google Gemini to generate content.</dd>
-<dt>ALT text</dt><dd>Alternative text. A written description of an image, stored in the HTML <code>alt</code> attribute. Read by screen readers for accessibility and used by search engines to understand image content.</dd>
-<dt>Canonical URL</dt><dd>The preferred URL for a page when multiple URLs could serve the same content. Set via <code>&lt;link rel="canonical" href="..."&gt;</code> to tell search engines which version to index.</dd>
-<dt>CDN</dt><dd>Content Delivery Network. A globally distributed network of servers that delivers files (e.g. fonts, images, scripts) to visitors from the closest physical location, reducing load time.</dd>
-<dt>CSS</dt><dd>Cascading Style Sheets. The language that controls the visual appearance of web pages.</dd>
-<dt>E-E-A-T</dt><dd>Experience, Expertise, Authoritativeness, Trustworthiness. Google's quality evaluation framework for web content. Person schema and author information contribute to E-E-A-T signals.</dd>
-<dt>GDPR</dt><dd>General Data Protection Regulation. EU privacy law requiring disclosure and often consent for processing personal data, including IP addresses sent to third-party services such as Google Fonts CDN.</dd>
-<dt>JSON-LD</dt><dd>JavaScript Object Notation for Linked Data. A format for embedding structured data in a web page. Google reads JSON-LD to understand page type, author, organisation, and content, enabling rich search results.</dd>
-<dt>JS</dt><dd>JavaScript. The programming language that runs in web browsers. Deferring JS improves page load speed.</dd>
-<dt>LCP</dt><dd>Largest Contentful Paint. A Core Web Vitals metric measuring how long it takes the largest visible element (usually an image or heading) to appear. Google uses LCP as a ranking factor.</dd>
-<dt>llms.txt</dt><dd>A plain-text file at <code>/llms.txt</code> that provides a structured summary of your website for AI language models. Analogous to <code>robots.txt</code> but for AI systems.</dd>
-<dt>noindex</dt><dd>A directive in the <code>&lt;meta name="robots"&gt;</code> tag that tells search engines not to include a page in their index. The page can still be crawled but will not appear in search results.</dd>
-<dt>OG / OpenGraph</dt><dd>OpenGraph. A protocol developed by Facebook that standardises how web pages are represented when shared on social media. OG tags control the title, description, and image shown in social previews.</dd>
-<dt>SEO</dt><dd>Search Engine Optimisation. The practice of improving a website's visibility in organic (unpaid) search engine results.</dd>
-<dt>Schema / Structured Data</dt><dd>Machine-readable data embedded in a web page (using formats like JSON-LD) that tells search engines what a page is about: its type, author, publication date, and so on. Can enable rich results in Google Search.</dd>
-<dt>TTI</dt><dd>Time to Interactive. A performance metric measuring how long until a page is fully interactive. Deferring JavaScript improves TTI.</dd>
-<dt>UTM</dt><dd>Urchin Tracking Module. Parameters appended to URLs for marketing analytics (e.g. <code>?utm_source=newsletter</code>). Should be stripped from canonical URLs to prevent duplicate content.</dd>
-<dt>XML</dt><dd>eXtensible Markup Language. The format used for sitemaps. An XML sitemap is a structured list of URLs that search engines can parse to discover your content.</dd>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:28px 36px;margin-top:40px;" id="glossary">
+<h2 style="font-size:1.8em;font-weight:800;color:#0f172a;margin:0 0 24px;background:transparent;">Glossary of terms</h2>
+<dl style="display:grid;grid-template-columns:max-content 1fr;gap:6px 24px;align-items:baseline;">
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">AEO</dt><dd style="margin:0;color:#475569;font-size:0.95em;">Answer Engine Optimisation. The practice of structuring content so it is understood and surfaced by AI-powered answer engines such as Google's AI Overviews, Perplexity, and ChatGPT Browse, as well as traditional search engines.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">API</dt><dd style="margin:0;color:#475569;font-size:0.95em;">Application Programming Interface. A standard way for software to communicate with another service. In this plugin, you supply an API key so WordPress can send requests to Anthropic Claude or Google Gemini to generate content.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">ALT text</dt><dd style="margin:0;color:#475569;font-size:0.95em;">Alternative text. A written description of an image, stored in the HTML <code>alt</code> attribute. Read by screen readers for accessibility and used by search engines to understand image content.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">Canonical URL</dt><dd style="margin:0;color:#475569;font-size:0.95em;">The preferred URL for a page when multiple URLs could serve the same content. Set via <code>&lt;link rel="canonical" href="..."&gt;</code> to tell search engines which version to index.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">CDN</dt><dd style="margin:0;color:#475569;font-size:0.95em;">Content Delivery Network. A globally distributed network of servers that delivers files (e.g. fonts, images, scripts) to visitors from the closest physical location, reducing load time.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">CSS</dt><dd style="margin:0;color:#475569;font-size:0.95em;">Cascading Style Sheets. The language that controls the visual appearance of web pages.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">E-E-A-T</dt><dd style="margin:0;color:#475569;font-size:0.95em;">Experience, Expertise, Authoritativeness, Trustworthiness. Google's quality evaluation framework for web content. Person schema and author information contribute to E-E-A-T signals.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">GDPR</dt><dd style="margin:0;color:#475569;font-size:0.95em;">General Data Protection Regulation. EU privacy law requiring disclosure and often consent for processing personal data, including IP addresses sent to third-party services such as Google Fonts CDN.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">JSON-LD</dt><dd style="margin:0;color:#475569;font-size:0.95em;">JavaScript Object Notation for Linked Data. A format for embedding structured data in a web page. Google reads JSON-LD to understand page type, author, organisation, and content, enabling rich search results.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">JS</dt><dd style="margin:0;color:#475569;font-size:0.95em;">JavaScript. The programming language that runs in web browsers. Deferring JS improves page load speed.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">LCP</dt><dd style="margin:0;color:#475569;font-size:0.95em;">Largest Contentful Paint. A Core Web Vitals metric measuring how long it takes the largest visible element (usually an image or heading) to appear. Google uses LCP as a ranking factor.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">llms.txt</dt><dd style="margin:0;color:#475569;font-size:0.95em;">A plain-text file at <code>/llms.txt</code> that provides a structured summary of your website for AI language models. Analogous to <code>robots.txt</code> but for AI systems.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">noindex</dt><dd style="margin:0;color:#475569;font-size:0.95em;">A directive in the <code>&lt;meta name="robots"&gt;</code> tag that tells search engines not to include a page in their index. The page can still be crawled but will not appear in search results.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">OG / OpenGraph</dt><dd style="margin:0;color:#475569;font-size:0.95em;">OpenGraph. A protocol developed by Facebook that standardises how web pages are represented when shared on social media. OG tags control the title, description, and image shown in social previews.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">SEO</dt><dd style="margin:0;color:#475569;font-size:0.95em;">Search Engine Optimisation. The practice of improving a website's visibility in organic (unpaid) search engine results.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">Schema / Structured Data</dt><dd style="margin:0;color:#475569;font-size:0.95em;">Machine-readable data embedded in a web page (using formats like JSON-LD) that tells search engines what a page is about: its type, author, publication date, and so on. Can enable rich results in Google Search.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">TTI</dt><dd style="margin:0;color:#475569;font-size:0.95em;">Time to Interactive. A performance metric measuring how long until a page is fully interactive. Deferring JavaScript improves TTI.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">UTM</dt><dd style="margin:0;color:#475569;font-size:0.95em;">Urchin Tracking Module. Parameters appended to URLs for marketing analytics (e.g. <code>?utm_source=newsletter</code>). Should be stripped from canonical URLs to prevent duplicate content.</dd>
+<dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">XML</dt><dd style="margin:0;color:#475569;font-size:0.95em;">eXtensible Markup Language. The format used for sitemaps. An XML sitemap is a structured list of URLs that search engines can parse to discover your content.</dd>
 </dl>
 </div>
 

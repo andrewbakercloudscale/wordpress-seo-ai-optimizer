@@ -33,6 +33,8 @@ trait CS_SEO_Settings_Assets {
 .ab-tab[data-tab="imgseo"].active { background:#5b21b6; color:#fff; }
 .ab-zone-card.ab-card-blc       .ab-zone-header { background:#0e6b8c; }
 .ab-zone-card.ab-card-imgseo    .ab-zone-header { background:#5b21b6; }
+.ab-tab[data-tab="siteaudit"].active { background:#0f172a; color:#86efac; }
+.ab-zone-card.ab-card-siteaudit .ab-zone-header { background:#0f172a; }
 .ab-tab[data-tab="titleopt"].active { background:#0e6b5e; color:#fff; }
 .ab-zone-card.ab-card-titleopt  .ab-zone-header { background:#0e6b5e; }
 .ab-sort-active { background:#2271b1 !important; color:#fff !important; border-color:#2271b1 !important; }
@@ -93,6 +95,7 @@ table.ab-posts tr:hover td { background:#f6f7f7; }
 .ab-summary-lbl  { font-size:11px; color:#50575e; margin-top:4px; }
 .ab-zone-card { border-radius:8px; overflow:hidden; box-shadow:0 6px 28px rgba(30,100,200,0.55), 0 2px 8px rgba(30,100,200,0.35); margin:24px 0 0; }
 .ab-zone-header { display:flex; align-items:center; gap:10px; padding:13px 20px; font-size:15px; font-weight:700; color:#fff; letter-spacing:0.01em; }
+.ab-zone-header .ab-toggle-card-btn, .ab-zone-header .ab-explain-btn { display:inline-flex !important; align-items:center !important; height:30px !important; min-height:0 !important; padding:0 12px !important; line-height:1 !important; font-size:12px !important; font-weight:600 !important; box-sizing:border-box !important; vertical-align:middle; }
 .ab-zone-header .ab-zone-icon { font-size:17px; }
 .ab-zone-body { background:#f4f5f7; padding:4px 0 20px; }
 .ab-zone-body .form-table th { padding-left:20px; }
@@ -168,7 +171,7 @@ table.ab-sitemap-tbl tr:nth-child(even):hover td { background:#e8f0fa; }
 #cs-robots-txt, textarea[name="cs_seo_options[sitemap_exclude]"] { background:#1a1a2e !important; color:#e0e0f0 !important; font-family:'Courier New',monospace !important; font-size:12px !important; line-height:1.6 !important; border:1px solid #2a2a4a !important; border-radius:4px !important; }
 textarea[name="cs_seo_options[home_desc]"], textarea[name="cs_seo_options[default_desc]"], textarea[name="cs_seo_options[sameas]"] { color:#1d2327 !important; }
 .ab-zone-body p.description, .ab-zone-body .description { color:#555 !important; font-style:italic !important; font-size:12px !important; padding-left:8px !important; margin-top:4px !important; border-left:3px solid #ddd !important; }
-.ab-zone-body input::placeholder { color:#ccc !important; opacity:1 !important; }
+.ab-zone-body input::placeholder, .ab-zone-body textarea::placeholder { color:#bbb !important; opacity:1 !important; font-style:italic !important; }
 .ab-zone-body .form-table th, .ab-zone-body .form-table th label { font-weight:700 !important; color:#1d2327 !important; }
 .ab-api-key-warning { display:none; align-items:flex-start; gap:12px; background:#fff8e1; border:2px solid #f0ad00; border-radius:6px; padding:14px 18px; margin:0 0 16px; }
 .ab-api-key-warning.visible { display:flex; }

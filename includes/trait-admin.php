@@ -346,7 +346,7 @@ trait CS_SEO_Admin {
         <button type="button" id="<?php echo esc_attr($btn_id); ?>"
             class="ab-explain-btn"
             data-modal-id="<?php echo esc_attr($modal_id); ?>"
-            style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;font-size:12px;font-weight:600;padding:5px 14px;cursor:pointer">
+            style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:5px;color:#fff;cursor:pointer">
             Explain...
         </button>
         <div id="<?php echo esc_attr($modal_id); ?>" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:16px">
@@ -706,13 +706,13 @@ trait CS_SEO_Admin {
         if ($now_sitemap !== $was_sitemap || $now_llms !== $was_llms) {
             add_action('shutdown', 'flush_rewrite_rules');
         }
-        foreach (['site_name','site_lang','title_suffix','home_title','twitter_handle','person_name','person_job_title','target_audience','writing_tone'] as $k) {
+        foreach (['site_name','site_lang','title_suffix','home_title','twitter_handle','person_name','person_job_title','works_for_name','target_audience','writing_tone'] as $k) {
             $out[$k] = sanitize_text_field(array_key_exists($k, $in) ? (string)$in[$k] : (string)($existing[$k] ?? $d[$k]));
         }
-        foreach (['home_desc','default_desc','sameas','robots_txt','sitemap_exclude','defer_js_excludes'] as $k) {
+        foreach (['home_desc','default_desc','sameas','knows_about','robots_txt','sitemap_exclude','defer_js_excludes'] as $k) {
             $out[$k] = sanitize_textarea_field(array_key_exists($k, $in) ? (string)$in[$k] : (string)($existing[$k] ?? $d[$k]));
         }
-        foreach (['default_og_image','person_url','person_image'] as $k) {
+        foreach (['default_og_image','person_url','person_image','works_for_url'] as $k) {
             $out[$k] = esc_url_raw(array_key_exists($k, $in) ? (string)$in[$k] : (string)($existing[$k] ?? $d[$k]));
         }
         foreach ([

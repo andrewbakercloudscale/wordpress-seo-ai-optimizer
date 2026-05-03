@@ -605,7 +605,7 @@ function buildHtml(imageMap) {
         const docText = DOCS[panel.cardClass] || `<p>${panel.label}</p>`;
         return `
 <div style="margin:36px 0 0;">
-<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;" id="${panel.cardClass}"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>${panel.label}</h3>
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="${panel.cardClass}"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>${panel.label}</h3>
 ${img(panel.file, panel.label)}
 <div style="color:#334155;">${docText}</div>
 </div>`;
@@ -614,7 +614,7 @@ ${img(panel.file, panel.label)}
     // Text-only sections (no screenshot — panel hidden until API key is configured)
     const textSection = (id, title, docText) => `
 <div style="margin:36px 0 0;background:#fafafa;border:1px solid #e5e7eb;border-radius:8px;padding:24px 28px;">
-<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;" id="${id}"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>${title}</h3>
+<h3 style="font-size:1.45em;font-weight:700;color:#1e293b;margin:0 0 16px;padding:0 0 10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:transparent;" id="${id}"><span style="display:inline-block;width:4px;height:1.2em;background:#0e6b8f;border-radius:2px;flex-shrink:0;"></span>${title}</h3>
 <div style="color:#334155;">${docText}
 <p style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px 14px;font-size:0.92em;color:#92400e;margin-top:16px;"><strong>Note:</strong> this panel only appears once an AI API key has been saved in the AI Settings panel above.</p>
 </div>
@@ -733,7 +733,7 @@ ${img(panel.file, panel.label)}
 `;
 
     for (const [tabKey, panels] of Object.entries(panelsByTab)) {
-        body += `\n<div style="margin:56px 0 0;">\n<h2 style="font-size:2em;font-weight:800;color:#0f172a;padding:0 0 16px;border-bottom:3px solid #0e6b8f;margin:0 0 8px;letter-spacing:-0.01em;" id="${tabKey}">${TAB_TITLES[tabKey] || tabKey}</h2>\n<p style="color:#475569;font-size:1.05em;margin:10px 0 32px;">${TAB_INTROS[tabKey] || ''}</p>\n`;
+        body += `\n<div style="margin:56px 0 0;">\n<h2 style="font-size:2em;font-weight:800;color:#0f172a;padding:0 0 16px;border-bottom:3px solid #0e6b8f;margin:0 0 8px;letter-spacing:-0.01em;background:transparent;" id="${tabKey}">${TAB_TITLES[tabKey] || tabKey}</h2>\n<p style="color:#475569;font-size:1.05em;margin:10px 0 32px;">${TAB_INTROS[tabKey] || ''}</p>\n`;
         for (const p of panels) {
             body += section(p);
             body += '\n<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0;"/>\n';
@@ -749,7 +749,7 @@ ${img(panel.file, panel.label)}
     // Glossary
     body += `
 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:28px 36px;margin-top:40px;" id="glossary">
-<h2 style="font-size:1.8em;font-weight:800;color:#0f172a;margin:0 0 24px;">Glossary of terms</h2>
+<h2 style="font-size:1.8em;font-weight:800;color:#0f172a;margin:0 0 24px;background:transparent;">Glossary of terms</h2>
 <dl style="display:grid;grid-template-columns:max-content 1fr;gap:6px 24px;align-items:baseline;">
 <dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">AEO</dt><dd style="margin:0;color:#475569;font-size:0.95em;">Answer Engine Optimisation. The practice of structuring content so it is understood and surfaced by AI-powered answer engines such as Google's AI Overviews, Perplexity, and ChatGPT Browse, as well as traditional search engines.</dd>
 <dt style="font-weight:700;color:#0e6b8f;font-size:0.95em;">API</dt><dd style="margin:0;color:#475569;font-size:0.95em;">Application Programming Interface. A standard way for software to communicate with another service. In this plugin, you supply an API key so WordPress can send requests to Anthropic Claude or Google Gemini to generate content.</dd>
@@ -929,6 +929,11 @@ ${img(panel.file, panel.label)}
     // Update the local file with live URLs too
     const finalHtml = `<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="UTF-8"><title>CloudScale SEO AI Optimizer — Help</title></head>\n<body>\n${finalContent}\n</body>\n</html>`;
     fs.writeFileSync(localPath, finalHtml, 'utf8');
+
+    // Validate links before publishing
+    console.log('\nValidating links before publish...');
+    const { checkLinks } = require('/Users/cp363412/Desktop/github/shared-help-docs/help-lib.js');
+    await checkLinks(finalContent);
 
     // Find or create the parent page, then publish child under it
     console.log('\nSetting up parent page...');

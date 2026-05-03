@@ -490,7 +490,7 @@ trait CS_SEO_Auto_Pipeline {
     /**
      * Step 6 — AEO (Answer Engine Optimisation) answer paragraph.
      *
-     * @since 4.20.87
+     * @since 4.20.93
      * @param int $post_id Post ID.
      * @return void
      */

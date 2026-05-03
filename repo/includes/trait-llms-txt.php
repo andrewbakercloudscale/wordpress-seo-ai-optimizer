@@ -23,6 +23,12 @@ trait CS_SEO_LLMS_Txt {
         add_rewrite_rule('^llms\.txt$', 'index.php?cs_seo_llms=1', 'top');
         add_rewrite_tag('%cs_seo_llms%', '1');
         add_action('template_redirect', [$this, 'maybe_render_llms_txt']);
+        // Self-heal: if the stored rewrite rules don't yet include the llms.txt rule,
+        // flush on shutdown so the next request works without manual Permalinks save.
+        $stored = get_option('rewrite_rules', []);
+        if (!isset($stored['^llms\\.txt$'])) {
+            add_action('shutdown', 'flush_rewrite_rules');
+        }
     }
 
     /**

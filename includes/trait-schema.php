@@ -87,6 +87,11 @@ trait CS_SEO_Schema {
         $sameAs = array_values(array_filter(
             array_map('trim', (array) preg_split('/\r\n|\r|\n/', (string) $this->opts['sameas']))
         ));
+        $tw = ltrim(trim((string) ($this->opts['twitter_handle'] ?? '')), '@');
+        if ($tw) {
+            $tw_url = 'https://twitter.com/' . $tw;
+            if (!in_array($tw_url, $sameAs, true)) $sameAs[] = $tw_url;
+        }
         $s = [
             '@context' => 'https://schema.org',
             '@type'    => 'Person',
@@ -97,6 +102,16 @@ trait CS_SEO_Schema {
         if ($sameAs) $s['sameAs'] = $sameAs;
         $img = trim((string) $this->opts['person_image']);
         if ($img) $s['image'] = $img;
+        $wfn = trim((string) ($this->opts['works_for_name'] ?? ''));
+        if ($wfn) {
+            $wfu = trim((string) ($this->opts['works_for_url'] ?? ''));
+            $s['worksFor'] = array_filter(['@type' => 'Organization', 'name' => $wfn, 'url' => $wfu ?: null]);
+        }
+        $ka_raw = trim((string) ($this->opts['knows_about'] ?? ''));
+        if ($ka_raw) {
+            $ka = array_values(array_filter(array_map('trim', explode("\n", $ka_raw))));
+            if ($ka) $s['knowsAbout'] = $ka;
+        }
         return $s;
     }
 
@@ -126,9 +141,9 @@ trait CS_SEO_Schema {
                 'url'   => (string) $this->opts['person_url'],
             ],
             'publisher' => [
-                '@type' => 'Person',
-                'name'  => (string) $this->opts['person_name'],
-                'url'   => (string) $this->opts['person_url'],
+                '@type' => 'Organization',
+                'name'  => (string) $this->opts['site_name'],
+                'url'   => home_url('/'),
             ],
             'wordCount'    => $word_count,
             'timeRequired' => 'PT' . $mins . 'M',
