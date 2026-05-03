@@ -150,7 +150,9 @@ trait CS_SEO_Redirects {
             ? (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH )
             : '';
 
-        if ( ! is_404() ) return;
+        // Fire for any path with a configured redirect — not just 404s.
+        // Slug-change redirects also benefit from this: if a page was recreated at the old slug, the redirect still fires.
+        if ( is_admin() || wp_doing_ajax() ) return;
 
         $redirects = get_option( 'cs_seo_redirects', [] );
         if ( empty( $redirects ) ) return;
