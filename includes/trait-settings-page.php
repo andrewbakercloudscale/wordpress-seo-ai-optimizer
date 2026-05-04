@@ -73,7 +73,7 @@ trait CS_SEO_Settings_Page {
             letter-spacing:0.03em;
             transition:filter 0.15s, transform 0.15s;
         " class="cs-settings-link">
-            <span style="font-size:15px">📖</span> Help &amp; Documentation
+            <span style="font-size:15px">📖</span> Help
         </a>
 
         <?php /* ── TAB NAV ── */ ?>

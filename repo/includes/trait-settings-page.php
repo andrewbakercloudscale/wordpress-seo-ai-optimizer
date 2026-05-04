@@ -73,15 +73,16 @@ trait CS_SEO_Settings_Page {
             letter-spacing:0.03em;
             transition:filter 0.15s, transform 0.15s;
         " class="cs-settings-link">
-            <span style="font-size:15px">📖</span> Help &amp; Documentation
+            <span style="font-size:15px">📖</span> Help
         </a>
 
         <?php /* ── TAB NAV ── */ ?>
 
         <div class="ab-tabs">
-            <button class="ab-tab active" data-tab="seo">📊 <?php esc_html_e( 'Optimise SEO', 'cloudscale-seo-ai-optimizer' ); ?></button>
-            <button class="ab-tab"        data-tab="aitools">✨ <?php esc_html_e( 'AI Tools', 'cloudscale-seo-ai-optimizer' ); ?></button>
-            <button class="ab-tab"        data-tab="sitemap">🗺 <?php esc_html_e( 'Sitemap, Robots &amp; Redirects', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab active" data-tab="seo">⚙ <?php esc_html_e( 'Settings', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="siteaudit">🔍 <?php esc_html_e( 'Site Audit', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="aitools">✨ <?php esc_html_e( 'AI Content', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab"        data-tab="sitemap">🗺 <?php esc_html_e( 'Technical SEO', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="perf">⚡ <?php esc_html_e( 'Performance', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="catfix">🏷 <?php esc_html_e( 'Categories', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="batch">🔄 <?php esc_html_e( 'Scheduled Batch', 'cloudscale-seo-ai-optimizer' ); ?></button>
@@ -206,9 +207,32 @@ trait CS_SEO_Settings_Page {
                     </tr>
                     <tr><th><?php esc_html_e( 'SameAs URLs (one per line):', 'cloudscale-seo-ai-optimizer' ); ?></th>
                         <td colspan="3">
-                            <textarea class="large-text" rows="4" name="<?php echo esc_attr(self::OPT); ?>[sameas]" placeholder="https://www.linkedin.com/in/yourname&#10;https://twitter.com/yourhandle&#10;https://github.com/yourname"><?php echo esc_textarea($o['sameas']); ?></textarea>
-                            <p class="description">Your profiles on other platforms — one URL per line. Helps Google connect your identity across the web.</p>
+                            <textarea class="large-text" rows="4" name="<?php echo esc_attr(self::OPT); ?>[sameas]" placeholder="e.g. https://www.linkedin.com/in/yourname&#10;e.g. https://x.com/yourhandle&#10;e.g. https://github.com/yourname"><?php echo esc_textarea($o['sameas']); ?></textarea>
+                            <p class="description">Your profiles on other platforms — one URL per line. Twitter/X is auto-added from the handle above. Helps Google connect your identity across the web.</p>
+                            <?php
+                            $tw_handle = trim( ltrim( (string) ( $o['twitter_handle'] ?? '' ), '@' ) );
+                            $sameas_val = (string) ( $o['sameas'] ?? '' );
+                            $tw_missing = $tw_handle && ! str_contains( $sameas_val, 'twitter.com' ) && ! str_contains( $sameas_val, 'x.com' );
+                            if ( $tw_missing ) :
+                                $tw_url = 'https://x.com/' . esc_attr( $tw_handle );
+                            ?>
+                            <p style="color:#d97706;font-size:12px;margin:4px 0 0;font-weight:500">⚠ Hint: Twitter/X URL missing — add <code style="color:#d97706"><?php echo esc_html( $tw_url ); ?></code></p>
+                            <?php endif; ?>
                         </td></tr>
+                    <tr>
+                        <th><label for="cs_seo_works_for_name">Employer / organisation:</label></th>
+                        <td><input id="cs_seo_works_for_name" class="regular-text" name="<?php echo esc_attr(self::OPT); ?>[works_for_name]" value="<?php echo esc_attr((string)($o['works_for_name'] ?? '')); ?>" placeholder="Acme Corp">
+                        <p class="description">Organisation you work for (adds <code>worksFor</code> to Person schema).</p></td>
+                        <th><label for="cs_seo_works_for_url">Employer URL:</label></th>
+                        <td><input id="cs_seo_works_for_url" class="regular-text" name="<?php echo esc_attr(self::OPT); ?>[works_for_url]" value="<?php echo esc_attr((string)($o['works_for_url'] ?? '')); ?>" placeholder="https://acmecorp.com">
+                        <p class="description">Homepage of the organisation (optional).</p></td>
+                    </tr>
+                    <tr><th><label for="cs_seo_knows_about">knowsAbout topics:</label></th>
+                        <td colspan="3">
+                            <textarea id="cs_seo_knows_about" class="large-text" rows="4" name="<?php echo esc_attr(self::OPT); ?>[knows_about]" placeholder="e.g. Cloud computing&#10;e.g. Cybersecurity&#10;e.g. WordPress development"><?php echo esc_textarea((string)($o['knows_about'] ?? '')); ?></textarea>
+                            <p class="description">Your areas of expertise — one topic per line. Added to Person schema as <code>knowsAbout</code> array. Strengthens topical authority and E-E-A-T signals.</p>
+                        </td>
+                    </tr>
                 </table>
                 <div style="margin-top:16px;padding:0 20px;"><?php submit_button( __( 'Save SEO Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
                 </div>
@@ -381,6 +405,27 @@ trait CS_SEO_Settings_Page {
         <?php /* ══════════════════ AI TOOLS PANE ══════════════════ */ ?>
         <div class="ab-pane" id="ab-pane-aitools">
 
+            <?php /* ── Auto Pipeline status hero ── */
+            $pipeline_on = (int)($ai['auto_run_enabled'] ?? 0);
+            if ( $pipeline_on ) : ?>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #22c55e;border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <span style="font-size:22px">⚡</span>
+                <div style="flex:1;min-width:200px;">
+                    <strong style="color:#14532d;font-size:14px;"><?php esc_html_e( 'Auto Pipeline is active', 'cloudscale-seo-ai-optimizer' ); ?></strong>
+                    <p style="margin:2px 0 0;color:#166534;font-size:12px;"><?php esc_html_e( 'Every post you publish will automatically receive a meta description, ALT text, AI summary, and FAQ schema — no manual work required.', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                </div>
+            </div>
+            <?php else : ?>
+            <div style="background:#fefce8;border:1px solid #fde68a;border-left:4px solid #f59e0b;border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <span style="font-size:22px">💤</span>
+                <div style="flex:1;min-width:200px;">
+                    <strong style="color:#78350f;font-size:14px;"><?php esc_html_e( 'Auto Pipeline is off', 'cloudscale-seo-ai-optimizer' ); ?></strong>
+                    <p style="margin:2px 0 0;color:#92400e;font-size:12px;"><?php esc_html_e( 'Enable it below to automatically process every new post you publish — meta description, ALT text, summary box, and FAQ schema all generated in the background.', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                </div>
+                <a href="#ab-card-auto-pipeline" style="background:#f59e0b;color:#fff;border-radius:6px;padding:7px 16px;font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap;"><?php esc_html_e( '→ Enable it', 'cloudscale-seo-ai-optimizer' ); ?></a>
+            </div>
+            <?php endif; ?>
+
             <?php /* ── Auto Pipeline Card ── */ ?>
             <form method="post" action="options.php" style="margin-bottom:24px;">
                 <?php settings_fields('cs_seo_ai_group'); ?>
@@ -389,10 +434,11 @@ trait CS_SEO_Settings_Page {
                     <span><span class="ab-zone-icon">⚡</span> <?php esc_html_e( 'Auto Pipeline', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
                     <?php $this->explain_btn('auto_pipeline', '⚡ Auto Pipeline — How it works', [
-                        ['rec'=>'ℹ️ Info',         'name'=>'What it does',          'desc'=>'Automatically runs every AI operation — meta description, focus keyword, ALT text for attached images, internal link suggestions, AI summary box, Related Articles, and readability scoring — immediately when a post is published or updated. Each step runs in a background HTTP request so publish is never blocked.'],
+                        ['rec'=>'ℹ️ Info',         'name'=>'What it does',          'desc'=>'Automatically runs every AI operation — meta description, focus keyword, ALT text for attached images, internal link suggestions, AI summary box, FAQ schema, Related Articles, and readability scoring — immediately when a post is published or updated. Each step runs in a background HTTP request so publish is never blocked.'],
                         ['rec'=>'✅ Recommended',  'name'=>'Run on first publish',  'desc'=>'Triggers once when a post goes from any status to Published. Will not re-run on subsequent saves unless "Re-run on update" is also enabled. Prevents duplicate API calls on minor edits.'],
                         ['rec'=>'⬜ Optional',     'name'=>'Re-run on update',      'desc'=>'Re-triggers the full pipeline every time an already-published post is saved. Useful for keeping AI content fresh when you make major content changes. Each re-run replaces all previous AI-generated data for that post.'],
                         ['rec'=>'ℹ️ Info',         'name'=>'Minimum content',       'desc'=>'All AI steps silently skip if the post has fewer than 50 words. This prevents generating meaningless output for stubs, drafts accidentally published, or test posts.'],
+                        ['rec'=>'ℹ️ Info',         'name'=>'FAQ Schema (auto)',     'desc'=>'On every new post publish, the pipeline generates a FAQPage JSON-LD schema block and saves it to the post. This appears automatically in search results as expandable Q&A entries. Only runs if no schema already exists for the post and the content is at least 100 words.'],
                         ['rec'=>'ℹ️ Info',         'name'=>'Related Articles',      'desc'=>'Related Articles generation always runs synchronously on publish regardless of whether the Auto Pipeline toggle is enabled — it is purely local (no API calls) and fast enough to run inline.'],
                     ]); ?>
                     </span>
@@ -434,7 +480,7 @@ trait CS_SEO_Settings_Page {
                     <span><span class="ab-zone-icon">✦</span> <?php esc_html_e( 'Update Posts with AI Descriptions', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
                         <button class="button" id="ab-reload-hdr" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
-                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-update-posts" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
+                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-update-posts" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('updateposts', '✦ Update Posts — How this works', [
                         ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Writes the short text snippet that appears under your page title in Google search results — using AI to craft a compelling 140–155 character summary for each post.'],
                         ['rec'=>'ℹ️ Info','name'=>'Total Posts','desc'=>'The total number of published posts and pages on your site that are eligible for meta description generation.'],
@@ -451,10 +497,11 @@ trait CS_SEO_Settings_Page {
                         ['rec'=>'ℹ️ Info','name'=>'ALT Images column','desc'=>'Shows how many images in each post are still missing ALT text. ⚠ yellow means images need attention — generating the description will fix them automatically. ✓ green means all images have ALT text.'],
                         ['rec'=>'ℹ️ Info','name'=>'Title column','desc'=>'Shows the character count of each post\'s effective title tag (custom SEO title if set, otherwise the WordPress post title). Green = 50–60 chars (ideal). Amber = 40–69 chars (acceptable). Red = outside that range (too short or too long for Google). Hover the badge to see the full title text. Use Fix Titles to auto-fix all out-of-range titles in one pass.'],
                         ['rec'=>'ℹ️ Info','name'=>'SEO Score column','desc'=>'AI-generated score (0–100%) rating how well each article is optimised for search engine indexing. Considers: title keyword clarity, meta description quality, content depth and specificity, and search intent alignment. Score is generated automatically when you click Generate on a row, or run Score All. Click any badge to re-score that post. Green ≥ 75, Amber 50–74, Red < 50. Run time for Score All depends on your selected model — faster/cheaper models score more posts per minute than higher-quality ones.'],
+                        ['rec'=>'ℹ️ Info','name'=>'Schema column','desc'=>'Shows whether each post has a per-post JSON-LD schema block (FAQPage, HowTo, or custom). ✓ green = schema present and will be injected into the page head for Google to read. ✗ red = no schema. Use the SEO Site Audit → "✦ Generate FAQ with AI" quick fix to generate FAQ schema for your top posts in one click, or the Auto Pipeline generates it automatically on new publishes.'],
                     ]); ?>
                     </span>
                 </div>
-                <div class="ab-zone-body" style="padding:20px 24px 24px;display:none;">
+                <div class="ab-zone-body" style="padding:20px 24px 24px;">
 
                 <?php /* ── API key warning banner ── */ ?>
                 <div class="ab-api-key-warning" id="ab-api-warn">
@@ -510,6 +557,7 @@ trait CS_SEO_Settings_Page {
                 </div>
 
                 <?php /* ── Post table ── */ ?>
+                <div id="ab-cols-row" style="display:none;text-align:right;margin-bottom:6px"><button type="button" class="button" id="ab-extra-cols-btn" onclick="abToggleExtraCols()" style="font-size:11px">⊕ More columns</button></div>
                 <div id="ab-posts-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
                 <div class="ab-pager" id="ab-pager" style="display:none">
                     <button class="button" id="ab-prev">← Prev</button>
@@ -852,6 +900,11 @@ trait CS_SEO_Settings_Page {
 
         </div><!-- /ab-pane-aitools -->
 
+        <?php /* ══════════════════ SEO SITE AUDIT PANE ══════════════════ */ ?>
+        <div class="ab-pane" id="ab-pane-siteaudit">
+            <?php $this->render_seo_site_audit_pane(); ?>
+        </div><!-- /ab-pane-siteaudit -->
+
         <?php /* ══════════════════ SITEMAP PANE ══════════════════ */ ?>
         <div class="ab-pane" id="ab-pane-sitemap">
             <form method="post" action="options.php">
@@ -1132,13 +1185,8 @@ trait CS_SEO_Settings_Page {
                         ['rec'=>'ℹ️ Info','name'=>'Pagination','desc'=>'Results are shown 200 at a time. Use Prev/Next to browse all your URLs. The count at the bottom right shows which URLs you\'re viewing out of the total.'],
                         ['rec'=>'ℹ️ Info','name'=>'View live sitemap','desc'=>'The link opens your actual sitemap.xml in a new tab — this is what Google sees. The index file lists all your sub-sitemaps (one per post type). Click through to see the raw XML.'],
                     ]); ?>
-                    <button id="ab-sitemap-load"                        style="background:#f0b429;border:none;border-radius:6px;color:#1d2327;font-size:13px;font-weight:700;padding:7px 18px;cursor:pointer;letter-spacing:0.02em;box-shadow:0 2px 6px rgba(0,0,0,0.25);transition:background 0.15s">
-                        ⬇ Load Preview
-                    </button>
-                    <button id="ab-sitemap-copy" class="button"
-                        style="font-size:11px;padding:2px 10px;margin-left:6px">
-                        ⎘ Copy URLs
-                    </button>
+                    <button id="ab-sitemap-load" class="button" style="background:#f0b429;color:#1d2327;border-color:#c8911a;font-weight:700">⬇ Load Preview</button>
+                    <button id="ab-sitemap-copy" class="button">⎘ Copy URLs</button>
                 </div>
             </div>
             <div class="ab-zone-body" style="padding:16px 20px">
@@ -2004,7 +2052,165 @@ trait CS_SEO_Settings_Page {
                 </div><!-- /ab-zone-body -->
             </div><!-- /ab-card-catmig -->
 
+            <div class="ab-zone-card ab-card-catmerge" style="margin-top:24px;">
+                <div class="ab-zone-header" style="display:flex;align-items:center;justify-content:space-between;background:#6d28d9;">
+                    <span>&#128259; Merge Categories</span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-catmerge" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                        <?php $this->explain_btn('catmerge', 'Merge Categories', [
+                            ['name'=>'What it does',    'rec'=>'ℹ️ Info',     'desc'=>'Combines two categories into one. Every post from the source category is moved into the target category, the source is deleted, and the target can be renamed at the same time.'],
+                            ['name'=>'Source category', 'rec'=>'ℹ️ Info',     'desc'=>'The category that will be absorbed and then permanently deleted. Choose the one you no longer want.'],
+                            ['name'=>'Target category', 'rec'=>'ℹ️ Info',     'desc'=>'The category that will survive the merge and receive all the posts. Its existing posts are kept.'],
+                            ['name'=>'Rename target',   'rec'=>'⬜ Optional', 'desc'=>'Leave blank to keep the target\'s current name. Fill it in to rename the surviving category at the same time as the merge — useful when neither name is quite right and you want a fresh label.'],
+                            ['name'=>'Undo',            'rec'=>'⚠️ Warning',  'desc'=>'This action is not reversible from the plugin. Posts will be re-assigned and the source term deleted. Use the Migrate Categories panel above if you want finer per-post control before committing.'],
+                        ]); ?>
+                    </span>
+                </div>
+                <div class="ab-zone-body" style="padding:24px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                        <div>
+                            <label for="cmg-source" style="display:block;font-weight:600;font-size:13px;color:#374151;margin-bottom:6px;">Source category <span style="font-weight:400;color:#6b7280;">(will be deleted)</span></label>
+                            <select id="cmg-source" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#111827;box-sizing:border-box;">
+                                <option value="">— select —</option>
+                                <?php
+                                $cmg_cats = get_categories(['hide_empty' => false, 'orderby' => 'name', 'order' => 'ASC']);
+                                foreach ($cmg_cats as $cmg_c) {
+                                    if (strtolower($cmg_c->slug) === 'uncategorized') continue;
+                                    printf(
+                                        '<option value="%d" data-count="%d">%s (%d posts)</option>',
+                                        (int) $cmg_c->term_id,
+                                        (int) $cmg_c->count,
+                                        esc_html($cmg_c->name),
+                                        (int) $cmg_c->count
+                                    );
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="cmg-target" style="display:block;font-weight:600;font-size:13px;color:#374151;margin-bottom:6px;">Target category <span style="font-weight:400;color:#6b7280;">(will be kept)</span></label>
+                            <select id="cmg-target" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#111827;box-sizing:border-box;">
+                                <option value="">— select —</option>
+                                <?php
+                                foreach ($cmg_cats as $cmg_c) {
+                                    if (strtolower($cmg_c->slug) === 'uncategorized') continue;
+                                    printf(
+                                        '<option value="%d" data-count="%d" data-name="%s">%s (%d posts)</option>',
+                                        (int) $cmg_c->term_id,
+                                        (int) $cmg_c->count,
+                                        esc_attr($cmg_c->name),
+                                        esc_html($cmg_c->name),
+                                        (int) $cmg_c->count
+                                    );
+                                }
+                                ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:16px;">
+                        <label for="cmg-rename" style="display:block;font-weight:600;font-size:13px;color:#374151;margin-bottom:6px;">Rename target <span style="font-weight:400;color:#6b7280;">(optional — leave blank to keep current name)</span></label>
+                        <input id="cmg-rename" type="text" placeholder="New category name…" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#111827;box-sizing:border-box;">
+                    </div>
+                    <div id="cmg-preview" style="display:none;margin-bottom:16px;padding:12px 16px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;font-size:13px;color:#4c1d95;line-height:1.6;"></div>
+                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <button id="cmg-merge-btn" class="button button-primary" style="background:#6d28d9;border-color:#6d28d9;color:#fff;padding:6px 20px;" disabled>&#128259; Merge Categories</button>
+                        <span id="cmg-progress" style="display:none;font-size:12px;color:#6d28d9;font-style:italic;"></span>
+                        <span id="cmg-result" style="display:none;font-size:13px;font-weight:600;padding:5px 12px;border-radius:12px;"></span>
+                    </div>
+                </div>
+            </div><!-- /ab-card-catmerge -->
+
+            <div class="ab-zone-card ab-card-catseo-gen" style="margin-top:24px;">
+                <div class="ab-zone-header" style="background:linear-gradient(135deg,#0369a1,#0284c7)">
+                    <span>🏷 Category SEO Descriptions</span>
+                    <?php $this->explain_btn('catseo_gen', 'Category SEO Descriptions', [
+                        ['rec'=>'ℹ️ Info','name'=>'What this does','desc'=>'Uses AI to generate an SEO meta description, page title, and intro paragraph for every category that is missing them. This improves how category archive pages appear in search results.'],
+                    ]); ?>
+                </div>
+                <div class="ab-zone-body">
+                    <p style="color:#374151;font-size:13px;margin:0 0 16px">Generates AI-written SEO title, meta description, and intro paragraph for every category that is missing them. Categories that already have descriptions are skipped.</p>
+                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                        <button id="catseo-gen-btn" type="button" class="button button-primary" style="background:#0284c7;border-color:#0369a1;color:#fff">
+                            ✦ Generate Missing Descriptions with AI
+                        </button>
+                        <span id="catseo-gen-status" style="font-size:12px;color:#6b7280;font-style:italic"></span>
+                    </div>
+                    <div id="catseo-gen-results" style="display:none;margin-top:8px;overflow-x:auto"></div>
+                </div>
+            </div><!-- /ab-card-catseo-gen -->
+
         </div><!-- /ab-pane-catfix -->
+
+        <script>
+        (function(){
+            var btn = document.getElementById('catseo-gen-btn');
+            if (!btn) return;
+            btn.addEventListener('click', function() {
+                btn.disabled = true;
+                var status  = document.getElementById('catseo-gen-status');
+                var results = document.getElementById('catseo-gen-results');
+                function setS(msg) { status.textContent = msg; }
+                setS('Loading categories…');
+                var fd1 = new FormData(); fd1.append('action','cs_seo_cat_seo_list'); fd1.append('nonce',csSeoAdmin.nonce);
+                fetch(csSeoAdmin.ajaxUrl,{method:'POST',body:fd1}).then(r=>r.json()).then(async function(listR){
+                    if (!listR||!listR.success){setS('❌ Could not load categories.');btn.disabled=false;return;}
+                    var cats = listR.data.filter(function(c){return !c.desc;});
+                    if (!cats.length){setS('✅ All categories already have descriptions.');btn.disabled=false;return;}
+                    var done=0, total=cats.length, rows=[];
+                    for (var i=0;i<cats.length;i++){
+                        var cat=cats[i];
+                        setS('Generating '+(i+1)+'/'+total+': '+cat.name+'…');
+                        var fd2=new FormData(); fd2.append('action','cs_seo_cat_seo_ai_gen'); fd2.append('nonce',csSeoAdmin.nonce); fd2.append('term_id',cat.term_id);
+                        var genR=await fetch(csSeoAdmin.ajaxUrl,{method:'POST',body:fd2}).then(r=>r.json()).catch(()=>null);
+                        if (!genR||!genR.success){setS('⚠ Skipped '+cat.name);continue;}
+                        var fd3=new FormData(); fd3.append('action','cs_seo_audit_quickfix'); fd3.append('quickfix','save_cat_seo'); fd3.append('nonce',csSeoAdmin.nonce);
+                        fd3.append('term_id',cat.term_id); fd3.append('title',genR.data.title||''); fd3.append('desc',genR.data.desc||''); fd3.append('intro',genR.data.intro||'');
+                        await fetch(csSeoAdmin.ajaxUrl,{method:'POST',body:fd3});
+                        rows.push({term_id:cat.term_id, name:cat.name, title:genR.data.title||'', desc:genR.data.desc||''});
+                        done++;
+                    }
+                    btn.textContent='✅ Done'; btn.style.background='#10b981'; btn.style.borderColor='#059669';
+                    setS(done+'/'+total+' categories updated — review and edit below, then save.');
+                    // Render editable results table
+                    if (results && rows.length) {
+                        var html = '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:16px">'
+                            + '<thead><tr style="background:#f1f5f9">'
+                            + '<th style="padding:7px 10px;text-align:left;border-bottom:1px solid #e2e8f0;color:#374151;width:18%">Category</th>'
+                            + '<th style="padding:7px 10px;text-align:left;border-bottom:1px solid #e2e8f0;color:#374151;width:30%">SEO Title</th>'
+                            + '<th style="padding:7px 10px;text-align:left;border-bottom:1px solid #e2e8f0;color:#374151">Meta Description</th>'
+                            + '<th style="padding:7px 10px;text-align:left;border-bottom:1px solid #e2e8f0;color:#374151;width:8%">Save</th>'
+                            + '</tr></thead><tbody>';
+                        rows.forEach(function(r){
+                            var eid = 'csg-' + r.term_id;
+                            html += '<tr style="border-bottom:1px solid #f1f5f9" id="' + eid + '">'
+                                + '<td style="padding:7px 10px;font-weight:600;color:#1d2327">' + r.name.replace(/</g,'&lt;') + '</td>'
+                                + '<td style="padding:7px 10px"><input type="text" value="' + r.title.replace(/"/g,'&quot;') + '" style="width:100%;font-size:11px;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px" data-field="title"></td>'
+                                + '<td style="padding:7px 10px"><textarea rows="2" style="width:100%;font-size:11px;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;resize:vertical" data-field="desc">' + r.desc.replace(/</g,'&lt;') + '</textarea></td>'
+                                + '<td style="padding:7px 10px"><button type="button" data-term="' + r.term_id + '" onclick="csSaveCatSeoRow(this)" style="padding:4px 8px;font-size:11px;font-weight:600;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer">Save</button></td>'
+                                + '</tr>';
+                        });
+                        html += '</tbody></table>';
+                        results.innerHTML = html;
+                        results.style.display = 'block';
+                    }
+                }).catch(function(){ setS('❌ Network error.'); btn.disabled=false; });
+            });
+        })();
+
+        function csSaveCatSeoRow(btn) {
+            var row   = btn.closest('tr');
+            var tid   = btn.dataset.term;
+            var title = row.querySelector('[data-field="title"]').value;
+            var desc  = row.querySelector('[data-field="desc"]').value;
+            btn.disabled = true; btn.textContent = '…';
+            var fd = new FormData(); fd.append('action','cs_seo_audit_quickfix'); fd.append('quickfix','save_cat_seo'); fd.append('nonce',csSeoAdmin.nonce);
+            fd.append('term_id',tid); fd.append('title',title); fd.append('desc',desc);
+            fetch(csSeoAdmin.ajaxUrl,{method:'POST',body:fd}).then(r=>r.json()).then(function(r){
+                btn.textContent = r.success ? '✅' : '❌';
+                btn.style.background = r.success ? '#10b981' : '#ef4444';
+            }).catch(function(){ btn.textContent='❌'; btn.style.background='#ef4444'; });
+        }
+        </script>
 
         <?php /* ══════════════════ BROKEN LINK CHECKER PANE ══════════════════ */ ?>
 
@@ -2492,6 +2698,14 @@ trait CS_SEO_Settings_Page {
             if (id === 'catfix') {
                 if (cdDrift && cdDrift.length > 0) cdRender(cdTotalPosts);
             }
+            // Auto-load the meta description post table when AI Content tab activates.
+            if (id === 'aitools') {
+                const updateCard = document.querySelector('.ab-card-update-posts');
+                if (updateCard && !updateCard.dataset.loaded) {
+                    updateCard.dataset.loaded = '1';
+                    if (typeof abLoadPosts === 'function') abLoadPosts();
+                }
+            }
         }
 
         // Restore the active tab — URL ?tab= takes priority over localStorage.
@@ -2521,6 +2735,14 @@ trait CS_SEO_Settings_Page {
             sortKey:       null,
             sortDir:       'desc',
         };
+
+        let abExtraCols = false;
+        function abToggleExtraCols() {
+            abExtraCols = !abExtraCols;
+            const btn = document.getElementById('ab-extra-cols-btn');
+            if (btn) btn.textContent = abExtraCols ? '⊖ Fewer columns' : '⊕ More columns';
+            abRenderTable();
+        }
 
         const abNonce     = csSeoAdmin.nonce;
         const abAjax      = csSeoAdmin.ajaxUrl;
@@ -3352,10 +3574,12 @@ trait CS_SEO_Settings_Page {
 
         function abRenderTable() {
             const wrap = document.getElementById('ab-posts-wrap');
+            const colsRow = document.getElementById('ab-cols-row');
             if (!abState.posts.length) {
                 wrap.innerHTML = '<p style="color:#50575e">No posts found.</p>';
                 return;
             }
+            if (colsRow) colsRow.style.display = 'block';
             let sorted = abState.posts.slice();
             if (abState.sortKey) {
                 const pinIdx = sorted.findIndex(p => p.is_homepage);
@@ -3472,31 +3696,39 @@ trait CS_SEO_Settings_Page {
                         ? '<span style="display:inline-block;background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;white-space:nowrap">✓</span>'
                         : '<span style="display:inline-block;background:#f8d7da;color:#842029;border:1px solid #f5c2c7;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;white-space:nowrap">✗</span>';
 
+                const schemaBadge = (p.is_homepage || p.no_post || p.type === 'page')
+                    ? '<span style="color:#aaa;font-size:11px">—</span>'
+                    : p.has_schema
+                        ? '<span style="display:inline-block;background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;white-space:nowrap">✓</span>'
+                        : '<span style="display:inline-block;background:#f8d7da;color:#842029;border:1px solid #f5c2c7;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;white-space:nowrap">✗</span>';
+
                 return '<tr id="ab-row-' + p.id + '" style="' + rowStyle + '">' +
                     '<td><strong>' + typeLabel + titleLink + '</strong>' +
                     noPostNote + '</td>' +
-                    '<td style="text-align:center;font-size:12px;color:#555;white-space:nowrap">' + abEsc(p.date || '—') + '</td>' +
+                    '<td class="ab-col-extra" style="text-align:center;font-size:12px;color:#555;white-space:nowrap">' + abEsc(p.date || '—') + '</td>' +
                     '<td>' + descCell + '</td>' +
-                    '<td style="text-align:center">' + titleBadge + '</td>' +
-                    '<td style="text-align:center">' + altCell + '</td>' +
-                    '<td style="text-align:center" class="ab-aeo-cell">' + aeoBadge + '</td>' +
+                    '<td class="ab-col-extra" style="text-align:center">' + titleBadge + '</td>' +
+                    '<td class="ab-col-extra" style="text-align:center">' + altCell + '</td>' +
+                    '<td class="ab-col-extra ab-aeo-cell" style="text-align:center">' + aeoBadge + '</td>' +
+                    '<td class="ab-col-extra ab-schema-cell" style="text-align:center">' + schemaBadge + '</td>' +
                     '<td style="text-align:center" class="ab-score-cell">' + abScoreBadge(p) + '</td>' +
-                    '<td style="text-align:center" class="ab-r-cell">' + abReadabilityBadge(p) + '</td>' +
+                    '<td class="ab-col-extra ab-r-cell" style="text-align:center">' + abReadabilityBadge(p) + '</td>' +
                     '<td>' + actionCell + '</td>' +
                 '</tr>';
             }).join('');
 
-            wrap.innerHTML = '<table class="ab-posts" style="min-width:900px">' +
+            wrap.innerHTML = '<table class="ab-posts' + (abExtraCols ? '' : ' ab-compact') + '" style="min-width:' + (abExtraCols ? '960' : '640') + 'px">' +
                 '<thead><tr>' +
-                '<th style="width:20%;cursor:pointer;user-select:none" onclick="abSortBy(\'title\')">Post' + abSortIcon('title') + '</th>' +
-                '<th style="width:8%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'date\')">Date' + abSortIcon('date') + '</th>' +
-                '<th style="width:25%;cursor:pointer;user-select:none" onclick="abSortBy(\'desc\')">Description' + abSortIcon('desc') + '</th>' +
-                '<th style="width:6%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'title_chars\')">Title' + abSortIcon('title_chars') + '</th>' +
-                '<th style="width:6%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'alt\')">ALT' + abSortIcon('alt') + '</th>' +
-                '<th style="width:5%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'aeo\')">AEO' + abSortIcon('aeo') + '</th>' +
-                '<th style="width:8%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'score\')">SEO Score' + abSortIcon('score') + '</th>' +
-                '<th style="width:10%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'readability\')">Readability' + abSortIcon('readability') + '</th>' +
-                '<th style="width:10%">Action</th>' +
+                '<th style="width:' + (abExtraCols ? '19' : '30') + '%;cursor:pointer;user-select:none" onclick="abSortBy(\'title\')">Post' + abSortIcon('title') + '</th>' +
+                '<th class="ab-col-extra" style="width:7%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'date\')">Date' + abSortIcon('date') + '</th>' +
+                '<th style="width:' + (abExtraCols ? '24' : '40') + '%;cursor:pointer;user-select:none" onclick="abSortBy(\'desc\')">Description' + abSortIcon('desc') + '</th>' +
+                '<th class="ab-col-extra" style="width:6%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'title_chars\')">Title' + abSortIcon('title_chars') + '</th>' +
+                '<th class="ab-col-extra" style="width:5%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'alt\')">ALT' + abSortIcon('alt') + '</th>' +
+                '<th class="ab-col-extra" style="width:5%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'aeo\')">AEO' + abSortIcon('aeo') + '</th>' +
+                '<th class="ab-col-extra" style="width:5%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'has_schema\')" title="FAQ / HowTo schema">Schema' + abSortIcon('has_schema') + '</th>' +
+                '<th style="width:' + (abExtraCols ? '8' : '14') + '%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'score\')">SEO Score' + abSortIcon('score') + '</th>' +
+                '<th class="ab-col-extra" style="width:10%;text-align:center;cursor:pointer;user-select:none" onclick="abSortBy(\'readability\')">Readability' + abSortIcon('readability') + '</th>' +
+                '<th style="width:' + (abExtraCols ? '11' : '16') + '%">Action</th>' +
                 '</tr></thead>' +
                 '<tbody>' + rows + '</tbody></table>';
         }
@@ -6304,6 +6536,135 @@ trait CS_SEO_Settings_Page {
         document.getElementById('cm-load-btn')      ?.addEventListener('click', cmLoad);
         document.getElementById('cm-back-btn')      ?.addEventListener('click', cmBack);
         document.getElementById('cm-apply-all-btn') ?.addEventListener('click', cmApplyAll);
+
+        // =====================================================================
+        // Merge Categories
+        // =====================================================================
+        (function () {
+            const srcSel    = document.getElementById('cmg-source');
+            const tgtSel    = document.getElementById('cmg-target');
+            const renameIn  = document.getElementById('cmg-rename');
+            const preview   = document.getElementById('cmg-preview');
+            const mergeBtn  = document.getElementById('cmg-merge-btn');
+            const progressEl = document.getElementById('cmg-progress');
+            const resultEl  = document.getElementById('cmg-result');
+            if (!srcSel || !tgtSel) return;
+
+            var previewTimer = null;
+
+            function updatePreview() {
+                const srcOpt = srcSel.options[srcSel.selectedIndex];
+                const tgtOpt = tgtSel.options[tgtSel.selectedIndex];
+                const srcId  = parseInt(srcSel.value, 10);
+                const tgtId  = parseInt(tgtSel.value, 10);
+                if (!srcId || !tgtId || srcId === tgtId) {
+                    preview.style.display = 'none';
+                    mergeBtn.disabled = true;
+                    return;
+                }
+                const srcCount  = parseInt(srcOpt.dataset.count, 10) || 0;
+                const tgtCount  = parseInt(tgtOpt.dataset.count, 10) || 0;
+                const srcName   = srcOpt.text.replace(/\s*\(\d+.*$/, '');
+                const tgtName   = tgtOpt.dataset.name || tgtOpt.text.replace(/\s*\(\d+.*$/, '');
+                const newName   = renameIn.value.trim();
+                const finalName = newName || tgtName;
+                const renameNote = newName && newName !== tgtName
+                    ? ' (renamed from <strong>' + tgtName + '</strong>)'
+                    : '';
+
+                // Show optimistic count immediately, then refine with server overlap count.
+                function renderPreview(uniqueCount, overlap) {
+                    var overlapNote = (overlap > 0)
+                        ? ' <em style="color:#7c3aed">(' + overlap + ' post' + (overlap !== 1 ? 's' : '') + ' already in both — counted once)</em>'
+                        : '';
+                    preview.innerHTML =
+                        '<strong>' + srcCount + ' posts</strong> from <strong>' + srcName + '</strong> will move into ' +
+                        '<strong>' + tgtName + '</strong>' + renameNote + '. ' +
+                        'Result: <strong>' + uniqueCount + ' unique posts</strong> in <strong>' + finalName + '</strong>' + overlapNote + '. ' +
+                        '<strong>' + srcName + '</strong> will be permanently deleted.';
+                    preview.style.display = 'block';
+                    mergeBtn.disabled = false;
+                }
+                renderPreview(srcCount + tgtCount, 0);
+
+                // Debounce the server call so rapid dropdown changes don't spam.
+                clearTimeout(previewTimer);
+                previewTimer = setTimeout(function() {
+                    const fd2 = new FormData();
+                    fd2.append('action', 'cs_seo_catmerge_overlap');
+                    fd2.append('nonce',  csSeoAdmin.nonce);
+                    fd2.append('source_id', srcId);
+                    fd2.append('target_id', tgtId);
+                    fetch(csSeoAdmin.ajaxUrl, {method:'POST', body:fd2})
+                        .then(function(r){ return r.json(); })
+                        .then(function(resp){
+                            if (resp.success) renderPreview(resp.data.unique, resp.data.overlap);
+                        })
+                        .catch(function(){});
+                }, 400);
+            }
+
+            srcSel.addEventListener('change', updatePreview);
+            tgtSel.addEventListener('change', updatePreview);
+            renameIn.addEventListener('input', updatePreview);
+
+            mergeBtn.addEventListener('click', function () {
+                const srcId    = parseInt(srcSel.value, 10);
+                const tgtId    = parseInt(tgtSel.value, 10);
+                const newName  = renameIn.value.trim();
+                const srcLabel = srcSel.options[srcSel.selectedIndex].text.replace(/\s*\(\d+.*$/, '');
+                const tgtLabel = newName || (tgtSel.options[tgtSel.selectedIndex].dataset.name || '');
+                if (!srcId || !tgtId || srcId === tgtId) return;
+                const srcCount = parseInt(srcSel.options[srcSel.selectedIndex].dataset.count, 10) || 0;
+                if (!confirm('Merge "' + srcLabel + '" into "' + tgtLabel + '"?\n\nAll ' + srcCount + ' posts will be reassigned and "' + srcLabel + '" will be permanently deleted. This cannot be undone.')) return;
+                mergeBtn.disabled = true;
+                mergeBtn.textContent = '⏳ Merging…';
+                resultEl.style.display = 'none';
+                if (progressEl) { progressEl.textContent = 'Moving ' + srcCount + ' post' + (srcCount !== 1 ? 's' : '') + '…'; progressEl.style.display = 'inline'; }
+                const fd = new FormData();
+                fd.append('action',    'cs_seo_catmerge');
+                fd.append('nonce',     csSeoAdmin.nonce);
+                fd.append('source_id', srcId);
+                fd.append('target_id', tgtId);
+                if (newName) fd.append('new_name', newName);
+                fetch(csSeoAdmin.ajaxUrl, {method: 'POST', body: fd})
+                    .then(r => r.json())
+                    .then(resp => {
+                        if (progressEl) progressEl.style.display = 'none';
+                        if (resp.success) {
+                            const d = resp.data;
+                            const skipNote = d.skipped > 0 ? ' (' + d.skipped + ' already had this category)' : '';
+                            resultEl.textContent = '✅ Done — ' + d.total + ' posts moved into "' + d.final_name + '"' + skipNote + '. Combined: ' + d.final_count + ' posts. Source deleted.';
+                            resultEl.style.cssText = 'display:inline-block;background:#d1fae5;color:#065f46;font-size:13px;font-weight:600;padding:5px 12px;border-radius:12px;';
+                            preview.style.display = 'none';
+                            mergeBtn.style.display = 'none';
+                            [srcSel, tgtSel].forEach(sel => {
+                                for (let i = sel.options.length - 1; i >= 0; i--) {
+                                    if (parseInt(sel.options[i].value, 10) === srcId) sel.remove(i);
+                                    if (parseInt(sel.options[i].value, 10) === tgtId) {
+                                        sel.options[i].dataset.count = d.final_count;
+                                        sel.options[i].dataset.name  = d.final_name;
+                                        sel.options[i].text = d.final_name + ' (' + d.final_count + ' posts)';
+                                    }
+                                }
+                            });
+                            srcSel.value = ''; tgtSel.value = ''; renameIn.value = '';
+                        } else {
+                            resultEl.textContent = '❌ ' + (resp.error || resp.data || 'Merge failed.');
+                            resultEl.style.cssText = 'display:inline-block;background:#fee2e2;color:#991b1b;font-size:13px;font-weight:600;padding:5px 12px;border-radius:12px;';
+                            mergeBtn.disabled = false;
+                            mergeBtn.textContent = '🔀 Merge Categories';
+                        }
+                    })
+                    .catch(function(e) {
+                        if (progressEl) progressEl.style.display = 'none';
+                        resultEl.textContent = '❌ Network error: ' + (e && e.message ? e.message : String(e));
+                        resultEl.style.cssText = 'display:inline-block;background:#fee2e2;color:#991b1b;font-size:13px;font-weight:600;padding:5px 12px;border-radius:12px;';
+                        mergeBtn.disabled = false;
+                        mergeBtn.textContent = '🔀 Merge Categories';
+                    });
+            });
+        })();
 
         // =====================================================================
         // Related Articles — admin UI
