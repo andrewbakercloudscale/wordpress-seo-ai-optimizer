@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.21.51
+ * Version:     4.21.52
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -187,7 +187,7 @@ final class Cs_Seo_Plugin {
     // Related Articles generator version — bump when scoring logic changes
     const RC_VERSION = '1.0';
 
-    const VERSION    = '4.21.51';
+    const VERSION    = '4.21.52';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -435,6 +435,14 @@ final class Cs_Seo_Plugin {
 
         // SEO Site Audit
         $this->init_site_audit();
+
+        // Managed API proxy
+        add_action('wp_ajax_cs_seo_proxy_checkout',       [$this, 'ajax_proxy_checkout']);
+        add_action('wp_ajax_cs_seo_proxy_boost_checkout', [$this, 'ajax_proxy_boost_checkout']);
+        add_action('wp_ajax_cs_seo_proxy_set_enabled',    [$this, 'ajax_proxy_set_enabled']);
+        add_action('wp_ajax_cs_seo_proxy_refresh_status', [$this, 'ajax_proxy_refresh_status']);
+        add_action('wp_ajax_cs_seo_proxy_poll_session',   [$this, 'ajax_proxy_poll_session']);
+        add_action('wp_ajax_cs_seo_proxy_billing_portal', [$this, 'ajax_proxy_billing_portal']);
     }
 
     // =========================================================================

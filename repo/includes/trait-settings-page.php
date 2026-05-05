@@ -400,6 +400,109 @@ trait CS_SEO_Settings_Page {
                 </div><!-- /ab-card-ai -->
             </form>
 
+            <?php /* ── Managed API card (outside the save form — no settings fields here) ── */
+            $proxy_status    = (string)($ai['proxy_status']      ?? '');
+            $proxy_key       = (string)($ai['proxy_license_key'] ?? '');
+            $proxy_enabled   = (int)($ai['proxy_enabled']        ?? 0);
+            $proxy_usage     = (int)($ai['proxy_usage']          ?? 0);
+            $proxy_limit     = (int)($ai['proxy_limit']          ?? 200);
+            $proxy_reset     = (string)($ai['proxy_reset_date']  ?? '');
+            $proxy_usage_pct = $proxy_limit > 0 ? round($proxy_usage / $proxy_limit * 100) : 0;
+            $masked_key      = $proxy_key ? substr($proxy_key, 0, 4) . '••••••••••••••••••••••••' . substr($proxy_key, -4) : '';
+            ?>
+            <div class="ab-zone-card" id="ab-card-managed-api" style="margin-top:16px">
+            <div class="ab-zone-header" style="justify-content:space-between">
+                <span><span class="ab-zone-icon">💳</span> <?php esc_html_e( 'Managed API — $5/month', 'cloudscale-seo-ai-optimizer' ); ?></span>
+                <span style="display:flex;align-items:center;gap:8px;">
+                    <?php if ($proxy_status === 'active'): ?>
+                    <span style="background:#22c55e;color:#fff;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">✓ Active</span>
+                    <?php elseif ($proxy_status === 'past_due'): ?>
+                    <span style="background:#f59e0b;color:#fff;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">⚠ Payment Failed</span>
+                    <?php elseif ($proxy_status === 'cancelled'): ?>
+                    <span style="background:#6b7280;color:#fff;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Cancelled</span>
+                    <?php elseif ($proxy_status === 'pending'): ?>
+                    <span style="background:#3b82f6;color:#fff;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Activating…</span>
+                    <?php endif; ?>
+                    <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-managed-api" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
+                </span>
+            </div>
+            <div class="ab-zone-body" style="padding:16px 20px">
+
+            <?php if ($proxy_status === 'active'): ?>
+                <?php /* ── STATE 3: Active ── */ ?>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                        <input type="checkbox" id="ab-proxy-use-toggle" <?php checked($proxy_enabled, 1); ?>>
+                        <strong><?php esc_html_e('Use Managed API (instead of own key)', 'cloudscale-seo-ai-optimizer'); ?></strong>
+                    </label>
+                </div>
+                <div style="margin-bottom:16px">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px">
+                        <span><?php echo esc_html($proxy_usage . ' / ' . $proxy_limit . ' requests used (' . $proxy_usage_pct . '%)'); ?></span>
+                        <span style="color:#6b7280"><?php echo esc_html('Resets ' . $proxy_reset); ?></span>
+                    </div>
+                    <div style="background:#e5e7eb;border-radius:4px;height:8px;overflow:hidden">
+                        <div style="background:<?php echo esc_attr($proxy_usage_pct >= 90 ? '#ef4444' : ($proxy_usage_pct >= 70 ? '#f59e0b' : '#22c55e')); ?>;height:100%;width:<?php echo esc_attr($proxy_usage_pct); ?>%;transition:width .4s"></div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+                    <input type="text" readonly value="<?php echo esc_attr($masked_key); ?>" style="font-family:monospace;width:320px;background:#f9fafb">
+                    <button type="button" class="button" id="ab-proxy-copy-key" data-key="<?php echo esc_attr($proxy_key); ?>">Copy Key</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <button type="button" class="button button-primary" id="ab-proxy-boost-btn">
+                        ⚡ Boost +200 requests for $5
+                    </button>
+                    <a href="#" id="ab-proxy-billing-link" style="font-size:13px" target="_blank">
+                        <?php esc_html_e('Manage billing →', 'cloudscale-seo-ai-optimizer'); ?>
+                    </a>
+                    <button type="button" class="button" id="ab-proxy-refresh-status" style="margin-left:auto">
+                        ↻ Refresh status
+                    </button>
+                </div>
+
+            <?php elseif ($proxy_status === 'past_due'): ?>
+                <?php /* ── STATE 4: Past due ── */ ?>
+                <p style="color:#b45309;font-weight:600;margin-bottom:12px">
+                    ⚠ <?php esc_html_e('Payment failed — update your card to restore access.', 'cloudscale-seo-ai-optimizer'); ?>
+                </p>
+                <a href="#" id="ab-proxy-billing-link-due" class="button button-primary" target="_blank">
+                    <?php esc_html_e('Update payment method →', 'cloudscale-seo-ai-optimizer'); ?>
+                </a>
+
+            <?php elseif ($proxy_status === 'cancelled'): ?>
+                <?php /* ── STATE 5: Cancelled ── */ ?>
+                <p style="color:#6b7280;margin-bottom:12px">
+                    <?php esc_html_e('Subscription cancelled. Resubscribe to restore AI features.', 'cloudscale-seo-ai-optimizer'); ?>
+                </p>
+                <?php $this->render_proxy_subscribe_form(); ?>
+
+            <?php elseif ($proxy_status === 'pending'): ?>
+                <?php /* ── STATE 2: Pending (polling) ── */ ?>
+                <p style="display:flex;align-items:center;gap:8px">
+                    <span class="ab-spinner" style="display:inline-block;width:16px;height:16px;border:2px solid #e5e7eb;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite"></span>
+                    <?php esc_html_e('Activating your subscription…', 'cloudscale-seo-ai-optimizer'); ?>
+                </p>
+                <p style="color:#6b7280;font-size:13px"><?php esc_html_e('This usually takes a few seconds. If this persists, contact support.', 'cloudscale-seo-ai-optimizer'); ?></p>
+
+            <?php else: ?>
+                <?php /* ── STATE 1: Not subscribed ── */ ?>
+                <p style="font-size:15px;margin-bottom:8px">
+                    <strong><?php esc_html_e("No API key? We'll handle it — $5/month.", 'cloudscale-seo-ai-optimizer'); ?></strong>
+                </p>
+                <ul style="margin:0 0 16px 20px;list-style:disc;font-size:13px;line-height:1.8">
+                    <li><?php esc_html_e('200 AI requests per month included', 'cloudscale-seo-ai-optimizer'); ?></li>
+                    <li><?php esc_html_e('Unlimited meta generation, FAQ/HowTo AI, AEO answers', 'cloudscale-seo-ai-optimizer'); ?></li>
+                    <li><?php esc_html_e('No Anthropic account or API setup needed', 'cloudscale-seo-ai-optimizer'); ?></li>
+                    <li><?php esc_html_e('Cancel anytime', 'cloudscale-seo-ai-optimizer'); ?></li>
+                </ul>
+                <?php $this->render_proxy_subscribe_form(); ?>
+            <?php endif; ?>
+
+            </div><!-- /ab-zone-body -->
+            <div id="ab-proxy-pending-session" data-session="<?php echo esc_attr((string)($ai['proxy_session_id'] ?? '')); ?>" style="display:none"></div>
+            </div><!-- /ab-card-managed-api -->
+
         </div><!-- /ab-pane-seo -->
 
         <?php /* ══════════════════ AI TOOLS PANE ══════════════════ */ ?>
@@ -7214,6 +7317,132 @@ trait CS_SEO_Settings_Page {
                 providerSelect.addEventListener('change', function() { if (typeof abProviderChanged === 'function') abProviderChanged(); });
                 if (typeof abProviderChanged === 'function') abProviderChanged();
             }
+
+            // ── Managed API proxy card ─────────────────────────────────────────
+            (function() {
+                var _ajax  = csSeoAdmin.ajaxUrl;
+                var _nonce = csSeoAdmin.nonce;
+                var _site  = csSeoAdmin.siteUrl || window.location.origin;
+
+                function proxyPost(action, extra) {
+                    var params = Object.assign({ action: action, nonce: _nonce }, extra || {});
+                    return fetch(_ajax, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams(params).toString()
+                    }).then(function(r) { return r.json(); });
+                }
+
+                // Subscribe button
+                var subscribeBtn = document.getElementById('ab-proxy-subscribe-btn');
+                if (subscribeBtn) {
+                    subscribeBtn.addEventListener('click', function() {
+                        var email = (document.getElementById('ab-proxy-email') || {}).value || '';
+                        var msg   = document.getElementById('ab-proxy-subscribe-msg');
+                        if (!email) { if (msg) { msg.style.display=''; msg.style.color='#b91c1c'; msg.textContent='Please enter your email address.'; } return; }
+                        subscribeBtn.disabled = true;
+                        subscribeBtn.textContent = 'Redirecting…';
+                        proxyPost('cs_seo_proxy_checkout', { email: email, site_url: _site })
+                            .then(function(res) {
+                                if (res.success && res.data && res.data.checkout_url) {
+                                    window.location.href = res.data.checkout_url;
+                                } else {
+                                    if (msg) { msg.style.display=''; msg.style.color='#b91c1c'; msg.textContent = (res.data && res.data.message) || 'Error starting checkout. Please try again.'; }
+                                    subscribeBtn.disabled = false;
+                                    subscribeBtn.textContent = 'Subscribe — $5/month';
+                                }
+                            });
+                    });
+                }
+
+                // Copy key button
+                var copyKeyBtn = document.getElementById('ab-proxy-copy-key');
+                if (copyKeyBtn) {
+                    copyKeyBtn.addEventListener('click', function() {
+                        var key = this.getAttribute('data-key');
+                        if (key && navigator.clipboard) {
+                            navigator.clipboard.writeText(key).then(function() {
+                                copyKeyBtn.textContent = 'Copied!';
+                                setTimeout(function() { copyKeyBtn.textContent = 'Copy Key'; }, 2000);
+                            });
+                        }
+                    });
+                }
+
+                // Use Managed API toggle
+                var proxyToggle = document.getElementById('ab-proxy-use-toggle');
+                if (proxyToggle) {
+                    proxyToggle.addEventListener('change', function() {
+                        proxyPost('cs_seo_proxy_set_enabled', { enabled: this.checked ? 1 : 0 });
+                    });
+                }
+
+                // Refresh status button
+                var refreshBtn = document.getElementById('ab-proxy-refresh-status');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', function() {
+                        refreshBtn.disabled = true;
+                        proxyPost('cs_seo_proxy_refresh_status')
+                            .then(function(res) {
+                                if (res.success) window.location.reload();
+                                else refreshBtn.disabled = false;
+                            });
+                    });
+                }
+
+                // Boost button
+                var boostBtn = document.getElementById('ab-proxy-boost-btn');
+                if (boostBtn) {
+                    boostBtn.addEventListener('click', function() {
+                        boostBtn.disabled = true;
+                        boostBtn.textContent = 'Redirecting…';
+                        proxyPost('cs_seo_proxy_boost_checkout')
+                            .then(function(res) {
+                                if (res.success && res.data && res.data.checkout_url) {
+                                    window.location.href = res.data.checkout_url;
+                                } else {
+                                    boostBtn.disabled = false;
+                                    boostBtn.textContent = '⚡ Boost +200 requests for $5';
+                                    alert((res.data && res.data.message) || 'Error starting boost checkout.');
+                                }
+                            });
+                    });
+                }
+
+                // Billing portal link
+                ['ab-proxy-billing-link','ab-proxy-billing-link-due'].forEach(function(id) {
+                    var link = document.getElementById(id);
+                    if (link) {
+                        link.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            proxyPost('cs_seo_proxy_billing_portal')
+                                .then(function(res) {
+                                    if (res.success && res.data && res.data.url) {
+                                        window.open(res.data.url, '_blank');
+                                    }
+                                });
+                        });
+                    }
+                });
+
+                // Auto-poll if pending session stored
+                var pendingEl = document.getElementById('ab-proxy-pending-session');
+                if (pendingEl && pendingEl.getAttribute('data-session')) {
+                    var pollSession = pendingEl.getAttribute('data-session');
+                    var pollCount   = 0;
+                    var pollTimer   = setInterval(function() {
+                        pollCount++;
+                        if (pollCount > 40) { clearInterval(pollTimer); return; } // max 2 min
+                        proxyPost('cs_seo_proxy_poll_session', { session_id: pollSession })
+                            .then(function(res) {
+                                if (res.success && res.data && res.data.status === 'active') {
+                                    clearInterval(pollTimer);
+                                    window.location.reload();
+                                }
+                            });
+                    }, 3000);
+                }
+            })();
         });
 
         // ── Broken Link Checker ──────────────────────────────────────────────
@@ -8132,5 +8361,24 @@ trait CS_SEO_Settings_Page {
     <?php }
 
     // admin_page_css(), llms_preview_js(), sitemap_preview_js() live in trait-settings-assets.php.
+
+    private function render_proxy_subscribe_form(): void { ?>
+        <div id="ab-proxy-subscribe-form">
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+                <div>
+                    <label for="ab-proxy-email" style="display:block;font-size:13px;margin-bottom:4px;font-weight:600">
+                        <?php esc_html_e('Email address', 'cloudscale-seo-ai-optimizer'); ?>
+                    </label>
+                    <input type="email" id="ab-proxy-email" class="regular-text"
+                        value="<?php echo esc_attr(wp_get_current_user()->user_email ?? ''); ?>"
+                        placeholder="you@example.com" style="min-width:260px">
+                </div>
+                <button type="button" class="button button-primary" id="ab-proxy-subscribe-btn">
+                    <?php esc_html_e('Subscribe — $5/month', 'cloudscale-seo-ai-optimizer'); ?>
+                </button>
+            </div>
+            <p id="ab-proxy-subscribe-msg" style="display:none;margin-top:8px;font-size:13px"></p>
+        </div>
+    <?php }
 
 }

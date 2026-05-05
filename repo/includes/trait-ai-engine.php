@@ -52,10 +52,65 @@ trait CS_SEO_AI_Engine {
      * @return string Response text from the AI.
      */
     private function dispatch_ai(string $provider, string $key, string $model, string $system, string $user_msg, ?array $extra_messages, int $max_tokens): string {
+        if ($provider !== 'gemini' && (int)($this->ai_opts['proxy_enabled'] ?? 0) && !empty($this->ai_opts['proxy_license_key'])) {
+            return $this->dispatch_via_proxy($model, $system, $user_msg, $extra_messages, $max_tokens);
+        }
         if ($provider === 'gemini') {
             return $this->call_gemini($key, $model, $system, $user_msg, $extra_messages, $max_tokens);
         }
         return $this->call_claude($key, $model, $system, $user_msg, $extra_messages, $max_tokens);
+    }
+
+    /**
+     * Forward an Anthropic request to our managed proxy using the stored license key.
+     */
+    private function dispatch_via_proxy(string $model, string $system, string $user_msg, ?array $extra_messages, int $max_tokens): string {
+        $license_key = (string)($this->ai_opts['proxy_license_key'] ?? '');
+        $messages    = [['role' => 'user', 'content' => $user_msg]];
+        if ($extra_messages) {
+            $messages = array_merge($messages, $extra_messages);
+        }
+        $payload = [
+            'model'      => $this->resolve_model($model, 'anthropic'),
+            'max_tokens' => $max_tokens,
+            'system'     => $system,
+            'messages'   => $messages,
+        ];
+        $body = wp_json_encode($payload);
+        if ($body === false) {
+            throw new \RuntimeException('Failed to encode proxy request as JSON.');
+        }
+        $response = wp_remote_post('https://api.andrewbaker.ninja/v1/messages', [
+            'timeout' => 45,
+            'headers' => [
+                'Content-Type'  => 'application/json',
+                'X-License-Key' => $license_key,
+            ],
+            'body' => $body,
+        ]);
+        if (is_wp_error($response)) {
+            throw new \RuntimeException('Proxy HTTP error: ' . $response->get_error_message()); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+        }
+        $code      = wp_remote_retrieve_response_code($response);
+        $resp_body = json_decode(wp_remote_retrieve_body($response), true);
+
+        if ($code === 429) {
+            $msg = $resp_body['error'] ?? 'Monthly request limit reached';
+            throw new \RuntimeException('Managed API: ' . $msg); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+        }
+        if ($code === 403) {
+            $msg    = $resp_body['error'] ?? 'License inactive';
+            $status = $resp_body['status'] ?? '';
+            // Update cached proxy status so UI reflects the new state immediately
+            $this->ai_opts['proxy_status'] = $status ?: 'inactive';
+            update_option('cs_seo_ai_opts', $this->ai_opts);
+            throw new \RuntimeException('Managed API: ' . $msg); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+        }
+        if ($code !== 200) {
+            $detail = $resp_body['error']['message'] ?? ($resp_body['error'] ?? '');
+            throw new \RuntimeException("Managed API HTTP {$code}" . ($detail ? ": {$detail}" : '')); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+        }
+        return trim($resp_body['content'][0]['text'] ?? '');
     }
 
     /**
@@ -89,12 +144,11 @@ trait CS_SEO_AI_Engine {
         if (is_wp_error($response)) throw new \RuntimeException( 'HTTP error: ' . $response->get_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         $code = wp_remote_retrieve_response_code($response);
         if ($code === 429 || $code === 529) {
-            $wait = $code === 529 ? 20 : 10;
-            sleep($wait);
-            $response = wp_remote_post('https://api.anthropic.com/v1/messages', [
-                'timeout' => 45, 'headers' => $headers, 'body' => $body,
-            ]);
-            if (is_wp_error($response)) throw new \RuntimeException( 'HTTP error after retry: ' . $response->get_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+            // Do not sleep() inside an AJAX handler — return immediately so the
+            // JS caller can back off and retry. The error label includes the code
+            // so the client can distinguish rate-limit retries from real errors.
+            $label = $code === 529 ? '529 - Service Overloaded' : '429 - Rate Limited';
+            throw new \RuntimeException( "Response: {$label} — retry after a short delay" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
         $code = wp_remote_retrieve_response_code($response);
         $body = json_decode(wp_remote_retrieve_body($response), true);
@@ -134,7 +188,7 @@ trait CS_SEO_AI_Engine {
                 $contents[]  = ['role' => $gemini_role, 'parts' => [['text' => $m['content']]]];
             }
         }
-        $url     = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$key}";
+        $url     = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode( $model ) . ':generateContent?key=' . rawurlencode( $key );
         $payload = [
             'systemInstruction' => ['parts' => [['text' => $system]]],
             'contents'          => $contents,
@@ -150,13 +204,10 @@ trait CS_SEO_AI_Engine {
             'body'    => $body,
         ]);
         if (is_wp_error($response)) throw new \RuntimeException( 'HTTP error: ' . $response->get_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-        // Gemini uses 429 for quota exceeded — retry once.
+        // Gemini uses 429 for quota exceeded — return immediately so the JS caller
+        // can back off and retry rather than blocking the PHP worker with sleep().
         if (wp_remote_retrieve_response_code($response) === 429) {
-            sleep(10);
-            $response = wp_remote_post($url, [
-                'timeout' => 45, 'headers' => ['Content-Type' => 'application/json'], 'body' => $body,
-            ]);
-            if (is_wp_error($response)) throw new \RuntimeException( 'HTTP error after retry: ' . $response->get_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+            throw new \RuntimeException( 'Response: 429 - Rate Limited — retry after a short delay' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
         $code = wp_remote_retrieve_response_code($response);
         $body = json_decode(wp_remote_retrieve_body($response), true);
@@ -178,16 +229,136 @@ trait CS_SEO_AI_Engine {
         return trim($body['candidates'][0]['content']['parts'][0]['text'] ?? '');
     }
 
-    /**
-     * Single AI call that generates meta description, fixes the SEO title, and
-     * writes ALT text for any images — all in one request.
-     *
-     * Returns an array:
-     *   description  string
-     *   title        string|null   null = already in range, leave as-is
-     *   title_was    string|null
-     *   title_chars  int
-     *   title_status 'in_range'|'fixed'|'fixed_imperfect'
-     *   alts_saved   int
-     */
+    // =========================================================================
+    // Managed API proxy AJAX handlers
+    // =========================================================================
+
+    public function ajax_proxy_checkout(): void {
+        $this->ajax_check();
+        $email    = sanitize_email((string)($_POST['email']    ?? ''));
+        $site_url = esc_url_raw((string)($_POST['site_url']   ?? ''));
+        if (!is_email($email)) { wp_send_json_error(['message' => 'Invalid email address']); }
+
+        $resp = wp_remote_post('https://api.andrewbaker.ninja/checkout', [
+            'timeout' => 20,
+            'headers' => ['Content-Type' => 'application/json'],
+            'body'    => wp_json_encode(['email' => $email, 'site_url' => $site_url, 'type' => 'subscription']),
+        ]);
+        if (is_wp_error($resp)) { wp_send_json_error(['message' => $resp->get_error_message()]); }
+
+        $data = json_decode(wp_remote_retrieve_body($resp), true);
+        if (empty($data['checkout_url'])) {
+            wp_send_json_error(['message' => $data['error'] ?? 'Checkout failed']);
+        }
+
+        // Extract session ID from success_url and store as pending
+        if (preg_match('/session=([^&]+)/', urldecode($data['checkout_url']), $m)) {
+            $this->ai_opts['proxy_session_id'] = $m[1];
+            $this->ai_opts['proxy_status']     = 'pending';
+            update_option(self::AI_OPT, $this->ai_opts);
+        }
+
+        wp_send_json_success(['checkout_url' => $data['checkout_url']]);
+    }
+
+    public function ajax_proxy_boost_checkout(): void {
+        $this->ajax_check();
+        $key = (string)($this->ai_opts['proxy_license_key'] ?? '');
+        if (!$key) { wp_send_json_error(['message' => 'No active license found']); }
+
+        $email = (string)($this->ai_opts['proxy_email'] ?? '');
+        if (!$email) {
+            // Fallback: use current user email
+            $email = wp_get_current_user()->user_email ?? '';
+        }
+
+        $resp = wp_remote_post('https://api.andrewbaker.ninja/checkout', [
+            'timeout' => 20,
+            'headers' => ['Content-Type' => 'application/json'],
+            'body'    => wp_json_encode(['email' => $email, 'license_key' => $key, 'type' => 'boost']),
+        ]);
+        if (is_wp_error($resp)) { wp_send_json_error(['message' => $resp->get_error_message()]); }
+
+        $data = json_decode(wp_remote_retrieve_body($resp), true);
+        if (empty($data['checkout_url'])) {
+            wp_send_json_error(['message' => $data['error'] ?? 'Boost checkout failed']);
+        }
+        wp_send_json_success(['checkout_url' => $data['checkout_url']]);
+    }
+
+    public function ajax_proxy_set_enabled(): void {
+        $this->ajax_check();
+        $enabled = (int)(bool)($_POST['enabled'] ?? 0);
+        $this->ai_opts['proxy_enabled'] = $enabled;
+        update_option(self::AI_OPT, $this->ai_opts);
+        wp_send_json_success();
+    }
+
+    public function ajax_proxy_refresh_status(): void {
+        $this->ajax_check();
+        $key = (string)($this->ai_opts['proxy_license_key'] ?? '');
+        if (!$key) { wp_send_json_error(['message' => 'No license key stored']); }
+
+        $resp = wp_remote_get('https://api.andrewbaker.ninja/status?key=' . urlencode($key), ['timeout' => 10]);
+        if (is_wp_error($resp)) { wp_send_json_error(['message' => $resp->get_error_message()]); }
+
+        $data = json_decode(wp_remote_retrieve_body($resp), true);
+        if (!$data) { wp_send_json_error(['message' => 'Invalid response from proxy']); }
+
+        $this->ai_opts['proxy_status']     = $data['status']           ?? $this->ai_opts['proxy_status'];
+        $this->ai_opts['proxy_usage']      = (int)($data['monthly_requests'] ?? 0);
+        $this->ai_opts['proxy_limit']      = (int)($data['monthly_limit']    ?? 200);
+        $this->ai_opts['proxy_reset_date'] = $data['reset_date']        ?? '';
+        $this->ai_opts['proxy_status_ts']  = time();
+        update_option(self::AI_OPT, $this->ai_opts);
+        wp_send_json_success($data);
+    }
+
+    public function ajax_proxy_poll_session(): void {
+        $this->ajax_check();
+        $session_id = sanitize_text_field((string)($_POST['session_id'] ?? ''));
+        if (!$session_id) { wp_send_json_error(['message' => 'No session_id']); }
+
+        $resp = wp_remote_get('https://api.andrewbaker.ninja/status?session=' . urlencode($session_id), ['timeout' => 10]);
+        if (is_wp_error($resp)) { wp_send_json_error(['message' => $resp->get_error_message()]); }
+
+        $data = json_decode(wp_remote_retrieve_body($resp), true);
+        if (!$data) { wp_send_json_error(['message' => 'Invalid response']); }
+
+        if (($data['status'] ?? '') === 'active' && !empty($data['license_key'])) {
+            $this->ai_opts['proxy_status']     = 'active';
+            $this->ai_opts['proxy_license_key']= $data['license_key'];
+            $this->ai_opts['proxy_usage']      = (int)($data['monthly_requests'] ?? 0);
+            $this->ai_opts['proxy_limit']      = (int)($data['monthly_limit']    ?? 200);
+            $this->ai_opts['proxy_reset_date'] = $data['reset_date']        ?? '';
+            $this->ai_opts['proxy_session_id'] = '';
+            $this->ai_opts['proxy_status_ts']  = time();
+            update_option(self::AI_OPT, $this->ai_opts);
+        }
+
+        wp_send_json_success($data);
+    }
+
+    public function ajax_proxy_billing_portal(): void {
+        $this->ajax_check();
+        $key = (string)($this->ai_opts['proxy_license_key'] ?? '');
+        if (!$key) { wp_send_json_error(['message' => 'No license key stored']); }
+
+        $resp = wp_remote_get('https://api.andrewbaker.ninja/billing-portal?key=' . urlencode($key), [
+            'timeout'     => 15,
+            'redirection' => 0,
+        ]);
+        if (is_wp_error($resp)) { wp_send_json_error(['message' => $resp->get_error_message()]); }
+
+        $code = wp_remote_retrieve_response_code($resp);
+        // billing-portal.php returns a 302 redirect to the Stripe portal URL
+        $location = wp_remote_retrieve_header($resp, 'location');
+        if ($location) {
+            wp_send_json_success(['url' => $location]);
+        }
+        // If body has JSON error
+        $data = json_decode(wp_remote_retrieve_body($resp), true);
+        wp_send_json_error(['message' => $data['error'] ?? "HTTP {$code}"]);
+    }
+
 }

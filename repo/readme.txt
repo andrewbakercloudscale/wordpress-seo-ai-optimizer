@@ -3,7 +3,7 @@ Contributors: andrewjbaker
 Tags: free yoast alternative, ai seo, claude ai, seo audit, schema generator
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 4.21.51
+Stable tag: 4.21.52
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -321,7 +321,7 @@ The plugin scores all posts against each other using shared categories, tags, an
 
 == Changelog ==
 
-= 4.21.51 =
+= 4.21.52 =
 * Add: Schema column in AI Meta Description Writer table — shows ✓/✗ per-post JSON-LD schema coverage; sortable
 * Add: First-run welcome banner — guides new installs through getting an API key with direct links to Anthropic and Gemini
 * Add: FAQ schema auto-generation in Auto Pipeline — every new post publish generates FAQPage JSON-LD automatically

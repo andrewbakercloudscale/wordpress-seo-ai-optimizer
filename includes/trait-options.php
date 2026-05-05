@@ -114,6 +114,15 @@ trait CS_SEO_Options {
             'auto_run_on_update' => 0,
             'schedule_enabled' => 0,
             'schedule_days'    => [],
+            // Managed API proxy
+            'proxy_enabled'    => 0,
+            'proxy_license_key'=> '',
+            'proxy_session_id' => '',
+            'proxy_status'     => '',
+            'proxy_usage'      => 0,
+            'proxy_limit'      => 200,
+            'proxy_reset_date' => '',
+            'proxy_status_ts'  => 0,
         ];
     }
 

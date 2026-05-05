@@ -118,6 +118,7 @@ trait CS_SEO_Admin {
             'minChars'        => (int) ($this->ai_opts['min_chars'] ?? 140),
             'maxChars'        => (int) ($this->ai_opts['max_chars'] ?? 160),
             'hasApiKey'       => !empty(trim((string) ($this->ai_opts['anthropic_key'] ?? ''))),
+            'siteUrl'         => home_url('/'),
         ]);
 
         // Sitemap + llms.txt preview scripts — moved from echoed <script> blocks to comply with PCP.
