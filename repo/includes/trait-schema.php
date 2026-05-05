@@ -24,8 +24,24 @@ trait CS_SEO_Schema {
     private function print_schema_tags(): void {
         $noindex = $this->is_noindexed();
 
+        // Per-page JSON-LD schema stored by the help-doc generator in _cs_schema_json post meta.
+        // This bypasses wp_kses_post (which strips <script> tags) by keeping schema out of content entirely.
+        if (is_singular() && !$noindex) {
+            $raw = (string) get_post_meta(get_the_ID(), self::META_PAGE_SCHEMA, true);
+            if ($raw !== '') {
+                $schema = json_decode($raw, true);
+                if (is_array($schema)) {
+                    $this->print_schema_tag($schema);
+                }
+            }
+        }
+
         if ((int) $this->opts['enable_schema_website'] && (is_front_page() || is_home())) {
             $this->print_schema_tag($this->schema_website());
+        }
+        if ((int) ($this->opts['enable_schema_org'] ?? 0) && !$noindex) {
+            $org = $this->schema_organization();
+            if ($org) $this->print_schema_tag($org);
         }
         if ((int) $this->opts['enable_schema_person'] && !$noindex) {
             $this->print_schema_tag($this->schema_person());
@@ -37,6 +53,9 @@ trait CS_SEO_Schema {
         if ((int) $this->opts['enable_schema_article'] && is_singular('post') && !$noindex) {
             $art = $this->schema_article();
             if ($art) $this->print_schema_tag($art);
+        }
+        if ((int) ($this->opts['enable_schema_speakable'] ?? 0) && is_singular() && !$noindex) {
+            $this->print_schema_tag($this->schema_speakable());
         }
     }
 
@@ -52,7 +71,7 @@ trait CS_SEO_Schema {
      */
     private function print_schema_tag(array $schema): void {
         wp_print_inline_script_tag(
-            (string) wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            (string) wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG),
             ['type' => 'application/ld+json']
         );
     }
@@ -71,10 +90,35 @@ trait CS_SEO_Schema {
         ];
     }
 
+    private function schema_organization(): ?array {
+        $name = trim((string) ($this->opts['works_for_name'] ?? ''))
+            ?: trim((string) ($this->opts['site_name'] ?? ''));
+        if (!$name) return null;
+        $url  = trim((string) ($this->opts['works_for_url'] ?? '')) ?: home_url('/');
+        $s = [
+            '@context' => 'https://schema.org',
+            '@type'    => 'Organization',
+            'name'     => $name,
+            'url'      => $url,
+        ];
+        $logo = trim((string) ($this->opts['person_image'] ?? ''));
+        if ($logo) $s['logo'] = ['@type' => 'ImageObject', 'url' => $logo];
+        $sameAs = array_values(array_filter(
+            array_map('trim', (array) preg_split('/\r\n|\r|\n/', (string) $this->opts['sameas']))
+        ));
+        if ($sameAs) $s['sameAs'] = $sameAs;
+        return $s;
+    }
+
     private function schema_person(): array {
         $sameAs = array_values(array_filter(
             array_map('trim', (array) preg_split('/\r\n|\r|\n/', (string) $this->opts['sameas']))
         ));
+        $tw = ltrim(trim((string) ($this->opts['twitter_handle'] ?? '')), '@');
+        if ($tw) {
+            $tw_url = 'https://twitter.com/' . $tw;
+            if (!in_array($tw_url, $sameAs, true)) $sameAs[] = $tw_url;
+        }
         $s = [
             '@context' => 'https://schema.org',
             '@type'    => 'Person',
@@ -85,6 +129,16 @@ trait CS_SEO_Schema {
         if ($sameAs) $s['sameAs'] = $sameAs;
         $img = trim((string) $this->opts['person_image']);
         if ($img) $s['image'] = $img;
+        $wfn = trim((string) ($this->opts['works_for_name'] ?? ''));
+        if ($wfn) {
+            $wfu = trim((string) ($this->opts['works_for_url'] ?? ''));
+            $s['worksFor'] = array_filter(['@type' => 'Organization', 'name' => $wfn, 'url' => $wfu ?: null]);
+        }
+        $ka_raw = trim((string) ($this->opts['knows_about'] ?? ''));
+        if ($ka_raw) {
+            $ka = array_values(array_filter(array_map('trim', explode("\n", $ka_raw))));
+            if ($ka) $s['knowsAbout'] = $ka;
+        }
         return $s;
     }
 
@@ -114,9 +168,9 @@ trait CS_SEO_Schema {
                 'url'   => (string) $this->opts['person_url'],
             ],
             'publisher' => [
-                '@type' => 'Person',
-                'name'  => (string) $this->opts['person_name'],
-                'url'   => (string) $this->opts['person_url'],
+                '@type' => 'Organization',
+                'name'  => (string) $this->opts['site_name'],
+                'url'   => home_url('/'),
             ],
             'wordCount'    => $word_count,
             'timeRequired' => 'PT' . $mins . 'M',
@@ -175,6 +229,18 @@ trait CS_SEO_Schema {
 
         if (count($items) <= 1) return null;
         return ['@context' => 'https://schema.org', '@type' => 'BreadcrumbList', 'itemListElement' => $items];
+    }
+
+    private function schema_speakable(): array {
+        return [
+            '@context' => 'https://schema.org',
+            '@type'    => 'WebPage',
+            'url'      => $this->canonical_url(),
+            'speakable' => [
+                '@type'       => 'SpeakableSpecification',
+                'cssSelector' => [ 'h1', '.entry-title', '.entry-content > p:first-child', 'article > p:first-of-type' ],
+            ],
+        ];
     }
 
     // =========================================================================

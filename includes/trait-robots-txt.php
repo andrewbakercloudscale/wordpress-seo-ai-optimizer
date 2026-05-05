@@ -102,13 +102,27 @@ trait CS_SEO_Robots_Txt {
 
         // Append AI training bot blocklist if enabled.
         if ((int)($this->opts['block_ai_bots'] ?? 1)) {
+            $llms_exemption = (int)($this->opts['enable_llms_txt'] ?? 0);
             $lines[] = '';
             foreach ([
                 'GPTBot', 'ChatGPT-User', 'CCBot', 'anthropic-ai', 'Claude-Web',
                 'Omgilibot', 'FacebookBot', 'Bytespider', 'Applebot-Extended',
             ] as $bot) {
                 $lines[] = 'User-agent: ' . $bot;
+                if ($llms_exemption) $lines[] = 'Allow: /llms.txt';
                 $lines[] = 'Disallow: /';
+                $lines[] = '';
+            }
+        }
+
+        // Explicit Allow for AI citation/indexing crawlers that should be welcomed.
+        if ((int)($this->opts['allow_ai_indexers'] ?? 0)) {
+            $lines[] = '# AI citation and indexing crawlers — explicitly allowed';
+            foreach ([
+                'ClaudeBot', 'PerplexityBot', 'Google-Extended', 'Amazonbot', 'Applebot', 'Bytedance',
+            ] as $bot) {
+                $lines[] = 'User-agent: ' . $bot;
+                $lines[] = 'Allow: /';
                 $lines[] = '';
             }
         }

@@ -39,6 +39,10 @@ trait CS_SEO_Schema {
         if ((int) $this->opts['enable_schema_website'] && (is_front_page() || is_home())) {
             $this->print_schema_tag($this->schema_website());
         }
+        if ((int) ($this->opts['enable_schema_org'] ?? 0) && !$noindex) {
+            $org = $this->schema_organization();
+            if ($org) $this->print_schema_tag($org);
+        }
         if ((int) $this->opts['enable_schema_person'] && !$noindex) {
             $this->print_schema_tag($this->schema_person());
         }
@@ -84,6 +88,26 @@ trait CS_SEO_Schema {
                 'query-input' => 'required name=search_term_string',
             ],
         ];
+    }
+
+    private function schema_organization(): ?array {
+        $name = trim((string) ($this->opts['works_for_name'] ?? ''))
+            ?: trim((string) ($this->opts['site_name'] ?? ''));
+        if (!$name) return null;
+        $url  = trim((string) ($this->opts['works_for_url'] ?? '')) ?: home_url('/');
+        $s = [
+            '@context' => 'https://schema.org',
+            '@type'    => 'Organization',
+            'name'     => $name,
+            'url'      => $url,
+        ];
+        $logo = trim((string) ($this->opts['person_image'] ?? ''));
+        if ($logo) $s['logo'] = ['@type' => 'ImageObject', 'url' => $logo];
+        $sameAs = array_values(array_filter(
+            array_map('trim', (array) preg_split('/\r\n|\r|\n/', (string) $this->opts['sameas']))
+        ));
+        if ($sameAs) $s['sameAs'] = $sameAs;
+        return $s;
     }
 
     private function schema_person(): array {

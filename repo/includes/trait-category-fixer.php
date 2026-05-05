@@ -1123,7 +1123,7 @@ trait CS_SEO_Category_Fixer {
      * Used by the Migrate Categories panel to show which categories have the
      * fewest posts — making them the primary candidates for consolidation.
      *
-     * @since 4.19.135
+     * @since 4.19.142
      * @return void
      */
     public function ajax_catmig_list(): void {
@@ -1150,7 +1150,7 @@ trait CS_SEO_Category_Fixer {
      * Accepts `cat_id` (int). Also returns the list of all other non-Uncategorized categories
      * so the JS can populate the "swap to" dropdown without a second request.
      *
-     * @since 4.19.135
+     * @since 4.19.142
      * @return void
      */
     public function ajax_catmig_posts(): void {
@@ -1226,7 +1226,7 @@ trait CS_SEO_Category_Fixer {
      * Accepts `post_id` (int), `from_cat_id` (int), `migrate_action` ('remove'|'swap'),
      * and `to_cat_id` (int, required when migrate_action is 'swap').
      *
-     * @since 4.19.135
+     * @since 4.19.142
      * @return void
      */
     public function ajax_catmig_apply(): void {
@@ -1278,7 +1278,7 @@ trait CS_SEO_Category_Fixer {
      * Accepts `cat_id` (int). Verifies the category still has 0 published posts server-side
      * before calling wp_delete_term(), preventing accidental deletion mid-migration.
      *
-     * @since 4.19.135
+     * @since 4.19.142
      * @return void
      */
     public function ajax_catmig_delete(): void {
@@ -1314,6 +1314,228 @@ trait CS_SEO_Category_Fixer {
             return;
         }
         wp_send_json( [ 'success' => true ] );
+    }
+
+    /**
+     * AJAX handler: merges two categories — moves all posts from source into target,
+     * optionally renames the target, and deletes the source term.
+     *
+     * Accepts `source_id` (int), `target_id` (int), and `new_name` (string, optional).
+     *
+     * @since 4.21.50
+     * @return void
+     */
+    /**
+     * Returns the top N category pairs ordered by co-occurrence on the same posts.
+     * Used to surface merge candidates in the admin UI.
+     *
+     * @since 4.21.51
+     * @param int $limit Max pairs to return.
+     * @return array Each entry: cat1_id, cat1_name, cat1_total, cat2_id, cat2_name, cat2_total, shared, overlap_pct.
+     */
+    public function get_category_correlations( int $limit = 5 ): array {
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT
+                t1.term_id  AS cat1_id,  t1.name AS cat1_name,  tt1.count AS cat1_total,
+                t2.term_id  AS cat2_id,  t2.name AS cat2_name,  tt2.count AS cat2_total,
+                COUNT(*)    AS shared
+             FROM {$wpdb->term_relationships} tr1
+             JOIN {$wpdb->term_relationships} tr2
+                 ON  tr1.object_id       = tr2.object_id
+                 AND tr1.term_taxonomy_id < tr2.term_taxonomy_id
+             JOIN {$wpdb->term_taxonomy} tt1
+                 ON  tr1.term_taxonomy_id = tt1.term_taxonomy_id
+                 AND tt1.taxonomy         = 'category'
+             JOIN {$wpdb->term_taxonomy} tt2
+                 ON  tr2.term_taxonomy_id = tt2.term_taxonomy_id
+                 AND tt2.taxonomy         = 'category'
+             JOIN {$wpdb->terms} t1 ON tt1.term_id = t1.term_id
+             JOIN {$wpdb->terms} t2 ON tt2.term_id = t2.term_id
+             WHERE t1.slug != 'uncategorized'
+               AND t2.slug != 'uncategorized'
+               AND tt1.count  > 1
+               AND tt2.count  > 1
+             GROUP BY tt1.term_taxonomy_id, tt2.term_taxonomy_id
+             ORDER BY shared DESC
+             LIMIT %d",
+            $limit
+        ), ARRAY_A );
+
+        if ( ! $rows ) return [];
+
+        $result = [];
+        foreach ( $rows as $row ) {
+            $shared      = (int) $row['shared'];
+            $cat1_total  = (int) $row['cat1_total'];
+            $cat2_total  = (int) $row['cat2_total'];
+            $smaller     = min( $cat1_total, $cat2_total );
+            $overlap_pct = $smaller > 0 ? (int) round( $shared / $smaller * 100 ) : 0;
+            $result[]    = [
+                'cat1_id'     => (int) $row['cat1_id'],
+                'cat1_name'   => $row['cat1_name'],
+                'cat1_total'  => $cat1_total,
+                'cat2_id'     => (int) $row['cat2_id'],
+                'cat2_name'   => $row['cat2_name'],
+                'cat2_total'  => $cat2_total,
+                'shared'      => $shared,
+                'overlap_pct' => $overlap_pct,
+            ];
+        }
+        return $result;
+    }
+
+    public function ajax_catmerge_overlap(): void {
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+
+        $source_id = absint( wp_unslash( $_POST['source_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        $target_id = absint( wp_unslash( $_POST['target_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        if ( ! $source_id || ! $target_id || $source_id === $target_id ) {
+            wp_send_json_error( 'Invalid.' );
+            return;
+        }
+
+        global $wpdb;
+        $src_ttid = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE term_id = %d AND taxonomy = 'category'",
+            $source_id
+        ) );
+        $tgt_ttid = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE term_id = %d AND taxonomy = 'category'",
+            $target_id
+        ) );
+        if ( ! $src_ttid || ! $tgt_ttid ) {
+            wp_send_json_error( 'Not found.' );
+            return;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $overlap = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->term_relationships} src
+             JOIN {$wpdb->term_relationships} tgt ON src.object_id = tgt.object_id
+             WHERE src.term_taxonomy_id = %d AND tgt.term_taxonomy_id = %d",
+            $src_ttid, $tgt_ttid
+        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $src_count = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d", $src_ttid
+        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $tgt_count = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d", $tgt_ttid
+        ) );
+
+        wp_send_json_success( [
+            'unique'  => $src_count + $tgt_count - $overlap,
+            'overlap' => $overlap,
+        ] );
+    }
+
+    public function ajax_catmerge(): void {
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked above
+        $source_id = absint( wp_unslash( $_POST['source_id'] ?? 0 ) );
+        $target_id = absint( wp_unslash( $_POST['target_id'] ?? 0 ) );
+        $new_name  = sanitize_text_field( wp_unslash( $_POST['new_name'] ?? '' ) );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+        if ( ! $source_id || ! $target_id || $source_id === $target_id ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Invalid category selection.' ] );
+            return;
+        }
+        $source = get_category( $source_id );
+        $target = get_category( $target_id );
+        if ( ! $source || is_wp_error( $source ) || ! $target || is_wp_error( $target ) ) {
+            wp_send_json( [ 'success' => false, 'error' => 'One or both categories not found.' ] );
+            return;
+        }
+        if ( strtolower( $source->slug ) === 'uncategorized' || strtolower( $target->slug ) === 'uncategorized' ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Cannot merge with the Uncategorized category.' ] );
+            return;
+        }
+
+        global $wpdb;
+
+        // Resolve term_taxonomy_ids — one query each, avoids per-post hook overhead.
+        $src_ttid = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE term_id = %d AND taxonomy = 'category'",
+            $source_id
+        ) );
+        $tgt_ttid = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE term_id = %d AND taxonomy = 'category'",
+            $target_id
+        ) );
+        if ( ! $src_ttid || ! $tgt_ttid ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Term taxonomy record not found.' ] );
+            return;
+        }
+
+        // How many posts are in the source category.
+        $total_in_source = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",
+            $src_ttid
+        ) );
+
+        // Add target to every post in source that doesn't already have it — single bulk INSERT.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->query( $wpdb->prepare(
+            "INSERT IGNORE INTO {$wpdb->term_relationships} (object_id, term_taxonomy_id, term_order)
+             SELECT object_id, %d, 0 FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",
+            $tgt_ttid,
+            $src_ttid
+        ) );
+        $newly_added = (int) $wpdb->rows_affected;
+
+        // Remove all source relationships in one DELETE.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->delete( $wpdb->term_relationships, [ 'term_taxonomy_id' => $src_ttid ], [ '%d' ] );
+
+        // Recount target accurately via WordPress API so hooks and caches are handled correctly.
+        wp_update_term_count_now( [ $tgt_ttid ], 'category' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $new_count = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",
+            $tgt_ttid
+        ) );
+
+        // Verify source is actually empty before deleting (must come before rename so nothing
+        // is mutated if this check fails).
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $remaining = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",
+            $src_ttid
+        ) );
+        if ( $remaining > 0 ) {
+            wp_send_json( [ 'success' => false, 'error' => "Safety check failed: source category still has {$remaining} post(s) after migration. No categories were deleted." ] );
+            return;
+        }
+
+        // Rename target if requested — use wp_update_term so slug deduplication is handled.
+        // Done after the safety check so the name is not changed if migration failed.
+        if ( $new_name && $new_name !== $target->name ) {
+            $rename_result = wp_update_term( $target_id, 'category', [ 'name' => $new_name ] );
+            if ( is_wp_error( $rename_result ) ) {
+                $new_name = $target->name;
+            }
+        }
+
+        wp_delete_term( $source_id, 'category' );
+        clean_term_cache( [ $source_id, $target_id ], 'category' );
+        delete_transient( 'cs_seo_llms_txt' );
+
+        $updated_target = get_category( $target_id );
+        wp_send_json( [
+            'success'     => true,
+            'total'       => $total_in_source,
+            'added'       => $newly_added,
+            'skipped'     => $total_in_source - $newly_added,
+            'final_name'  => $updated_target ? $updated_target->name : ( $new_name ?: $target->name ),
+            'final_count' => $new_count,
+        ] );
     }
 
     /**

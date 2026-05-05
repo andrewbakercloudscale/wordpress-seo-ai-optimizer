@@ -915,6 +915,8 @@ trait CS_SEO_Settings_Page {
                 <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_person]"      value="0">
                 <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_article]"     value="0">
                 <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_breadcrumbs]" value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_org]"        value="0">
+                <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[allow_ai_indexers]"        value="0">
                 <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[show_summary_box]"          value="0">
                 <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[strip_tracking_params]"     value="0">
                 <input type="hidden" name="<?php echo esc_attr(self::OPT); ?>[noindex_search]"            value="0">
@@ -958,6 +960,7 @@ trait CS_SEO_Settings_Page {
                     <label class="ab-rec"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_website]" value="1" <?php checked((int)($o['enable_schema_website'] ?? 0), 1); ?>> WebSite JSON-LD (front page)</label>
                     <label class="ab-rec"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_person]" value="1" <?php checked((int)($o['enable_schema_person'] ?? 0), 1); ?>> Person JSON-LD schema</label>
                     <label class="ab-rec"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_article]" value="1" <?php checked((int)($o['enable_schema_article'] ?? 0), 1); ?>> BlogPosting JSON-LD schema</label>
+                    <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_org]" value="1" <?php checked((int)($o['enable_schema_org'] ?? 0), 1); ?>> Organization JSON-LD schema</label>
                     <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[enable_schema_breadcrumbs]" value="1" <?php checked((int)($o['enable_schema_breadcrumbs'] ?? 0), 1); ?>> Breadcrumb JSON-LD schema</label>
                     <label class="ab-rec"><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[show_summary_box]" value="1" <?php checked((int)($o['show_summary_box'] ?? 1), 1); ?>> Show AI summary box on posts</label>
                     <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[strip_tracking_params]" value="1" <?php checked((int)($o['strip_tracking_params'] ?? 0), 1); ?>> Strip UTM params in canonical URLs</label>
@@ -1150,7 +1153,15 @@ trait CS_SEO_Settings_Page {
                         <td>
                             <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[block_ai_bots]" value="1" <?php checked((int)($o['block_ai_bots'] ?? 1), 1); ?>>
                             Block GPTBot, ChatGPT-User, CCBot, anthropic-ai, Claude-Web, FacebookBot, Bytespider, Applebot-Extended</label>
-                            <p class="description">Adds <code>Disallow: /</code> for each AI training crawler. Appended automatically after your custom rules below.</p>
+                            <p class="description">Adds <code>Disallow: /</code> for each AI training crawler. When llms.txt is enabled, <code>Allow: /llms.txt</code> is inserted above each Disallow so blocked bots can still read your site guidance.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><?php esc_html_e( 'Allow AI indexing crawlers:', 'cloudscale-seo-ai-optimizer' ); ?></th>
+                        <td>
+                            <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[allow_ai_indexers]" value="1" <?php checked((int)($o['allow_ai_indexers'] ?? 0), 1); ?>>
+                            Explicitly allow ClaudeBot, PerplexityBot, Google-Extended, Amazonbot, Applebot</label>
+                            <p class="description">Adds explicit <code>User-agent + Allow: /</code> blocks for AI citation and indexing crawlers. Explicit grants are a stronger signal than inheriting from <code>User-agent: *</code> — recommended for maximum AI citation visibility.</p>
                         </td>
                     </tr>
                     <tr>
@@ -2067,6 +2078,69 @@ trait CS_SEO_Settings_Page {
                     </span>
                 </div>
                 <div class="ab-zone-body" style="padding:24px;">
+
+                    <?php
+                    $cmg_correlations = $this->get_category_correlations(5);
+                    if (!empty($cmg_correlations)) :
+                    ?>
+                    <div style="margin-bottom:24px;">
+                        <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:4px;">Top Merge Candidates</div>
+                        <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">Category pairs that most often appear together on the same posts. Higher overlap % = stronger merge signal. Click <strong>Merge →</strong> to prefill the dropdowns below.</div>
+                        <div style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:480px;">
+                            <thead>
+                                <tr style="background:#f3f4f6;">
+                                    <th style="text-align:left;padding:7px 10px;border:1px solid #e5e7eb;font-weight:600;color:#374151;">Category A</th>
+                                    <th style="text-align:left;padding:7px 10px;border:1px solid #e5e7eb;font-weight:600;color:#374151;">Category B</th>
+                                    <th style="text-align:center;padding:7px 10px;border:1px solid #e5e7eb;font-weight:600;color:#374151;white-space:nowrap;">Shared Posts</th>
+                                    <th style="text-align:center;padding:7px 10px;border:1px solid #e5e7eb;font-weight:600;color:#374151;">Overlap</th>
+                                    <th style="text-align:center;padding:7px 10px;border:1px solid #e5e7eb;font-weight:600;color:#374151;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php foreach ($cmg_correlations as $corr) :
+                                // Suggest: source = smaller (will be deleted), target = larger (survives).
+                                if ($corr['cat1_total'] <= $corr['cat2_total']) {
+                                    [$src_id, $src_name, $src_cnt, $tgt_id, $tgt_name, $tgt_cnt] =
+                                        [$corr['cat1_id'], $corr['cat1_name'], $corr['cat1_total'],
+                                         $corr['cat2_id'], $corr['cat2_name'], $corr['cat2_total']];
+                                } else {
+                                    [$src_id, $src_name, $src_cnt, $tgt_id, $tgt_name, $tgt_cnt] =
+                                        [$corr['cat2_id'], $corr['cat2_name'], $corr['cat2_total'],
+                                         $corr['cat1_id'], $corr['cat1_name'], $corr['cat1_total']];
+                                }
+                                $pct      = $corr['overlap_pct'];
+                                $pct_col  = $pct >= 80 ? '#dc2626' : ($pct >= 50 ? '#d97706' : '#059669');
+                                $bar_col  = $pct >= 80 ? '#fecaca' : ($pct >= 50 ? '#fef3c7' : '#d1fae5');
+                            ?>
+                                <tr style="border-bottom:1px solid #f0f0f0;">
+                                    <td style="padding:8px 10px;border:1px solid #e5e7eb;">
+                                        <span style="color:#1d2327;font-weight:500;"><?php echo esc_html($corr['cat1_name']); ?></span>
+                                        <span style="color:#9ca3af;font-size:11px;"> &nbsp;<?php echo (int)$corr['cat1_total']; ?> posts</span>
+                                    </td>
+                                    <td style="padding:8px 10px;border:1px solid #e5e7eb;">
+                                        <span style="color:#1d2327;font-weight:500;"><?php echo esc_html($corr['cat2_name']); ?></span>
+                                        <span style="color:#9ca3af;font-size:11px;"> &nbsp;<?php echo (int)$corr['cat2_total']; ?> posts</span>
+                                    </td>
+                                    <td style="padding:8px 10px;border:1px solid #e5e7eb;text-align:center;color:#374151;"><?php echo (int)$corr['shared']; ?></td>
+                                    <td style="padding:8px 10px;border:1px solid #e5e7eb;text-align:center;">
+                                        <span style="display:inline-block;background:<?php echo esc_attr($bar_col); ?>;color:<?php echo esc_attr($pct_col); ?>;font-weight:700;font-size:12px;padding:2px 8px;border-radius:10px;"><?php echo $pct; ?>%</span>
+                                    </td>
+                                    <td style="padding:8px 10px;border:1px solid #e5e7eb;text-align:center;">
+                                        <button type="button"
+                                            onclick="cmgPrefill(<?php echo (int)$src_id; ?>, <?php echo (int)$tgt_id; ?>)"
+                                            style="padding:3px 11px;font-size:11px;font-weight:600;background:#6d28d9;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap;">
+                                            Merge &rarr;
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
                         <div>
                             <label for="cmg-source" style="display:block;font-weight:600;font-size:13px;color:#374151;margin-bottom:6px;">Source category <span style="font-weight:400;color:#6b7280;">(will be deleted)</span></label>
@@ -6665,6 +6739,22 @@ trait CS_SEO_Settings_Page {
                     });
             });
         })();
+
+        // Prefill source + target dropdowns from a correlation table row.
+        function cmgPrefill(srcId, tgtId) {
+            var srcSel = document.getElementById('cmg-source');
+            var tgtSel = document.getElementById('cmg-target');
+            if (!srcSel || !tgtSel) return;
+            for (var i = 0; i < srcSel.options.length; i++) {
+                if (parseInt(srcSel.options[i].value, 10) === srcId) { srcSel.selectedIndex = i; break; }
+            }
+            for (var j = 0; j < tgtSel.options.length; j++) {
+                if (parseInt(tgtSel.options[j].value, 10) === tgtId) { tgtSel.selectedIndex = j; break; }
+            }
+            srcSel.dispatchEvent(new Event('change'));
+            var btn = document.getElementById('cmg-merge-btn');
+            if (btn) setTimeout(function(){ btn.scrollIntoView({behavior:'smooth', block:'center'}); }, 150);
+        }
 
         // =====================================================================
         // Related Articles — admin UI

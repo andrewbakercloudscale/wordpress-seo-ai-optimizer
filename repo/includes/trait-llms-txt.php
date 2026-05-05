@@ -86,8 +86,10 @@ trait CS_SEO_LLMS_Txt {
         $lines[] = '';
 
         // All published posts grouped by post type, ordered by date desc.
+        $post_types = (array) ($this->opts['sitemap_post_types'] ?? ['post', 'page']);
+        if (empty($post_types)) $post_types = ['post', 'page'];
         $posts = get_posts([
-            'post_type'           => ['post', 'page'],
+            'post_type'           => $post_types,
             'post_status'         => 'publish',
             'posts_per_page'      => -1,
             'orderby'             => 'date',
@@ -101,7 +103,7 @@ trait CS_SEO_LLMS_Txt {
         _prime_post_caches($posts, false, false);
         update_meta_cache('post', $posts);
 
-        $by_type = ['post' => [], 'page' => []];
+        $by_type = [];
         foreach ($posts as $pid) {
             $p    = get_post($pid);
             $type = $p->post_type;
@@ -111,16 +113,14 @@ trait CS_SEO_LLMS_Txt {
             $by_type[$type][] = $entry;
         }
 
-        if (!empty($by_type['post'])) {
-            $lines[] = '## Blog Posts';
+        // Section headings per post type.
+        $headings = ['post' => 'Blog Posts', 'page' => 'Pages'];
+        foreach ($by_type as $type => $entries) {
+            if (empty($entries)) continue;
+            $label = $headings[$type] ?? ucwords(str_replace(['-', '_'], ' ', $type)) . 's';
+            $lines[] = '## ' . $label;
             $lines[] = '';
-            foreach ($by_type['post'] as $entry) $lines[] = $entry;
-            $lines[] = '';
-        }
-        if (!empty($by_type['page'])) {
-            $lines[] = '## Pages';
-            $lines[] = '';
-            foreach ($by_type['page'] as $entry) $lines[] = $entry;
+            foreach ($entries as $entry) $lines[] = $entry;
             $lines[] = '';
         }
 

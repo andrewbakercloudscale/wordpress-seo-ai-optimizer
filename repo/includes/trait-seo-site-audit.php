@@ -45,6 +45,22 @@ trait CS_SEO_Site_Audit {
             return;
         }
 
+        if ( $action === 'enable_org_schema' ) {
+            $opts = get_option( self::OPT, [] );
+            $opts['enable_schema_org'] = 1;
+            update_option( self::OPT, $opts );
+            wp_send_json_success( [ 'message' => 'Organization schema enabled. Re-run audit to confirm.' ] );
+            return;
+        }
+
+        if ( $action === 'enable_ai_indexers' ) {
+            $opts = get_option( self::OPT, [] );
+            $opts['allow_ai_indexers'] = 1;
+            update_option( self::OPT, $opts );
+            wp_send_json_success( [ 'message' => 'AI indexing crawler allows added to robots.txt. Re-run audit to confirm.' ] );
+            return;
+        }
+
         if ( $action === 'add_archive_redirects' ) {
             $posts_url  = get_post_type_archive_link( 'post' ) ?: home_url( '/' );
             $redirects  = get_option( 'cs_seo_redirects', [] );
@@ -413,6 +429,22 @@ trait CS_SEO_Site_Audit {
         $rob_score += $rob_sitemap ? 1 : 0;
         $findings[] = [ 'section' => 'robots_txt', 'check' => 'robots.txt — Sitemap declared', 'status' => $rob_sitemap ? 'ok' : 'warn', 'value' => $rob_sitemap ? 'present' : 'missing', 'note' => $rob_sitemap ? '' : 'Add Sitemap: https://example.com/sitemap.xml for crawler discovery.' ];
 
+        // AI citation crawler explicit Allow rules
+        $ai_indexers  = [ 'ClaudeBot', 'PerplexityBot', 'Google-Extended', 'Amazonbot' ];
+        $found_allows = 0;
+        foreach ( $ai_indexers as $bot ) {
+            if ( preg_match( '/User-agent:\s*' . preg_quote( $bot, '/' ) . '/i', $robots_body ) ) {
+                $found_allows++;
+            }
+        }
+        $rob_w++;
+        if ( $found_allows >= 2 ) {
+            $rob_score++;
+            $findings[] = [ 'section' => 'robots_txt', 'check' => 'robots.txt — AI indexing crawlers explicitly allowed', 'status' => 'ok', 'value' => "{$found_allows}/4 key bots declared", 'note' => '' ];
+        } else {
+            $findings[] = [ 'section' => 'robots_txt', 'check' => 'robots.txt — AI indexing crawlers explicitly allowed', 'status' => 'warn', 'value' => $found_allows > 0 ? "{$found_allows}/4 key bots declared" : 'none declared', 'note' => 'Add explicit User-agent + Allow: / for ClaudeBot, PerplexityBot, Google-Extended, and Amazonbot. Explicit grants are a stronger citation signal than inheriting from User-agent: *.' ];
+        }
+
         $sections['robots_txt'] = [
             'label' => 'robots.txt',
             'icon'  => '📄',
@@ -529,6 +561,11 @@ trait CS_SEO_Site_Audit {
         } else {
             $findings[] = [ 'section' => 'schema', 'check' => 'Person schema', 'status' => 'fail', 'value' => 'absent', 'note' => 'No Person schema found.' ];
         }
+
+        // Organization schema
+        $org = $find_type( 'Organization' );
+        $sch_w++; $sch_score += $org ? 1 : 0;
+        $findings[] = [ 'section' => 'schema', 'check' => 'Organization schema', 'status' => $org ? 'ok' : 'warn', 'value' => $org ? 'present' : 'absent', 'note' => $org ? '' : 'Standalone Organization schema improves entity recognition and brand authority signals for AI crawlers. Enable under General → Schema.' ];
 
         // BreadcrumbList
         $bc = $find_type( 'BreadcrumbList' );
@@ -721,7 +758,7 @@ trait CS_SEO_Site_Audit {
                     </button>
                 </span>
             </div>
-            <div class="ab-zone-body">
+            <div class="ab-zone-body" style="padding:16px 20px">
 
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
                     <label for="cs-audit-url" style="font-size:13px;font-weight:600;color:#1d2327;white-space:nowrap">Audit URL:</label>
@@ -760,7 +797,7 @@ trait CS_SEO_Site_Audit {
         </div>
 
         <?php if ( ! empty( $adhoc_history ) ) : ?>
-        <div class="ab-zone-card" id="cs-adhoc-zone-card" style="margin-top:24px">
+        <div class="ab-zone-card cs-adhoc-zone-card" id="cs-adhoc-zone-card" style="margin-top:24px">
             <div class="ab-zone-header" style="background:#374151;justify-content:space-between;flex-wrap:wrap;gap:8px">
                 <span><span class="ab-zone-icon">🔗</span> Ad-hoc Audits (<?php echo count( $adhoc_history ); ?>)</span>
                 <button type="button" class="button ab-toggle-card-btn" data-card-id="cs-adhoc-zone-card" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">&#9658; Show</button>
@@ -788,7 +825,7 @@ trait CS_SEO_Site_Audit {
             </div>
         </div>
         <?php else : ?>
-        <div class="ab-zone-card" id="cs-adhoc-zone-card" style="margin-top:24px;display:none">
+        <div class="ab-zone-card cs-adhoc-zone-card" id="cs-adhoc-zone-card" style="margin-top:24px;display:none">
             <div class="ab-zone-header" style="background:#374151;justify-content:space-between">
                 <span><span class="ab-zone-icon">🔗</span> Ad-hoc Audits</span>
                 <button type="button" class="button ab-toggle-card-btn" data-card-id="cs-adhoc-zone-card" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">&#9658; Show</button>
@@ -1076,10 +1113,11 @@ trait CS_SEO_Site_Audit {
 
     private function render_seo_audit_dashboard( ?array $data ): void {
         if ( ! $data ) return;
-        $overall  = $data['overall']  ?? 0;
-        $sections = $data['sections'] ?? [];
-        $findings = $data['findings'] ?? [];
-        $label    = $overall >= 80 ? 'GOOD' : ( $overall >= 60 ? 'NEEDS WORK' : 'CRITICAL' );
+        $overall   = $data['overall']  ?? 0;
+        $sections  = $data['sections'] ?? [];
+        $findings  = $data['findings'] ?? [];
+        $is_adhoc  = ! empty( $data['is_adhoc'] );
+        $label     = $overall >= 80 ? 'GOOD' : ( $overall >= 60 ? 'NEEDS WORK' : 'CRITICAL' );
         ?>
         <!-- Score dashboard -->
         <div class="cs-audit-hero">
@@ -1109,7 +1147,7 @@ trait CS_SEO_Site_Audit {
                     $sc     = $sec['score'];
                     $col    = $sc >= 80 ? '#86efac' : ( $sc >= 60 ? '#fcd34d' : '#fca5a5' );
                     $card_a = $card_action_map[ $key ] ?? null;
-                    $show_fix = $card_a && $sc < 100;
+                    $show_fix = $card_a && $sc < 100 && ! $is_adhoc;
                     $card_inline = $card_a['inline'] ?? '';
                     if ( $key === 'security_headers' ) {
                         $fix_onclick = "window.location.href='" . esc_js( admin_url( 'admin.php?page=cloudscale-devtools' ) ) . "'";
@@ -1228,6 +1266,8 @@ trait CS_SEO_Site_Audit {
             'HowTo schema on step-by-step posts' => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'generate_howto_schema' ],
             'Answer-first paragraphs on top posts' => [ 'tab' => 'aitools', 'label' => 'Generate AEO',        'sel' => '#ab-ai-gen-aeo',           'href' => '' ],
             'Speakable schema'                   => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'enable_speakable_schema' ],
+            'Organization schema'                => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'enable_org_schema' ],
+            'robots.txt — AI indexing crawlers explicitly allowed' => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'enable_ai_indexers' ],
             'Category intro text (descriptions)' => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'gen_cat_descs' ],
             'Category SEO meta descriptions set' => [ 'tab' => '', 'label' => '', 'sel' => '', 'href' => '', 'inline' => 'gen_cat_descs' ],
             'Missing SEO title tags on posts/pages' => [ 'tab' => 'titleopt', 'label' => 'Fix It — Open SEO AI', 'sel' => '#ab-titleopt-analyse-all', 'href' => '' ],
@@ -1260,6 +1300,26 @@ trait CS_SEO_Site_Audit {
             fd.append('action','cs_seo_audit_quickfix'); fd.append('quickfix','enable_speakable_schema'); fd.append('nonce',csSeoAdmin.nonce);
             fetch(csSeoAdmin.ajaxUrl,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(r){
                 btn.textContent = r.success ? '✅ Enabled — re-run audit' : '❌ ' + (r.data||'Error');
+                btn.style.background = r.success ? '#10b981' : '#ef4444';
+            }).catch(function(){ btn.textContent = '❌ Network error'; btn.style.background='#ef4444'; });
+        }
+
+        function csAuditEnableOrgSchema(btn) {
+            btn.disabled = true; btn.textContent = '⏳ Enabling…';
+            var fd = new FormData();
+            fd.append('action','cs_seo_audit_quickfix'); fd.append('quickfix','enable_org_schema'); fd.append('nonce',csSeoAdmin.nonce);
+            fetch(csSeoAdmin.ajaxUrl,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(r){
+                btn.textContent = r.success ? '✅ Enabled — re-run audit' : '❌ ' + (r.data||'Error');
+                btn.style.background = r.success ? '#10b981' : '#ef4444';
+            }).catch(function(){ btn.textContent = '❌ Network error'; btn.style.background='#ef4444'; });
+        }
+
+        function csAuditEnableAiIndexers(btn) {
+            btn.disabled = true; btn.textContent = '⏳ Adding…';
+            var fd = new FormData();
+            fd.append('action','cs_seo_audit_quickfix'); fd.append('quickfix','enable_ai_indexers'); fd.append('nonce',csSeoAdmin.nonce);
+            fetch(csSeoAdmin.ajaxUrl,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(r){
+                btn.textContent = r.success ? '✅ Added — re-run audit' : '❌ ' + (r.data||'Error');
                 btn.style.background = r.success ? '#10b981' : '#ef4444';
             }).catch(function(){ btn.textContent = '❌ Network error'; btn.style.background='#ef4444'; });
         }
@@ -1379,7 +1439,7 @@ trait CS_SEO_Site_Audit {
                         <td style="padding:8px 12px;font-family:monospace;font-size:11px;color:#50575e;max-width:180px;word-break:break-all"><?php echo esc_html( $f['value'] ); ?></td>
                         <td style="padding:8px 12px;font-size:12px;color:#374151;line-height:1.5"><?php echo esc_html( $f['note'] ); ?></td>
                         <td style="padding:8px 12px">
-                        <?php if ( $st !== 'ok' && $ca ) :
+                        <?php if ( $st !== 'ok' && $ca && ! $is_adhoc ) :
                             $inline = $ca['inline'] ?? '';
                             if ( $inline === 'enable_breadcrumbs' ) : ?>
                                 <button type="button" onclick="csAuditEnableBreadcrumbs(this)"
@@ -1396,6 +1456,16 @@ trait CS_SEO_Site_Audit {
                                 <button type="button" onclick="csAuditEnableSpeakable(this)"
                                     style="padding:4px 11px;font-size:11px;font-weight:600;background:#7c3aed;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap">
                                     ⚡ Enable Now
+                                </button>
+                            <?php elseif ( $inline === 'enable_org_schema' ) : ?>
+                                <button type="button" onclick="csAuditEnableOrgSchema(this)"
+                                    style="padding:4px 11px;font-size:11px;font-weight:600;background:#7c3aed;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap">
+                                    ⚡ Enable Now
+                                </button>
+                            <?php elseif ( $inline === 'enable_ai_indexers' ) : ?>
+                                <button type="button" onclick="csAuditEnableAiIndexers(this)"
+                                    style="padding:4px 11px;font-size:11px;font-weight:600;background:#0f766e;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap">
+                                    ⚡ Add Allows Now
                                 </button>
                             <?php elseif ( $inline === 'generate_howto_schema' ) : ?>
                                 <button type="button" onclick="csAuditGenHowToSchema(this)"

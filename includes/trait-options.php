@@ -53,6 +53,8 @@ trait CS_SEO_Options {
             'knows_about'             => '',
             'robots_txt'              => self::default_robots_txt(),
             'block_ai_bots'           => 1,
+            'allow_ai_indexers'       => 0,
+            'enable_schema_org'       => 0,
             'sitemap_post_types'      => ['post', 'page'],
             'sitemap_taxonomies'      => 0,
             'sitemap_exclude'         => '',

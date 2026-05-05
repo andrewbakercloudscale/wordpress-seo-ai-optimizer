@@ -1322,9 +1322,70 @@ trait CS_SEO_Category_Fixer {
      *
      * Accepts `source_id` (int), `target_id` (int), and `new_name` (string, optional).
      *
-     * @since 4.21.47
+     * @since 4.21.51
      * @return void
      */
+    /**
+     * Returns the top N category pairs ordered by co-occurrence on the same posts.
+     * Used to surface merge candidates in the admin UI.
+     *
+     * @since 4.21.51
+     * @param int $limit Max pairs to return.
+     * @return array Each entry: cat1_id, cat1_name, cat1_total, cat2_id, cat2_name, cat2_total, shared, overlap_pct.
+     */
+    public function get_category_correlations( int $limit = 5 ): array {
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT
+                t1.term_id  AS cat1_id,  t1.name AS cat1_name,  tt1.count AS cat1_total,
+                t2.term_id  AS cat2_id,  t2.name AS cat2_name,  tt2.count AS cat2_total,
+                COUNT(*)    AS shared
+             FROM {$wpdb->term_relationships} tr1
+             JOIN {$wpdb->term_relationships} tr2
+                 ON  tr1.object_id       = tr2.object_id
+                 AND tr1.term_taxonomy_id < tr2.term_taxonomy_id
+             JOIN {$wpdb->term_taxonomy} tt1
+                 ON  tr1.term_taxonomy_id = tt1.term_taxonomy_id
+                 AND tt1.taxonomy         = 'category'
+             JOIN {$wpdb->term_taxonomy} tt2
+                 ON  tr2.term_taxonomy_id = tt2.term_taxonomy_id
+                 AND tt2.taxonomy         = 'category'
+             JOIN {$wpdb->terms} t1 ON tt1.term_id = t1.term_id
+             JOIN {$wpdb->terms} t2 ON tt2.term_id = t2.term_id
+             WHERE t1.slug != 'uncategorized'
+               AND t2.slug != 'uncategorized'
+               AND tt1.count  > 1
+               AND tt2.count  > 1
+             GROUP BY tt1.term_taxonomy_id, tt2.term_taxonomy_id
+             ORDER BY shared DESC
+             LIMIT %d",
+            $limit
+        ), ARRAY_A );
+
+        if ( ! $rows ) return [];
+
+        $result = [];
+        foreach ( $rows as $row ) {
+            $shared      = (int) $row['shared'];
+            $cat1_total  = (int) $row['cat1_total'];
+            $cat2_total  = (int) $row['cat2_total'];
+            $smaller     = min( $cat1_total, $cat2_total );
+            $overlap_pct = $smaller > 0 ? (int) round( $shared / $smaller * 100 ) : 0;
+            $result[]    = [
+                'cat1_id'     => (int) $row['cat1_id'],
+                'cat1_name'   => $row['cat1_name'],
+                'cat1_total'  => $cat1_total,
+                'cat2_id'     => (int) $row['cat2_id'],
+                'cat2_name'   => $row['cat2_name'],
+                'cat2_total'  => $cat2_total,
+                'shared'      => $shared,
+                'overlap_pct' => $overlap_pct,
+            ];
+        }
+        return $result;
+    }
+
     public function ajax_catmerge_overlap(): void {
         check_ajax_referer( 'cs_seo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
@@ -1433,21 +1494,16 @@ trait CS_SEO_Category_Fixer {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->delete( $wpdb->term_relationships, [ 'term_taxonomy_id' => $src_ttid ], [ '%d' ] );
 
-        // Recount target accurately.
+        // Recount target accurately via WordPress API so hooks and caches are handled correctly.
+        wp_update_term_count_now( [ $tgt_ttid ], 'category' );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
         $new_count = (int) $wpdb->get_var( $wpdb->prepare(
             "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",
             $tgt_ttid
         ) );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->update( $wpdb->term_taxonomy, [ 'count' => $new_count ], [ 'term_taxonomy_id' => $tgt_ttid ], [ '%d' ], [ '%d' ] );
 
-        // Rename target if requested — use wp_update_term so slug deduplication is handled.
-        if ( $new_name && $new_name !== $target->name ) {
-            wp_update_term( $target_id, 'category', [ 'name' => $new_name ] );
-        }
-
-        // Verify source is actually empty before deleting.
+        // Verify source is actually empty before deleting (must come before rename so nothing
+        // is mutated if this check fails).
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
         $remaining = (int) $wpdb->get_var( $wpdb->prepare(
             "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",
@@ -1457,11 +1513,19 @@ trait CS_SEO_Category_Fixer {
             wp_send_json( [ 'success' => false, 'error' => "Safety check failed: source category still has {$remaining} post(s) after migration. No categories were deleted." ] );
             return;
         }
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->update( $wpdb->term_taxonomy, [ 'count' => 0 ], [ 'term_taxonomy_id' => $src_ttid ], [ '%d' ], [ '%d' ] );
-        wp_delete_term( $source_id, 'category' );
 
+        // Rename target if requested — use wp_update_term so slug deduplication is handled.
+        // Done after the safety check so the name is not changed if migration failed.
+        if ( $new_name && $new_name !== $target->name ) {
+            $rename_result = wp_update_term( $target_id, 'category', [ 'name' => $new_name ] );
+            if ( is_wp_error( $rename_result ) ) {
+                $new_name = $target->name;
+            }
+        }
+
+        wp_delete_term( $source_id, 'category' );
         clean_term_cache( [ $source_id, $target_id ], 'category' );
+        delete_transient( 'cs_seo_llms_txt' );
 
         $updated_target = get_category( $target_id );
         wp_send_json( [
