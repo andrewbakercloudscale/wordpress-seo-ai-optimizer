@@ -25,7 +25,7 @@ trait CS_SEO_Settings_Page {
         $nonce = wp_create_nonce('cs_seo_nonce');
         ?>
         <div class="wrap">
-        <h1>CloudScale SEO AI Optimizer <span style="font-size:13px;font-weight:400;color:#999;margin-left:6px">v<?php echo esc_html(self::VERSION); ?></span></h1>
+        <h1>CloudScale SEO AI Optimizer <span style="font-size:13px;font-weight:400;color:#999;margin-left:6px">AndrewBaker.Ninja</span></h1>
         <?php if ( isset( $_GET['settings-updated'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
         <div id="ab-settings-saved-toast" style="position:fixed;top:46px;right:20px;z-index:99999;background:#fff;border:1px solid #c3e6cb;border-left:4px solid #00a32a;color:#155724;padding:12px 20px;border-radius:6px;box-shadow:0 2px 12px rgba(0,0,0,.18);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;transition:opacity 0.4s;">
             &#x2705; <?php esc_html_e( 'Settings saved.', 'cloudscale-seo-ai-optimizer' ); ?>
@@ -7433,7 +7433,7 @@ trait CS_SEO_Settings_Page {
                     var pollTimer   = setInterval(function() {
                         pollCount++;
                         if (pollCount > 40) { clearInterval(pollTimer); return; } // max 2 min
-                        proxyPost('cs_seo_proxy_poll_session', { session_id: pollSession })
+                        proxyPost('cs_seo_proxy_poll_session', { session_token: pollSession })
                             .then(function(res) {
                                 if (res.success && res.data && res.data.status === 'active') {
                                     clearInterval(pollTimer);

@@ -251,8 +251,8 @@ trait CS_SEO_AI_Engine {
             wp_send_json_error(['message' => $data['error'] ?? 'Checkout failed']);
         }
 
-        if (!empty($data['session_id'])) {
-            $this->ai_opts['proxy_session_id'] = $data['session_id'];
+        if (!empty($data['session_token'])) {
+            $this->ai_opts['proxy_session_id'] = $data['session_token'];
             $this->ai_opts['proxy_status']     = 'pending';
             update_option(self::AI_OPT, $this->ai_opts);
         }
@@ -315,10 +315,10 @@ trait CS_SEO_AI_Engine {
 
     public function ajax_proxy_poll_session(): void {
         $this->ajax_check();
-        $session_id = sanitize_text_field((string)($_POST['session_id'] ?? ''));
+        $session_id = sanitize_text_field((string)($_POST['session_token'] ?? $_POST['session_id'] ?? ''));
         if (!$session_id) { wp_send_json_error(['message' => 'No session_id']); }
 
-        $resp = wp_remote_get('https://api.andrewbaker.ninja/status?session=' . urlencode($session_id), ['timeout' => 10]);
+        $resp = wp_remote_get('https://api.andrewbaker.ninja/status?session_token=' . urlencode($session_id), ['timeout' => 10]);
         if (is_wp_error($resp)) { wp_send_json_error(['message' => $resp->get_error_message()]); }
 
         $data = json_decode(wp_remote_retrieve_body($resp), true);
