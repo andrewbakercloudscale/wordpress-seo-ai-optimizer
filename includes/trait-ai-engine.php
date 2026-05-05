@@ -251,9 +251,8 @@ trait CS_SEO_AI_Engine {
             wp_send_json_error(['message' => $data['error'] ?? 'Checkout failed']);
         }
 
-        // Extract session ID from success_url and store as pending
-        if (preg_match('/session=([^&]+)/', urldecode($data['checkout_url']), $m)) {
-            $this->ai_opts['proxy_session_id'] = $m[1];
+        if (!empty($data['session_id'])) {
+            $this->ai_opts['proxy_session_id'] = $data['session_id'];
             $this->ai_opts['proxy_status']     = 'pending';
             update_option(self::AI_OPT, $this->ai_opts);
         }
