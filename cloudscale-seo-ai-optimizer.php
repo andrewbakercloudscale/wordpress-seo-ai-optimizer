@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.21.52
+ * Version:     4.21.56
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -187,7 +187,7 @@ final class Cs_Seo_Plugin {
     // Related Articles generator version — bump when scoring logic changes
     const RC_VERSION = '1.0';
 
-    const VERSION    = '4.21.52';
+    const VERSION    = '4.21.56';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -374,6 +374,7 @@ final class Cs_Seo_Plugin {
         add_action('wp_ajax_cs_seo_catmig_apply',  [$this, 'ajax_catmig_apply']);
         add_action('wp_ajax_cs_seo_catmig_delete', [$this, 'ajax_catmig_delete']);
         add_action('wp_ajax_cs_seo_catmerge',         [$this, 'ajax_catmerge']);
+        add_action('wp_ajax_cs_seo_catmerge_partial', [$this, 'ajax_catmerge_partial']);
         add_action('wp_ajax_cs_seo_catmerge_overlap', [$this, 'ajax_catmerge_overlap']);
 
         // Category SEO — term meta edit fields and frontend injection

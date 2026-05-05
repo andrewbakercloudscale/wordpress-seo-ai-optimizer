@@ -2291,6 +2291,7 @@ trait CS_SEO_Settings_Page {
                     <div id="cmg-preview" style="display:none;margin-bottom:16px;padding:12px 16px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;font-size:13px;color:#4c1d95;line-height:1.6;"></div>
                     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                         <button id="cmg-merge-btn" class="button button-primary" style="background:#6d28d9;border-color:#6d28d9;color:#fff;padding:6px 20px;" disabled>&#128259; Merge Categories</button>
+                        <button id="cmg-partial-btn" class="button" style="background:#0369a1;border-color:#0369a1;color:#fff;padding:6px 20px;" disabled title="Removes the source category only from posts that already belong to both categories. Posts exclusive to source are left unchanged and source is not deleted.">&#9965; Partial Merge</button>
                         <span id="cmg-progress" style="display:none;font-size:12px;color:#6d28d9;font-style:italic;"></span>
                         <span id="cmg-result" style="display:none;font-size:13px;font-weight:600;padding:5px 12px;border-radius:12px;"></span>
                     </div>
@@ -6722,9 +6723,10 @@ trait CS_SEO_Settings_Page {
             const tgtSel    = document.getElementById('cmg-target');
             const renameIn  = document.getElementById('cmg-rename');
             const preview   = document.getElementById('cmg-preview');
-            const mergeBtn  = document.getElementById('cmg-merge-btn');
+            const mergeBtn   = document.getElementById('cmg-merge-btn');
+            const partialBtn = document.getElementById('cmg-partial-btn');
             const progressEl = document.getElementById('cmg-progress');
-            const resultEl  = document.getElementById('cmg-result');
+            const resultEl   = document.getElementById('cmg-result');
             if (!srcSel || !tgtSel) return;
 
             var previewTimer = null;
@@ -6737,6 +6739,7 @@ trait CS_SEO_Settings_Page {
                 if (!srcId || !tgtId || srcId === tgtId) {
                     preview.style.display = 'none';
                     mergeBtn.disabled = true;
+                    if (partialBtn) partialBtn.disabled = true;
                     return;
                 }
                 const srcCount  = parseInt(srcOpt.dataset.count, 10) || 0;
@@ -6761,7 +6764,9 @@ trait CS_SEO_Settings_Page {
                         '<strong>' + srcName + '</strong> will be permanently deleted.';
                     preview.style.display = 'block';
                     mergeBtn.disabled = false;
+                    if (partialBtn) partialBtn.disabled = (overlap === 0);
                 }
+                if (partialBtn) partialBtn.disabled = true; // refine after server overlap check
                 renderPreview(srcCount + tgtCount, 0);
 
                 // Debounce the server call so rapid dropdown changes don't spam.
@@ -6815,6 +6820,7 @@ trait CS_SEO_Settings_Page {
                             resultEl.style.cssText = 'display:inline-block;background:#d1fae5;color:#065f46;font-size:13px;font-weight:600;padding:5px 12px;border-radius:12px;';
                             preview.style.display = 'none';
                             mergeBtn.style.display = 'none';
+                            if (partialBtn) partialBtn.style.display = 'none';
                             [srcSel, tgtSel].forEach(sel => {
                                 for (let i = sel.options.length - 1; i >= 0; i--) {
                                     if (parseInt(sel.options[i].value, 10) === srcId) sel.remove(i);
@@ -6841,6 +6847,60 @@ trait CS_SEO_Settings_Page {
                         mergeBtn.textContent = '🔀 Merge Categories';
                     });
             });
+            if (partialBtn) {
+                partialBtn.addEventListener('click', function () {
+                    const srcId    = parseInt(srcSel.value, 10);
+                    const tgtId    = parseInt(tgtSel.value, 10);
+                    const srcLabel = srcSel.options[srcSel.selectedIndex].text.replace(/\s*\(\d+.*$/, '');
+                    const tgtLabel = tgtSel.options[tgtSel.selectedIndex].dataset.name || tgtSel.options[tgtSel.selectedIndex].text.replace(/\s*\(\d+.*$/, '');
+                    if (!srcId || !tgtId || srcId === tgtId) return;
+                    if (!confirm('Partial merge: remove "' + srcLabel + '" from posts that already belong to "' + tgtLabel + '"?\n\nOnly posts in both categories are affected. Posts exclusive to "' + srcLabel + '" are left unchanged and "' + srcLabel + '" will NOT be deleted.')) return;
+                    partialBtn.disabled = true;
+                    mergeBtn.disabled = true;
+                    partialBtn.textContent = '⏳ Merging…';
+                    resultEl.style.display = 'none';
+                    const fd = new FormData();
+                    fd.append('action',    'cs_seo_catmerge_partial');
+                    fd.append('nonce',     csSeoAdmin.nonce);
+                    fd.append('source_id', srcId);
+                    fd.append('target_id', tgtId);
+                    fetch(csSeoAdmin.ajaxUrl, {method: 'POST', body: fd})
+                        .then(r => r.json())
+                        .then(resp => {
+                            if (resp.success) {
+                                const d = resp.data;
+                                resultEl.textContent = '✅ Partial merge done — "' + d.src_name + '" removed from ' + d.removed + ' shared post' + (d.removed !== 1 ? 's' : '') + '. ' + d.src_remaining + ' post' + (d.src_remaining !== 1 ? 's' : '') + ' remain in "' + d.src_name + '".';
+                                resultEl.style.cssText = 'display:inline-block;background:#dbeafe;color:#1e3a8a;font-size:13px;font-weight:600;padding:5px 12px;border-radius:12px;';
+                                preview.style.display = 'none';
+                                partialBtn.style.display = 'none';
+                                mergeBtn.style.display = 'none';
+                                // Update source count in both dropdowns
+                                [srcSel, tgtSel].forEach(sel => {
+                                    for (let i = 0; i < sel.options.length; i++) {
+                                        if (parseInt(sel.options[i].value, 10) === srcId) {
+                                            sel.options[i].dataset.count = d.src_remaining;
+                                            sel.options[i].text = d.src_name + ' (' + d.src_remaining + ' posts)';
+                                        }
+                                    }
+                                });
+                                srcSel.value = ''; tgtSel.value = '';
+                            } else {
+                                resultEl.textContent = '❌ ' + (resp.error || resp.data || 'Partial merge failed.');
+                                resultEl.style.cssText = 'display:inline-block;background:#fee2e2;color:#991b1b;font-size:13px;font-weight:600;padding:5px 12px;border-radius:12px;';
+                                partialBtn.disabled = false;
+                                mergeBtn.disabled = false;
+                                partialBtn.textContent = '⛵ Partial Merge';
+                            }
+                        })
+                        .catch(function(e) {
+                            resultEl.textContent = '❌ Network error: ' + (e && e.message ? e.message : String(e));
+                            resultEl.style.cssText = 'display:inline-block;background:#fee2e2;color:#991b1b;font-size:13px;font-weight:600;padding:5px 12px;border-radius:12px;';
+                            partialBtn.disabled = false;
+                            mergeBtn.disabled = false;
+                            partialBtn.textContent = '⛵ Partial Merge';
+                        });
+                });
+            }
         })();
 
         // Prefill source + target dropdowns from a correlation table row.

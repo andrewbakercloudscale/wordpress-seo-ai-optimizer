@@ -1322,14 +1322,14 @@ trait CS_SEO_Category_Fixer {
      *
      * Accepts `source_id` (int), `target_id` (int), and `new_name` (string, optional).
      *
-     * @since 4.21.51
+     * @since 4.21.56
      * @return void
      */
     /**
      * Returns the top N category pairs ordered by co-occurrence on the same posts.
      * Used to surface merge candidates in the admin UI.
      *
-     * @since 4.21.51
+     * @since 4.21.56
      * @param int $limit Max pairs to return.
      * @return array Each entry: cat1_id, cat1_name, cat1_total, cat2_id, cat2_name, cat2_total, shared, overlap_pct.
      */
@@ -1535,6 +1535,88 @@ trait CS_SEO_Category_Fixer {
             'skipped'     => $total_in_source - $newly_added,
             'final_name'  => $updated_target ? $updated_target->name : ( $new_name ?: $target->name ),
             'final_count' => $new_count,
+        ] );
+    }
+
+    /**
+     * AJAX handler: partial merge — removes the source category from posts that already belong to
+     * both source AND target. Posts exclusive to source are left untouched. Source is not deleted.
+     *
+     * Accepts `source_id` (int) and `target_id` (int).
+     *
+     * @since 4.21.56
+     * @return void
+     */
+    public function ajax_catmerge_partial(): void {
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked above
+        $source_id = absint( wp_unslash( $_POST['source_id'] ?? 0 ) );
+        $target_id = absint( wp_unslash( $_POST['target_id'] ?? 0 ) );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+        if ( ! $source_id || ! $target_id || $source_id === $target_id ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Invalid category selection.' ] );
+            return;
+        }
+        $source = get_category( $source_id );
+        $target = get_category( $target_id );
+        if ( ! $source || is_wp_error( $source ) || ! $target || is_wp_error( $target ) ) {
+            wp_send_json( [ 'success' => false, 'error' => 'One or both categories not found.' ] );
+            return;
+        }
+        if ( strtolower( $source->slug ) === 'uncategorized' || strtolower( $target->slug ) === 'uncategorized' ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Cannot merge with the Uncategorized category.' ] );
+            return;
+        }
+
+        global $wpdb;
+
+        $src_ttid = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE term_id = %d AND taxonomy = 'category'",
+            $source_id
+        ) );
+        $tgt_ttid = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE term_id = %d AND taxonomy = 'category'",
+            $target_id
+        ) );
+        if ( ! $src_ttid || ! $tgt_ttid ) {
+            wp_send_json( [ 'success' => false, 'error' => 'Term taxonomy record not found.' ] );
+            return;
+        }
+
+        // Delete source relationship only for posts that are in BOTH categories.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->query( $wpdb->prepare(
+            "DELETE src FROM {$wpdb->term_relationships} src
+             INNER JOIN {$wpdb->term_relationships} tgt
+                 ON src.object_id = tgt.object_id AND tgt.term_taxonomy_id = %d
+             WHERE src.term_taxonomy_id = %d",
+            $tgt_ttid,
+            $src_ttid
+        ) );
+        $removed = (int) $wpdb->rows_affected;
+
+        if ( $removed === 0 ) {
+            wp_send_json( [ 'success' => false, 'error' => 'No overlap found — these categories share no posts.' ] );
+            return;
+        }
+
+        wp_update_term_count_now( [ $src_ttid, $tgt_ttid ], 'category' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $src_remaining = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",
+            $src_ttid
+        ) );
+        clean_term_cache( [ $source_id, $target_id ], 'category' );
+
+        $updated_source = get_category( $source_id );
+        wp_send_json( [
+            'success'       => true,
+            'removed'       => $removed,
+            'src_remaining' => $src_remaining,
+            'src_name'      => $updated_source ? $updated_source->name : $source->name,
         ] );
     }
 
