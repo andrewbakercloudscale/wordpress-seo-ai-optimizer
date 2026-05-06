@@ -8453,7 +8453,7 @@ trait CS_SEO_Settings_Page {
     /**
      * Renders the "Get Started" pane shown to new installs before any API key is configured.
      *
-     * @since 4.21.92
+     * @since 4.21.93
      */
     private function render_onboarding_pane(): void {
         $ai         = $this->ai_opts;
@@ -8492,6 +8492,11 @@ trait CS_SEO_Settings_Page {
         .ab-ob-feat-rec {
             font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
             background:#f0fdf4;color:#15803d;border:1px solid #86efac;
+            border-radius:3px;padding:2px 5px;white-space:nowrap;flex-shrink:0;margin-top:1px;
+        }
+        .ab-ob-feat-step1 {
+            font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+            background:#fff7ed;color:#c2410c;border:1px solid #fdba74;
             border-radius:3px;padding:2px 5px;white-space:nowrap;flex-shrink:0;margin-top:1px;
         }
         .ab-ob-feat-tile-desc { font-size:11px;color:#6b7280;line-height:1.4;font-weight:400; }
@@ -8592,24 +8597,27 @@ trait CS_SEO_Settings_Page {
             <?php /* ── What's included strip ── */ ?>
             <p class="ab-ob-step-label">Everything included, even on the free plan</p>
             <div class="ab-ob-feat-grid">
-                <?php foreach ([
-                    ['name' => 'SEO Score & Audit', 'tab' => 'siteaudit', 'rec' => true,  'desc' => 'Scans every page for fixable SEO issues with one-click fixes.'],
-                    ['name' => 'XML Sitemaps',       'tab' => 'sitemap',   'rec' => true,  'desc' => 'Tells Google about every page so nothing gets missed in search.'],
-                    ['name' => 'Meta Tags',           'tab' => 'seo',       'rec' => true,  'desc' => 'Sets the title and description shown in Google search results.'],
-                    ['name' => 'Open Graph / OG',    'tab' => 'seo',       'rec' => true,  'desc' => 'Controls how your pages look when shared on social media.'],
-                    ['name' => 'JSON-LD Schema',      'tab' => 'seo',       'rec' => true,  'desc' => 'Adds structured data so Google can show rich results.'],
-                    ['name' => 'Robots.txt',          'tab' => 'sitemap',   'rec' => false, 'desc' => 'Controls which pages search engines are allowed to crawl.'],
-                    ['name' => 'Breadcrumbs',         'tab' => 'seo',       'rec' => false, 'desc' => 'Navigation trail shown in Google results and on-page.'],
-                    ['name' => 'Broken Links',        'tab' => 'blc',       'rec' => false, 'desc' => 'Finds outbound links that return 404 errors.'],
-                    ['name' => 'HTTPS Fixer',         'tab' => 'sitemap',   'rec' => false, 'desc' => 'Rewrites HTTP links to HTTPS, fixing mixed-content warnings.'],
-                    ['name' => 'Redirect Manager',    'tab' => 'sitemap',   'rec' => false, 'desc' => 'Create and manage 301 redirects without editing code.'],
-                    ['name' => 'Category Health',     'tab' => 'catfix',    'rec' => false, 'desc' => 'Finds and merges overlapping or duplicate post categories.'],
-                    ['name' => 'JS Defer',            'tab' => 'perf',      'rec' => false, 'desc' => 'Defers non-critical scripts to improve page speed scores.'],
+                <?php
+                // badge: 'step1' = orange "Do first", 'rec' = green "Start here", '' = none
+                foreach ([
+                    ['name' => '⚙ Settings',         'tab' => 'seo',       'badge' => 'step1', 'desc' => 'Configure your site name, AI key, and enable the features you want.'],
+                    ['name' => 'XML Sitemaps',         'tab' => 'sitemap',   'badge' => 'rec',   'desc' => 'Tells Google about every page so nothing gets missed in search.'],
+                    ['name' => 'Open Graph / OG',      'tab' => 'seo',       'badge' => 'rec',   'desc' => 'Controls how your pages look when shared on social media.'],
+                    ['name' => 'SEO Score & Audit',    'tab' => 'siteaudit', 'badge' => '',      'desc' => 'Scans every page for fixable SEO issues — needs AI key.'],
+                    ['name' => 'Meta Tags',             'tab' => 'seo',       'badge' => '',      'desc' => 'AI writes the title and description shown in Google results.'],
+                    ['name' => 'JSON-LD Schema',        'tab' => 'seo',       'badge' => '',      'desc' => 'Adds structured data so Google can show rich results.'],
+                    ['name' => 'Robots.txt',            'tab' => 'sitemap',   'badge' => '',      'desc' => 'Controls which pages search engines are allowed to crawl.'],
+                    ['name' => 'Breadcrumbs',           'tab' => 'seo',       'badge' => '',      'desc' => 'Navigation trail shown in Google results and on-page.'],
+                    ['name' => 'Broken Links',          'tab' => 'blc',       'badge' => '',      'desc' => 'Finds outbound links that return 404 errors.'],
+                    ['name' => 'HTTPS Fixer',           'tab' => 'sitemap',   'badge' => '',      'desc' => 'Rewrites HTTP links to HTTPS, fixing mixed-content warnings.'],
+                    ['name' => 'Redirect Manager',      'tab' => 'sitemap',   'badge' => '',      'desc' => 'Create and manage 301 redirects without editing code.'],
+                    ['name' => 'Category Health',       'tab' => 'catfix',    'badge' => '',      'desc' => 'Finds and merges overlapping or duplicate post categories.'],
                 ] as $f): ?>
                 <div class="ab-ob-feat-tile" data-ob-tab="<?php echo esc_attr($f['tab']); ?>">
                     <div class="ab-ob-feat-tile-top">
                         <span class="ab-ob-feat-tile-name"><?php echo esc_html($f['name']); ?></span>
-                        <?php if ( $f['rec'] ) : ?><span class="ab-ob-feat-rec">&#9733; Start here</span><?php endif; ?>
+                        <?php if ( $f['badge'] === 'step1' ) : ?><span class="ab-ob-feat-step1">&#9312; Do first</span><?php endif; ?>
+                        <?php if ( $f['badge'] === 'rec' )   : ?><span class="ab-ob-feat-rec">&#9733; Start here</span><?php endif; ?>
                     </div>
                     <div class="ab-ob-feat-tile-desc"><?php echo esc_html($f['desc']); ?></div>
                 </div>
@@ -8986,7 +8994,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: marks onboarding as complete (sets cs_seo_welcome_shown=1).
      *
-     * @since 4.21.92
+     * @since 4.21.93
      */
     public function ajax_complete_onboarding(): void {
         $this->ajax_check();
@@ -8997,7 +9005,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: saves API key from the onboarding DIY flow and marks onboarding complete.
      *
-     * @since 4.21.92
+     * @since 4.21.93
      */
     public function ajax_onboarding_save_key(): void {
         $this->ajax_check();
