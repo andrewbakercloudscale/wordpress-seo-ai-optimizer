@@ -8453,7 +8453,7 @@ trait CS_SEO_Settings_Page {
     /**
      * Renders the "Get Started" pane shown to new installs before any API key is configured.
      *
-     * @since 4.21.94
+     * @since 4.21.95
      */
     private function render_onboarding_pane(): void {
         $ai         = $this->ai_opts;
@@ -8604,7 +8604,7 @@ trait CS_SEO_Settings_Page {
                     ['name' => '⚙ Settings',      'tab' => 'seo',       'card' => 'ab-card-identity',         'badge' => 'step1', 'desc' => 'Configure your site name, AI key, and enable the features you want.'],
                     ['name' => 'XML Sitemaps',      'tab' => 'sitemap',   'card' => 'ab-card-sitemap-settings', 'badge' => 'rec',   'desc' => 'Tells Google about every page so nothing gets missed in search.'],
                     ['name' => 'Open Graph / OG',   'tab' => 'sitemap',   'card' => 'ab-card-features',         'badge' => 'rec',   'desc' => 'Controls how your pages look when shared on social media.'],
-                    ['name' => 'SEO Score & Audit', 'tab' => 'siteaudit', 'card' => '',                         'badge' => '',      'desc' => 'Scans every page for fixable SEO issues — needs AI key.'],
+                    ['name' => 'SEO Score & Audit', 'tab' => 'siteaudit', 'card' => '',                         'badge' => 'rec',   'desc' => 'Scans every page for fixable SEO issues with one-click fixes.'],
                     ['name' => 'Meta Tags',          'tab' => 'aitools',   'card' => 'ab-card-update-posts',     'badge' => '',      'desc' => 'AI writes the title and description shown in Google results.'],
                     ['name' => 'JSON-LD Schema',     'tab' => 'sitemap',   'card' => 'ab-card-features',         'badge' => '',      'desc' => 'Adds structured data so Google can show rich results.'],
                     ['name' => 'Robots.txt',         'tab' => 'sitemap',   'card' => 'ab-card-robots',           'badge' => '',      'desc' => 'Controls which pages search engines are allowed to crawl.'],
@@ -9002,7 +9002,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: marks onboarding as complete (sets cs_seo_welcome_shown=1).
      *
-     * @since 4.21.94
+     * @since 4.21.95
      */
     public function ajax_complete_onboarding(): void {
         $this->ajax_check();
@@ -9013,7 +9013,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: saves API key from the onboarding DIY flow and marks onboarding complete.
      *
-     * @since 4.21.94
+     * @since 4.21.95
      */
     public function ajax_onboarding_save_key(): void {
         $this->ajax_check();
