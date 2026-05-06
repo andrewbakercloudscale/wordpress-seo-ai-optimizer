@@ -2,8 +2,6 @@
 /**
  * AI engine — central dispatcher for Anthropic Claude and Google Gemini API calls.
  *
- * Also provides the shared ajax_check() guard used by all AJAX handlers.
- *
  * @package CloudScale_SEO_AI_Optimizer
  * @since   4.0.0
  */
@@ -12,7 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 trait CS_SEO_AI_Engine {
 
     /**
-     * Verifies capability and nonce for every AJAX handler — call first in every handler.
+     * Verifies capability and nonce — kept for traits outside this file that still call it.
+     * New handlers should call check_ajax_referer() and current_user_can() directly so
+     * PHPCS NonceVerification can trace the check in the handler scope.
      *
      * @since 4.0.0
      * @return void
@@ -233,10 +233,17 @@ trait CS_SEO_AI_Engine {
     // Managed API proxy AJAX handlers
     // =========================================================================
 
+    /**
+     * Initiates a managed-API checkout session via the proxy service.
+     *
+     * @since 4.21.52
+     * @return void
+     */
     public function ajax_proxy_checkout(): void {
-        $this->ajax_check();
-        $email    = sanitize_email((string)($_POST['email']    ?? ''));
-        $site_url = esc_url_raw((string)($_POST['site_url']   ?? ''));
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+        $email    = sanitize_email( (string) ( $_POST['email']    ?? '' ) );    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() above
+        $site_url = esc_url_raw( (string) ( $_POST['site_url']   ?? '' ) );     // phpcs:ignore WordPress.Security.NonceVerification.Missing
         if (!is_email($email)) { wp_send_json_error(['message' => 'Invalid email address']); }
 
         $resp = wp_remote_post('https://api.andrewbaker.ninja/checkout', [
@@ -261,8 +268,15 @@ trait CS_SEO_AI_Engine {
         wp_send_json_success(['checkout_url' => $data['checkout_url']]);
     }
 
+    /**
+     * Initiates a boost top-up checkout session for an existing subscriber.
+     *
+     * @since 4.21.52
+     * @return void
+     */
     public function ajax_proxy_boost_checkout(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         $key = (string)($this->ai_opts['proxy_license_key'] ?? '');
         if (!$key) { wp_send_json_error(['message' => 'No active license found']); }
 
@@ -286,8 +300,15 @@ trait CS_SEO_AI_Engine {
         wp_send_json_success(['checkout_url' => $data['checkout_url']]);
     }
 
+    /**
+     * Cancels the active managed-API subscription via the proxy service.
+     *
+     * @since 4.21.52
+     * @return void
+     */
     public function ajax_proxy_cancel(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         $key = (string)($this->ai_opts['proxy_license_key'] ?? '');
         if (!$key) { wp_send_json_error(['message' => 'No active license found']); }
 
@@ -311,13 +332,6 @@ trait CS_SEO_AI_Engine {
         } else {
             wp_send_json_error(['message' => $data['error'] ?? 'Cancellation failed. Please try again']);
         }
-    }
-
-    public function ajax_test_cancel_email(): void {
-        $this->ajax_check();
-        $to = wp_get_current_user()->user_email;
-        $this->send_cancellation_email($to, home_url('/'));
-        wp_send_json_success(['message' => 'Test email sent to ' . $to]);
     }
 
     private function send_cancellation_email(string $to, string $site_url): void {
@@ -407,16 +421,30 @@ trait CS_SEO_AI_Engine {
         remove_all_filters('wp_mail_content_type');
     }
 
+    /**
+     * Toggles the managed-API proxy on or off without changing other settings.
+     *
+     * @since 4.21.52
+     * @return void
+     */
     public function ajax_proxy_set_enabled(): void {
-        $this->ajax_check();
-        $enabled = (int)(bool)($_POST['enabled'] ?? 0);
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+        $enabled = (int) (bool) ( $_POST['enabled'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() above
         $this->ai_opts['proxy_enabled'] = $enabled;
         update_option(self::AI_OPT, $this->ai_opts);
         wp_send_json_success();
     }
 
+    /**
+     * Fetches the latest subscription status from the proxy service and persists it.
+     *
+     * @since 4.21.52
+     * @return void
+     */
     public function ajax_proxy_refresh_status(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         $key = (string)($this->ai_opts['proxy_license_key'] ?? '');
         if (!$key) { wp_send_json_error(['message' => 'No license key stored']); }
 
@@ -435,9 +463,17 @@ trait CS_SEO_AI_Engine {
         wp_send_json_success($data);
     }
 
+    /**
+     * Polls the proxy service for session completion after a PayFast checkout redirect.
+     *
+     * @since 4.21.52
+     * @return void
+     */
     public function ajax_proxy_poll_session(): void {
-        $this->ajax_check();
-        $session_id = sanitize_text_field((string)($_POST['session_token'] ?? $_POST['session_id'] ?? ''));
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by check_ajax_referer() above
+        $session_id = sanitize_text_field( (string) ( $_POST['session_token'] ?? $_POST['session_id'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
         if (!$session_id) { wp_send_json_error(['message' => 'No session_id']); }
 
         $resp = wp_remote_get('https://api.andrewbaker.ninja/status?session_token=' . urlencode($session_id), ['timeout' => 10]);
@@ -460,8 +496,15 @@ trait CS_SEO_AI_Engine {
         wp_send_json_success($data);
     }
 
+    /**
+     * Returns the PayFast billing-portal URL for the subscriber's license key.
+     *
+     * @since 4.21.52
+     * @return void
+     */
     public function ajax_proxy_billing_portal(): void {
-        $this->ajax_check();
+        check_ajax_referer( 'cs_seo_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Forbidden', 403 );
         $key = (string)($this->ai_opts['proxy_license_key'] ?? '');
         if (!$key) { wp_send_json_error(['message' => 'No license key stored']); }
 

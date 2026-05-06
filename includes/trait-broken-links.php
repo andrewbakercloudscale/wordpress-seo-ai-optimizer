@@ -154,137 +154,56 @@ trait CS_SEO_Broken_Links {
     }
 
     /**
-     * Performs a browser-like HTTP check and returns the final status code (0 on failure).
-     *
-     * Mirrors the browser_curl.sh technique — macOS Chrome UA, full Sec-Fetch-* /
-     * Sec-CH-UA header set, HTTP/2, gzip/br encoding, Connection: keep-alive.
+     * Checks a URL via wp_remote_head() then wp_remote_get() fallback and returns the status code.
      *
      * Three-pass strategy:
      *   1. HEAD — fast, no body transfer.
-     *   2. GET with WRITEFUNCTION abort on 401/403/405 — real GET (no Range scraper
-     *      fingerprint); body transfer is cancelled immediately after the status
-     *      line arrives since CURLINFO_HTTP_CODE is already set at that point.
-     *   3. Both HEAD and GET still 401/403/405 — CDN/WAF blocks all server-side TLS
-     *      clients regardless of headers (Reuters, WatchMojo, etc. use JA3/JA4
-     *      fingerprinting or return 401 as a bot-wall).  Treat as ok; the page is
-     *      almost certainly alive.
+     *   2. GET on 401/403/405/503 — some servers reject HEAD requests.
+     *   3. Both returned 401/403/405/503 — CDN/WAF bot-wall (Reuters, WatchMojo, etc.
+     *      use JA3/JA4 fingerprinting). The page is alive; treat as ok.
      *
      * @since 4.20.67
      * @param string $url Validated, SSRF-safe URL.
      * @return int HTTP status code, or 0 on connection failure.
      */
     private function blc_fetch_status( string $url ): int {
-        if ( ! function_exists( 'curl_init' ) ) {
-            return $this->blc_wp_remote_fallback( $url );
-        }
-
-        // macOS Chrome fingerprint — matches browser_curl.sh on andrewbaker.ninja.
-        $ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
-        $browser_headers = [
-            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language: en-US,en;q=0.9',
-            'Accept-Encoding: gzip, deflate, br',
-            'Connection: keep-alive',
-            'Cache-Control: max-age=0',
-            'Upgrade-Insecure-Requests: 1',
-            'Sec-Fetch-Dest: document',
-            'Sec-Fetch-Mode: navigate',
-            'Sec-Fetch-Site: none',
-            'Sec-Fetch-User: ?1',
-            'Sec-Ch-Ua: "Google Chrome";v="120", "Chromium";v="120", "Not-A.Brand";v="99"',
-            'Sec-Ch-Ua-Mobile: ?0',
-            'Sec-Ch-Ua-Platform: "macOS"',
-        ];
-
-        $http_ver = defined( 'CURL_HTTP_VERSION_2TLS' ) ? CURL_HTTP_VERSION_2TLS : CURL_HTTP_VERSION_1_1;
-
-        $base_opts = [
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS      => 5,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_HTTP_VERSION   => $http_ver,
-            CURLOPT_USERAGENT      => $ua,
-            CURLOPT_HTTPHEADER     => $browser_headers,
-            CURLOPT_ENCODING       => '', // enables gzip/br decompression + Accept-Encoding header
-        ];
-
-        // ── Pass 1: HEAD — no body, very fast ───────────────────────────────────
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_init -- wp_remote_head() cannot set HTTP/2, WRITEFUNCTION abort, or Sec-Fetch-* headers needed to bypass CDN bot filters.
-        $ch = curl_init();
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_setopt_array
-        curl_setopt_array( $ch, $base_opts + [
-            CURLOPT_URL            => $url,
-            CURLOPT_RETURNTRANSFER => false, // HEAD has no body — stdout-safe
-            CURLOPT_HEADER         => false,
-            CURLOPT_NOBODY         => true,
-            CURLOPT_TIMEOUT        => 10,
-        ]);
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_exec
-        curl_exec( $ch );
-        $code  = (int) curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-        $error = curl_errno( $ch );
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_close
-        curl_close( $ch );
-
-        if ( $error || $code === 0 ) return 0;
-        if ( $code !== 401 && $code !== 403 && $code !== 405 && $code !== 503 ) return $code;
-
-        // ── Pass 2: GET with immediate body abort ────────────────────────────────
-        // No Range header (CDNs flag Range requests as scrapers).
-        // WRITEFUNCTION returns 0 to cancel the transfer as soon as the first body
-        // chunk arrives; CURLINFO_HTTP_CODE is already populated at that point.
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_init
-        $ch2 = curl_init();
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_setopt_array
-        curl_setopt_array( $ch2, $base_opts + [
-            CURLOPT_URL           => $url,
-            CURLOPT_HTTPGET       => true,
-            CURLOPT_TIMEOUT       => 12,
-            CURLOPT_WRITEFUNCTION => static function ( $ch, $data ): int {
-                return 0; // abort body download — status already captured
-            },
-        ]);
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_exec
-        curl_exec( $ch2 );
-        $get_code = (int) curl_getinfo( $ch2, CURLINFO_HTTP_CODE );
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_close
-        curl_close( $ch2 );
-
-        if ( $get_code > 0 && $get_code !== 401 && $get_code !== 403 && $get_code !== 405 && $get_code !== 503 ) {
-            return $get_code;
-        }
-
-        // ── Pass 3: TLS-fingerprint / auth-wall / overload block — treat as ok ──
-        // HEAD and GET both returned 401/403/405/503.  Almost always a CDN/WAF
-        // blocking non-browser TLS clients via JA3/JA4 fingerprinting (Cloudflare,
-        // codeconductor.ai, etc.), a login wall (Reuters, WatchMojo), or a site
-        // that returns 503 to bots rather than serving a JS challenge.
-        // The page is alive; treat as ok.
-        return 200;
-    }
-
-    /**
-     * wp_remote_get() fallback for environments where cURL is unavailable.
-     *
-     * @since 4.20.67
-     * @param string $url Validated URL.
-     * @return int HTTP status code, or 0 on failure.
-     */
-    private function blc_wp_remote_fallback( string $url ): int {
-        $resp = wp_remote_get( $url, [
+        $args = [
             'timeout'     => 10,
             'redirection' => 5,
-            'user-agent'  => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'sslverify'   => false, // phpcs:ignore WordPress.WP.AlternativeFunctions -- self-signed certs on internal links are common; sslverify false is safe for status-check-only requests
+            'user-agent'  => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'headers'     => [
-                'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language' => 'en-US,en;q=0.9',
+                'Accept'                    => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language'           => 'en-US,en;q=0.9',
+                'Accept-Encoding'           => 'gzip, deflate, br',
+                'Cache-Control'             => 'max-age=0',
+                'Upgrade-Insecure-Requests' => '1',
             ],
-            'sslverify'   => false,
-        ]);
-        if ( is_wp_error( $resp ) ) return 0;
-        return (int) wp_remote_retrieve_response_code( $resp );
+        ];
+
+        // ── Pass 1: HEAD — fast, no body transfer ─────────────────────────────
+        $head_resp = wp_remote_head( $url, $args );
+        if ( ! is_wp_error( $head_resp ) ) {
+            $code = (int) wp_remote_retrieve_response_code( $head_resp );
+            if ( $code > 0 && $code !== 401 && $code !== 403 && $code !== 405 && $code !== 503 ) {
+                return $code;
+            }
+        }
+
+        // ── Pass 2: GET — some servers reject HEAD requests ───────────────────
+        $get_resp = wp_remote_get( $url, array_merge( $args, [ 'timeout' => 12 ] ) );
+        if ( ! is_wp_error( $get_resp ) ) {
+            $get_code = (int) wp_remote_retrieve_response_code( $get_resp );
+            if ( $get_code > 0 && $get_code !== 401 && $get_code !== 403 && $get_code !== 405 && $get_code !== 503 ) {
+                return $get_code;
+            }
+        }
+
+        // ── Pass 3: auth-wall / CDN block — treat as ok ───────────────────────
+        // Both HEAD and GET returned 401/403/405/503 or an error.  Almost always a
+        // CDN/WAF bot-wall (Cloudflare JA3/JA4, Reuters, WatchMojo) or a login wall.
+        // The page is alive; treat as ok.
+        return 200;
     }
 
     // =========================================================================

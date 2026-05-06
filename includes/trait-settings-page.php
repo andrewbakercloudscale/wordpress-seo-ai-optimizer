@@ -2197,7 +2197,7 @@ trait CS_SEO_Settings_Page {
                     ?>
                     <div style="margin-bottom:24px;">
                         <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:4px;">Top Merge Candidates</div>
-                        <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">Category pairs that most often appear together on the same posts. Higher overlap % = stronger merge signal. Click <strong>Merge →</strong> to prefill the dropdowns below.</div>
+                        <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">Category pairs that most often appear together on the same posts. Higher overlap % = stronger merge signal. Click <strong>Begin Merge</strong> to prefill the dropdowns below.</div>
                         <div style="overflow-x:auto;">
                         <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:480px;">
                             <thead>
@@ -2242,7 +2242,7 @@ trait CS_SEO_Settings_Page {
                                         <button type="button"
                                             onclick="cmgPrefill(<?php echo (int)$src_id; ?>, <?php echo (int)$tgt_id; ?>)"
                                             style="padding:3px 11px;font-size:11px;font-weight:600;background:#6d28d9;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap;">
-                                            Merge &rarr;
+                                            Begin Merge
                                         </button>
                                     </td>
                                 </tr>
@@ -8452,7 +8452,7 @@ trait CS_SEO_Settings_Page {
     /**
      * Renders the "Get Started" pane shown to new installs before any API key is configured.
      *
-     * @since 4.21.82
+     * @since 4.21.87
      */
     private function render_onboarding_pane(): void {
         $ai         = $this->ai_opts;
@@ -8478,11 +8478,11 @@ trait CS_SEO_Settings_Page {
         .ab-ob-feat-tile {
             background:#fff;border:1px solid #e5e7eb;border-left:3px solid #6366f1;
             border-radius:6px;padding:9px 12px;font-size:12px;font-weight:500;color:#374151;
-            line-height:1.3;transition:transform .12s,box-shadow .12s,border-color .12s;cursor:default;
+            line-height:1.3;transition:transform .12s,box-shadow .12s,border-color .12s;cursor:pointer;
         }
         .ab-ob-feat-tile:hover {
             transform:translateY(-2px);box-shadow:0 4px 12px rgba(99,102,241,.12);
-            border-color:#6366f1;color:#1d2327;
+            border-color:#6366f1;color:#6366f1;
         }
         .ab-ob-feat-chip span { font-size:16px; }
         .ab-ob-step-label {
@@ -8582,12 +8582,20 @@ trait CS_SEO_Settings_Page {
             <p class="ab-ob-step-label">Everything included, even on the free plan</p>
             <div class="ab-ob-feat-grid">
                 <?php foreach ([
-                    'SEO Score & Audit', 'XML Sitemaps',    'Robots.txt',
-                    'Open Graph / OG',   'JSON-LD Schema',  'Breadcrumbs',
-                    'Meta Tags',         'Broken Links',    'HTTPS Fixer',
-                    'Redirect Manager',  'Category Health', 'JS Defer',
-                ] as $feat): ?>
-                <div class="ab-ob-feat-tile"><?php echo esc_html($feat); ?></div>
+                    'SEO Score & Audit' => 'siteaudit',
+                    'XML Sitemaps'      => 'sitemap',
+                    'Robots.txt'        => 'sitemap',
+                    'Open Graph / OG'   => 'seo',
+                    'JSON-LD Schema'    => 'seo',
+                    'Breadcrumbs'       => 'seo',
+                    'Meta Tags'         => 'seo',
+                    'Broken Links'      => 'blc',
+                    'HTTPS Fixer'       => 'sitemap',
+                    'Redirect Manager'  => 'sitemap',
+                    'Category Health'   => 'catfix',
+                    'JS Defer'          => 'perf',
+                ] as $feat => $tab): ?>
+                <div class="ab-ob-feat-tile" data-ob-tab="<?php echo esc_attr($tab); ?>"><?php echo esc_html($feat); ?></div>
                 <?php endforeach; ?>
             </div>
 
@@ -8625,7 +8633,7 @@ trait CS_SEO_Settings_Page {
                 <?php /* ── SUBSCRIBE card ── */ ?>
                 <div class="ab-ob-card ab-ob-featured" id="ab-onboard-sub">
                     <div class="ab-ob-card-header ab-ob-header-sub">
-                        <div class="ab-ob-card-label ab-ob-label-sub">Recommended</div>
+                        <div class="ab-ob-card-label ab-ob-label-sub">Simplest</div>
                         <h3>AI Subscription</h3>
                         <div class="ab-ob-price" style="color:#fff;margin:4px 0 0">$5 <span style="font-size:14px;font-weight:400;opacity:.8">/month</span></div>
                         <p style="font-size:11px;color:rgba(255,255,255,.7);margin:2px 0 0">200 AI requests · Cancel anytime</p>
@@ -8656,12 +8664,11 @@ trait CS_SEO_Settings_Page {
                         Subscribe $5/month →
                     </button>
                     <p class="ab-ob-next-hint">You'll be taken to PayFast to complete payment</p>
-                    <p style="text-align:center;margin-top:10px">
-                        <button type="button" id="ab-ob-cancel-sub-btn"
-                            style="background:none;border:none;color:#9ca3af;font-size:11px;cursor:pointer;text-decoration:underline;padding:0">
-                            Cancel existing subscription
-                        </button>
-                    </p>
+                    <button type="button" id="ab-ob-cancel-sub-btn"
+                        class="ab-ob-cta"
+                        style="background:#dc2626;border-color:#dc2626;margin-top:8px">
+                        Cancel existing subscription
+                    </button>
                     <p id="ab-ob-cancel-sub-msg" style="display:none;font-size:11px;text-align:center;margin-top:6px"></p>
                     </div>
                 </div>
@@ -8751,6 +8758,15 @@ trait CS_SEO_Settings_Page {
                 });
             }
 
+            // ── Feature grid tiles → navigate to tab ──
+            document.querySelectorAll('.ab-ob-feat-tile[data-ob-tab]').forEach(function(tile) {
+                tile.addEventListener('click', function() {
+                    var tabId = tile.getAttribute('data-ob-tab');
+                    var tabBtn = document.querySelector('.ab-tab[data-tab="' + tabId + '"]');
+                    if (tabBtn) tabBtn.click();
+                });
+            });
+
             // ── Skip link ──
             var skipLink = document.getElementById('ab-onboard-skip-link');
             if (skipLink) {
@@ -8838,8 +8854,6 @@ trait CS_SEO_Settings_Page {
                         return;
                     }
                     if (!confirm('Cancel your subscription? You will keep access until the end of the current billing period.')) return;
-                    obCancelBtn.disabled    = true;
-                    obCancelBtn.textContent = 'Cancelling…';
                     obPost('cs_seo_proxy_cancel')
                         .then(function(res) {
                             obCancelMsg.style.display = 'block';
@@ -8848,19 +8862,15 @@ trait CS_SEO_Settings_Page {
                                 obCancelMsg.textContent = 'Subscription cancelled. Access remains active until the end of your billing period.';
                                 obCancelBtn.style.display = 'none';
                             } else {
-                                var msg = (res.data && res.data.message) || 'Cancellation failed. please try again.';
+                                var msg = (res.data && res.data.message) || 'Cancellation failed: please try again.';
                                 obCancelMsg.style.color = '#b91c1c';
                                 obCancelMsg.textContent = msg;
-                                obCancelBtn.disabled    = false;
-                                obCancelBtn.textContent = 'Cancel existing subscription';
                             }
                         })
                         .catch(function() {
                             obCancelMsg.style.display = 'block';
                             obCancelMsg.style.color   = '#b91c1c';
                             obCancelMsg.textContent   = 'Network error: please try again.';
-                            obCancelBtn.disabled      = false;
-                            obCancelBtn.textContent   = 'Cancel existing subscription';
                         });
                 });
             }
@@ -8959,7 +8969,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: marks onboarding as complete (sets cs_seo_welcome_shown=1).
      *
-     * @since 4.21.82
+     * @since 4.21.87
      */
     public function ajax_complete_onboarding(): void {
         $this->ajax_check();
@@ -8970,7 +8980,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: saves API key from the onboarding DIY flow and marks onboarding complete.
      *
-     * @since 4.21.82
+     * @since 4.21.87
      */
     public function ajax_onboarding_save_key(): void {
         $this->ajax_check();
