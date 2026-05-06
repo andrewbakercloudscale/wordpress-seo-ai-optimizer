@@ -8453,7 +8453,7 @@ trait CS_SEO_Settings_Page {
     /**
      * Renders the "Get Started" pane shown to new installs before any API key is configured.
      *
-     * @since 4.21.89
+     * @since 4.21.90
      */
     private function render_onboarding_pane(): void {
         $ai         = $this->ai_opts;
@@ -8970,7 +8970,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: marks onboarding as complete (sets cs_seo_welcome_shown=1).
      *
-     * @since 4.21.89
+     * @since 4.21.90
      */
     public function ajax_complete_onboarding(): void {
         $this->ajax_check();
@@ -8981,7 +8981,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: saves API key from the onboarding DIY flow and marks onboarding complete.
      *
-     * @since 4.21.89
+     * @since 4.21.90
      */
     public function ajax_onboarding_save_key(): void {
         $this->ajax_check();

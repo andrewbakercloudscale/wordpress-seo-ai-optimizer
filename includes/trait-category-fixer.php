@@ -1307,7 +1307,7 @@ trait CS_SEO_Category_Fixer {
      * Returns the top N category pairs ordered by co-occurrence on the same posts.
      * Used to surface merge candidates in the admin UI.
      *
-     * @since 4.21.88
+     * @since 4.21.90
      * @param int $limit Max pairs to return.
      * @return array Each entry: cat1_id, cat1_name, cat1_total, cat2_id, cat2_name, cat2_total, shared, overlap_pct.
      */
@@ -1522,7 +1522,7 @@ trait CS_SEO_Category_Fixer {
      *
      * Accepts `source_id` (int) and `target_id` (int).
      *
-     * @since 4.21.88
+     * @since 4.21.90
      * @return void
      */
     public function ajax_catmerge_partial(): void {
