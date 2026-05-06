@@ -174,6 +174,8 @@ done < <(grep -rl "$CURRENT_VER" "$REPO_DIR" --include="*.php" --include="*.js" 
 cp "$REPO_DIR/readme.txt" "$REPO_DIR/repo/readme.txt"
 sed -i '' "s/^ \* Version:.*/ * Version:     $NEW_VER/" "$REPO_DIR/repo/$PLUGIN_NAME.php"
 sed -i '' "s/const VERSION    = '[0-9.]*'/const VERSION    = '$NEW_VER'/" "$REPO_DIR/repo/$PLUGIN_NAME.php"
+# Sync includes/ into repo/includes/ so SVN trunk always has current trait code.
+rsync -a --delete "$REPO_DIR/includes/" "$REPO_DIR/repo/includes/"
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Create temp directory with plugin name as wrapper

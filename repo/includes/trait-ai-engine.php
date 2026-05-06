@@ -286,6 +286,127 @@ trait CS_SEO_AI_Engine {
         wp_send_json_success(['checkout_url' => $data['checkout_url']]);
     }
 
+    public function ajax_proxy_cancel(): void {
+        $this->ajax_check();
+        $key = (string)($this->ai_opts['proxy_license_key'] ?? '');
+        if (!$key) { wp_send_json_error(['message' => 'No active license found']); }
+
+        $resp = wp_remote_post('https://api.andrewbaker.ninja/cancel', [
+            'timeout' => 20,
+            'headers' => ['Content-Type' => 'application/json'],
+            'body'    => wp_json_encode(['key' => $key, 'confirm' => 'yes']),
+        ]);
+        if (is_wp_error($resp)) { wp_send_json_error(['message' => $resp->get_error_message()]); }
+
+        $data = json_decode(wp_remote_retrieve_body($resp), true);
+        if (!empty($data['ok'])) {
+            $this->ai_opts['proxy_status'] = 'cancelled';
+            update_option(self::AI_OPT, $this->ai_opts);
+            $email    = (string)($this->ai_opts['proxy_email'] ?? '');
+            $site_url = home_url('/');
+            if ($email) {
+                $this->send_cancellation_email($email, $site_url);
+            }
+            wp_send_json_success(['message' => 'Subscription cancelled']);
+        } else {
+            wp_send_json_error(['message' => $data['error'] ?? 'Cancellation failed. Please try again']);
+        }
+    }
+
+    public function ajax_test_cancel_email(): void {
+        $this->ajax_check();
+        $to = wp_get_current_user()->user_email;
+        $this->send_cancellation_email($to, home_url('/'));
+        wp_send_json_success(['message' => 'Test email sent to ' . $to]);
+    }
+
+    private function send_cancellation_email(string $to, string $site_url): void {
+        $site_label = wp_parse_url($site_url, PHP_URL_HOST) ?: get_bloginfo('name');
+
+        $subject = 'Your CloudScale SEO subscription has been cancelled';
+
+        $body = '<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:40px 0">
+  <tr><td align="center">
+    <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+
+      <tr>
+        <td style="background:linear-gradient(135deg,#4338ca 0%,#6366f1 100%);padding:32px 40px;text-align:center">
+          <p style="margin:0;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.7)">CloudScale SEO AI Optimizer</p>
+          <h1 style="margin:8px 0 0;font-size:24px;font-weight:700;color:#fff">Until next time 👋</h1>
+        </td>
+      </tr>
+
+      <tr>
+        <td style="padding:36px 40px">
+          <p style="margin:0 0 16px;font-size:16px;color:#1d2327;line-height:1.6">
+            Your subscription for <strong>' . esc_html($site_label) . '</strong> has been cancelled.
+            You&rsquo;ll keep full AI access until the end of your current billing period. We won&rsquo;t cut you off early.
+          </p>
+
+          <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6">
+            We&rsquo;re genuinely sorry it didn&rsquo;t work out. If something wasn&rsquo;t right (a missing feature, a bug, or just not the right fit), we&rsquo;d love to hear about it. We read every reply and use the feedback to make the plugin better for everyone.
+          </p>
+
+          <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6">
+            You were an awesome client and we appreciate you giving us a shot. The plugin remains completely free. All non-AI features stay active forever. And whenever you want the AI features back, you can resubscribe in seconds from the Get&nbsp;Started tab.
+          </p>
+
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px">
+            <tr>
+              <td style="background:#f5f3ff;border:1px solid #e0e7ff;border-left:4px solid #6366f1;border-radius:8px;padding:16px 20px">
+                <p style="margin:0;font-size:12px;font-weight:700;color:#4338ca;text-transform:uppercase;letter-spacing:.05em">What stays active forever (free)</p>
+                <ul style="margin:8px 0 0;padding-left:18px;font-size:13px;color:#374151;line-height:2">
+                  <li>Full site audit &amp; SEO score</li>
+                  <li>XML Sitemap + llms.txt</li>
+                  <li>Schema, OG &amp; Meta tags</li>
+                  <li>Broken link checker</li>
+                  <li>HTTPS fixer &amp; redirects</li>
+                  <li>Category analysis &amp; performance tools</li>
+                </ul>
+              </td>
+            </tr>
+          </table>
+
+          <p style="margin:0 0 8px;font-size:14px;color:#6b7280;line-height:1.6">
+            Questions or feedback? Just reply to this email. We are a small team and a real person will get back to you.
+          </p>
+
+          <p style="margin:0;font-size:14px;color:#6b7280">
+            With gratitude,<br>
+            <strong style="color:#374151">Andrew &amp; the CloudScale team</strong>
+          </p>
+        </td>
+      </tr>
+
+      <tr>
+        <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 40px;text-align:center">
+          <p style="margin:0;font-size:11px;color:#9ca3af;line-height:1.6">
+            CloudScale SEO AI Optimizer. Open source, always free to install.<br>
+            <a href="https://andrewbaker.ninja/" style="color:#6366f1;text-decoration:none">andrewbaker.ninja</a>
+          </p>
+        </td>
+      </tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>';
+
+        add_filter('wp_mail_content_type', static function() { return 'text/html'; });
+        wp_mail(
+            $to,
+            $subject,
+            $body,
+            ['From: CloudScale SEO <noreply@andrewbaker.ninja>', 'Reply-To: support@andrewbaker.ninja']
+        );
+        remove_all_filters('wp_mail_content_type');
+    }
+
     public function ajax_proxy_set_enabled(): void {
         $this->ajax_check();
         $enabled = (int)(bool)($_POST['enabled'] ?? 0);

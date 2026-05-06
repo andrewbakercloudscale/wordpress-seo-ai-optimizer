@@ -126,7 +126,7 @@ trait CS_SEO_Broken_Links {
      * Using real browser headers (Sec-Fetch-*, Sec-CH-UA, Cache-Control) avoids
      * CDN / WAF anti-bot filters that return 401/403 to naive server-side HEAD requests.
      *
-     * @since 4.20.63
+     * @since 4.20.67
      * @return void
      */
     public function ajax_blc_check_url(): void {
@@ -169,7 +169,7 @@ trait CS_SEO_Broken_Links {
      *      fingerprinting or return 401 as a bot-wall).  Treat as ok; the page is
      *      almost certainly alive.
      *
-     * @since 4.20.63
+     * @since 4.20.67
      * @param string $url Validated, SSRF-safe URL.
      * @return int HTTP status code, or 0 on connection failure.
      */
@@ -268,7 +268,7 @@ trait CS_SEO_Broken_Links {
     /**
      * wp_remote_get() fallback for environments where cURL is unavailable.
      *
-     * @since 4.20.63
+     * @since 4.20.67
      * @param string $url Validated URL.
      * @return int HTTP status code, or 0 on failure.
      */

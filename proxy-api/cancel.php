@@ -3,6 +3,7 @@
  * POST /cancel
  * Body: { key: <license_key>, confirm: "yes" }
  * Calls PayFast API to cancel the subscription, then updates DB.
+ * The goodbye email is sent by the WordPress plugin side via wp_mail().
  */
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';

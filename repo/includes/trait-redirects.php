@@ -150,7 +150,9 @@ trait CS_SEO_Redirects {
             ? (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH )
             : '';
 
-        if ( ! is_404() ) return;
+        // Fire for any path with a configured redirect — not just 404s.
+        // Slug-change redirects also benefit from this: if a page was recreated at the old slug, the redirect still fires.
+        if ( is_admin() || wp_doing_ajax() ) return;
 
         $redirects = get_option( 'cs_seo_redirects', [] );
         if ( empty( $redirects ) ) return;
@@ -499,6 +501,12 @@ trait CS_SEO_Redirects {
                     </button>
                     <span id="cs-redirects-action-msg" style="font-size:13px;font-weight:600;padding:2px 10px;border-radius:12px;display:none"></span>
                 </p>
+                <p style="margin-bottom:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <span style="font-size:13px;font-weight:600;color:#1d2327;"><?php esc_html_e( 'Filter:', 'cloudscale-seo-ai-optimizer' ); ?></span>
+                    <button class="button cs-rtype-btn button-primary" data-filter="all"><?php esc_html_e( 'All', 'cloudscale-seo-ai-optimizer' ); ?></button>
+                    <button class="button cs-rtype-btn" data-filter="manual"><?php esc_html_e( 'Manual', 'cloudscale-seo-ai-optimizer' ); ?></button>
+                    <button class="button cs-rtype-btn" data-filter="auto"><?php esc_html_e( 'Automatic', 'cloudscale-seo-ai-optimizer' ); ?></button>
+                </p>
                 <p id="cs-chain-filter-bar" style="display:none;margin-bottom:10px;font-size:13px;color:#50575e">
                     <label style="cursor:pointer">
                         <input type="checkbox" id="cs-show-chains-only" style="margin-right:4px">
@@ -520,7 +528,7 @@ trait CS_SEO_Redirects {
                     </thead>
                     <tbody id="cs-redirects-tbody">
                         <?php foreach ( $redirects as $r ) : ?>
-                        <tr data-redirect-from="<?php echo esc_attr( $r['from'] ); ?>">
+                        <tr data-redirect-from="<?php echo esc_attr( $r['from'] ); ?>" data-redirect-type="<?php echo ! empty( $r['manual'] ) ? 'manual' : 'auto'; ?>">
                             <td style="word-break:break-all;white-space:normal"><a href="<?php echo esc_url( home_url( $r['from'] ) ); ?>" target="_blank" rel="noopener"><code><?php echo esc_html( $r['from'] ); ?></code></a></td>
                             <td data-val="<?php echo isset( $r['hits'] ) ? (int) $r['hits'] : 0; ?>"><?php echo isset( $r['hits'] ) ? (int) $r['hits'] : 0; ?></td>
                             <td style="white-space:nowrap" data-val="<?php echo ! empty( $r['last_hit'] ) ? (int) $r['last_hit'] : 0; ?>"><?php echo ! empty( $r['last_hit'] ) ? esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $r['last_hit'] ) ) : '<span style="color:#999">—</span>'; ?></td>
@@ -554,6 +562,7 @@ trait CS_SEO_Redirects {
                     </tbody>
                 </table>
                 </div><!-- /overflow-x scroll wrapper -->
+                <div id="cs-redirects-pager" style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-top:12px;"></div>
             <?php endif; ?>
             </div><!-- /stored redirects -->
         </div><!-- /ab-zone-body -->
@@ -655,10 +664,53 @@ trait CS_SEO_Redirects {
                     });
                 }
                 if (e.target.id === 'cs-prune-redirects') {
-                    if (!confirm(<?php echo wp_json_encode( __( 'Delete all redirects not hit in the last 3 months? This cannot be undone.', 'cloudscale-seo-ai-optimizer' ) ); ?>)) return;
+                    var btn = e.target;
+                    var nonce = btn.dataset.nonce;
+                    var cutoff = Math.floor(Date.now() / 1000) - (90 * 86400);
+                    var rows = Array.prototype.slice.call(document.querySelectorAll('#cs-redirects-tbody tr'));
+                    var toDelete = rows.filter(function (row) {
+                        var lastHit = row.cells[2] ? (parseInt(row.cells[2].dataset.val, 10) || 0) : 0;
+                        var created = row.cells[3] ? (parseInt(row.cells[3].dataset.val, 10) || 0) : 0;
+                        if (lastHit === 0) return !created || created < cutoff;
+                        return lastHit < cutoff;
+                    });
+                    var preview = document.getElementById('cs-prune-preview');
+                    if (!preview) {
+                        preview = document.createElement('div');
+                        preview.id = 'cs-prune-preview';
+                        btn.closest('p').insertAdjacentElement('afterend', preview);
+                    }
+                    if (toDelete.length === 0) {
+                        preview.innerHTML = '<div style="margin-top:10px;padding:10px 14px;background:#dcfce7;border-radius:6px;font-size:13px;color:#1a7a34;font-weight:600;">✓ No unused redirects — everything was hit within the last 3 months.</div>';
+                        return;
+                    }
+                    var listHtml = '';
+                    toDelete.forEach(function (row) {
+                        var from        = row.dataset.redirectFrom || '—';
+                        var lastHitTxt  = row.cells[2] ? row.cells[2].textContent.trim() : '—';
+                        var createdTxt  = row.cells[3] ? row.cells[3].textContent.trim() : '—';
+                        listHtml += '<tr><td style="font-family:monospace;font-size:11px;word-break:break-all">' + escHtml(from) + '</td>'
+                            + '<td style="white-space:nowrap;font-size:12px">' + escHtml(lastHitTxt || 'Never') + '</td>'
+                            + '<td style="white-space:nowrap;font-size:12px">' + escHtml(createdTxt) + '</td></tr>';
+                    });
+                    preview.innerHTML = '<div style="background:#fff8f0;border:1px solid #f59e0b;border-radius:6px;padding:16px;margin-top:12px;">'
+                        + '<strong style="color:#92400e;">⚠ ' + toDelete.length + ' redirect' + (toDelete.length !== 1 ? 's' : '') + ' will be deleted</strong>'
+                        + '<p style="margin:6px 0 10px;font-size:13px;color:#50575e;">These have not been hit in the last 3 months. Review before confirming:</p>'
+                        + '<div style="max-height:260px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:4px;">'
+                        + '<table class="widefat striped" style="font-size:12px;">'
+                        + '<thead><tr><th>Old path</th><th>Last hit</th><th>Created</th></tr></thead>'
+                        + '<tbody>' + listHtml + '</tbody></table></div>'
+                        + '<div style="margin-top:12px;display:flex;gap:8px;">'
+                        + '<button id="cs-prune-confirm" class="button" style="background:#b45309;border-color:#92400e;color:#fff;font-weight:600" data-nonce="' + escHtml(nonce) + '">🗑 Delete These ' + toDelete.length + ' Redirect' + (toDelete.length !== 1 ? 's' : '') + '</button>'
+                        + '<button id="cs-prune-cancel" class="button">Cancel</button>'
+                        + '</div></div>';
+                    preview.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+                }
+                if (e.target.id === 'cs-prune-confirm') {
                     var btn = e.target;
                     var nonce = btn.dataset.nonce;
                     btn.disabled = true;
+                    btn.textContent = '⟳ Deleting…';
                     fetch(ajaxurl, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -674,6 +726,10 @@ trait CS_SEO_Redirects {
                         btn.disabled = false;
                         console.error('cs-seo: prune redirects failed', err);
                     });
+                }
+                if (e.target.id === 'cs-prune-cancel') {
+                    var preview = document.getElementById('cs-prune-preview');
+                    if (preview) preview.innerHTML = '';
                 }
                 if (e.target.id === 'cs-analyse-chains') {
                     var btn = e.target;
@@ -760,11 +816,7 @@ trait CS_SEO_Redirects {
                     });
                 }
                 if (e.target.id === 'cs-show-chains-only') {
-                    var showOnly = e.target.checked;
-                    document.querySelectorAll('#cs-redirects-tbody tr').forEach(function(row) {
-                        var isChained = row.style.background === 'rgb(254, 243, 199)' || row.querySelector('.cs-chain-badge');
-                        row.style.display = (showOnly && !isChained) ? 'none' : '';
-                    });
+                    if (typeof window.csRRender === 'function') window.csRRender();
                 }
             });
         }());
@@ -793,8 +845,67 @@ trait CS_SEO_Redirects {
                         return (aVal - bVal) * dir;
                     });
                     rows.forEach(function (row) { tbody.appendChild(row); });
+                    if (typeof window.csRRender === 'function') window.csRRender();
                 });
             });
+        }());
+        (function () {
+            var tbody = document.getElementById('cs-redirects-tbody');
+            if (!tbody) return;
+            var CS_R_PER = 50;
+            var csRFilter = 'all';
+            var csRPage   = 1;
+            window.csRRender = function () {
+                var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+                var chainsOnly = document.getElementById('cs-show-chains-only');
+                if (chainsOnly && chainsOnly.checked) {
+                    rows.forEach(function (row) {
+                        row.style.display = row.querySelector('.cs-chain-badge') ? '' : 'none';
+                    });
+                    var pager = document.getElementById('cs-redirects-pager');
+                    if (pager) pager.innerHTML = '';
+                    return;
+                }
+                var visible = rows.filter(function (row) {
+                    var type = row.dataset.redirectType || 'auto';
+                    return csRFilter === 'all' || type === csRFilter;
+                });
+                var totalPages = Math.max(1, Math.ceil(visible.length / CS_R_PER));
+                if (csRPage > totalPages) csRPage = 1;
+                var start = (csRPage - 1) * CS_R_PER;
+                var end   = start + CS_R_PER;
+                rows.forEach(function (row) {
+                    var type = row.dataset.redirectType || 'auto';
+                    var typeMatch = csRFilter === 'all' || type === csRFilter;
+                    var idx = visible.indexOf(row);
+                    row.style.display = (typeMatch && idx >= start && idx < end) ? '' : 'none';
+                });
+                var pager = document.getElementById('cs-redirects-pager');
+                if (!pager) return;
+                if (totalPages <= 1) { pager.innerHTML = ''; return; }
+                var html = '<span style="font-size:13px;color:#555;margin-right:4px;">Page</span>';
+                for (var i = 1; i <= totalPages; i++) {
+                    var cls = 'button' + (i === csRPage ? ' button-primary' : '') + ' cs-rpage-btn';
+                    html += '<button type="button" class="' + cls + '" data-pg="' + i + '" style="min-width:32px;">' + i + '</button> ';
+                }
+                html += '<span style="font-size:12px;color:#999;margin-left:4px;">(' + visible.length + ' total)</span>';
+                pager.innerHTML = html;
+            };
+            document.addEventListener('click', function (e) {
+                if (e.target.classList.contains('cs-rtype-btn')) {
+                    csRFilter = e.target.dataset.filter;
+                    csRPage   = 1;
+                    document.querySelectorAll('.cs-rtype-btn').forEach(function (b) {
+                        b.classList.toggle('button-primary', b.dataset.filter === csRFilter);
+                    });
+                    window.csRRender();
+                }
+                if (e.target.classList.contains('cs-rpage-btn')) {
+                    csRPage = parseInt(e.target.dataset.pg, 10);
+                    window.csRRender();
+                }
+            });
+            window.csRRender();
         }());
         <?php wp_add_inline_script( 'cs-seo-admin-js', ob_get_clean() ); ?>
         <?php

@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin settings page — renders all tabs, forms, and admin panels.
+ * Plugin settings page. renders all tabs, forms, and admin panels.
  *
  * @package CloudScale_SEO_AI_Optimizer
  * @since   4.0.0
@@ -23,13 +23,15 @@ trait CS_SEO_Settings_Page {
         $o     = $this->opts;
         $ai    = $this->ai_opts;
         $nonce = wp_create_nonce('cs_seo_nonce');
-        $show_onboarding = !get_option('cs_seo_welcome_shown')
+        // Get Started tab is always visible. clients can switch plans any time.
+        // It defaults as the active tab only on a fresh install (no key + not seen before).
+        $onboarding_default = !get_option('cs_seo_welcome_shown')
             && !($ai['anthropic_key'] ?? '')
             && !($ai['gemini_key']    ?? '')
             && !($ai['proxy_license_key'] ?? '');
         ?>
         <div class="wrap">
-        <h1>CloudScale SEO AI Optimizer <span style="font-size:13px;font-weight:400;color:#999;margin-left:6px">AndrewBaker.Ninja</span></h1>
+        <h1>CloudScale SEO AI Optimizer <span style="font-size:13px;font-weight:400;color:#999;margin-left:6px">AndrewBaker.Ninja</span> <span style="font-size:12px;font-weight:400;color:#b0b8c1;margin-left:4px">v<?php echo esc_html( self::VERSION ); ?></span></h1>
         <?php if ( isset( $_GET['settings-updated'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
         <div id="ab-settings-saved-toast" style="position:fixed;top:46px;right:20px;z-index:99999;background:#fff;border:1px solid #c3e6cb;border-left:4px solid #00a32a;color:#155724;padding:12px 20px;border-radius:6px;box-shadow:0 2px 12px rgba(0,0,0,.18);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;transition:opacity 0.4s;">
             &#x2705; <?php esc_html_e( 'Settings saved.', 'cloudscale-seo-ai-optimizer' ); ?>
@@ -58,7 +60,7 @@ trait CS_SEO_Settings_Page {
             letter-spacing:0.03em;
             transition:filter 0.15s, transform 0.15s;
         " class="cs-settings-link">
-            <span style="font-size:16px">🥷</span> Totally Free by AndrewBaker.Ninja
+            <span style="font-size:16px">🥷</span> AndrewBaker.Ninja
         </a>
         <a href="https://andrewbaker.ninja/wordpress-plugin-help/seo-ai-optimizer/" target="_blank" rel="noopener" style="
             display:inline-flex;
@@ -83,10 +85,8 @@ trait CS_SEO_Settings_Page {
         <?php /* ── TAB NAV ── */ ?>
 
         <div class="ab-tabs">
-            <?php if ($show_onboarding): ?>
-            <button class="ab-tab active" data-tab="start" id="ab-tab-start">🚀 <?php esc_html_e( 'Get Started', 'cloudscale-seo-ai-optimizer' ); ?></button>
-            <?php endif; ?>
-            <button class="ab-tab <?php echo $show_onboarding ? '' : 'active'; ?>" data-tab="seo">⚙ <?php esc_html_e( 'Settings', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab <?php echo $onboarding_default ? 'active' : ''; ?>" data-tab="start" id="ab-tab-start">🚀 <?php esc_html_e( 'Get Started', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <button class="ab-tab <?php echo $onboarding_default ? '' : 'active'; ?>" data-tab="seo">⚙ <?php esc_html_e( 'Settings', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="siteaudit">🔍 <?php esc_html_e( 'Site Audit', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="aitools">✨ <?php esc_html_e( 'AI Content', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="sitemap">🗺 <?php esc_html_e( 'Technical SEO', 'cloudscale-seo-ai-optimizer' ); ?></button>
@@ -99,10 +99,10 @@ trait CS_SEO_Settings_Page {
         </div>
         </div>
 
-        <?php if ($show_onboarding): $this->render_onboarding_pane(); endif; ?>
+        <?php $this->render_onboarding_pane(); ?>
 
         <?php /* ══════════════════ SETTINGS PANE (SEO + AI combined) ══════════════════ */ ?>
-        <div class="ab-pane <?php echo $show_onboarding ? '' : 'active'; ?>" id="ab-pane-seo">
+        <div class="ab-pane <?php echo $onboarding_default ? '' : 'active'; ?>" id="ab-pane-seo">
 
             <?php /* ── SEO Settings form ── */ ?>
             <form method="post" action="options.php">
@@ -113,14 +113,14 @@ trait CS_SEO_Settings_Page {
                     <span><span class="ab-zone-icon">🌐</span> <?php esc_html_e( 'Site Identity', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-identity" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
-                        <?php $this->explain_btn('identity', '🌐 Site Identity — What each field does', [
+                        <?php $this->explain_btn('identity', '🌐 Site Identity: What each field does', [
                         ['rec'=>'✅ Recommended','name'=>'Site name','desc'=>'The name of your site as it appears in search results, browser tabs, and social sharing. Used in JSON-LD schema and OpenGraph tags. e.g. "Andrew Baker" or "Andrew Baker\'s Tech Blog".'],
                         ['rec'=>'✅ Recommended','name'=>'Title suffix','desc'=>'Appended to every page title in search results. e.g. if your suffix is "| Andrew Baker" then a post titled "AWS Lambda Tips" appears as "AWS Lambda Tips | Andrew Baker". Helps with brand recognition in SERPs.'],
-                        ['rec'=>'✅ Recommended','name'=>'Home title','desc'=>'The SEO title for your homepage specifically. This is what Google shows as the blue link for your homepage in search results. Make it descriptive and keyword-rich — e.g. "Andrew Baker – CIO, Cloud Architect & Technology Leader".'],
-                        ['rec'=>'✅ Recommended','name'=>'Home description','desc'=>'The meta description for your homepage. Shown as the snippet under your homepage title in Google. Aim for 140–155 characters. Write for humans — this is your elevator pitch to someone seeing your site for the first time.'],
-                        ['rec'=>'✅ Recommended','name'=>'Default OG image URL','desc'=>'The fallback image used when a post is shared on social media and has no featured image. Should be 1200×630px. Use a branded image with your name/logo — this appears as the preview card on LinkedIn, Twitter/X, and WhatsApp.'],
-                        ['rec'=>'✅ Recommended','name'=>'Target audience','desc'=>'Who reads your site — e.g. "software engineers, CTOs" or "first-time homebuyers". This is injected into every AI request as site context and has the biggest single impact on output quality. The AI uses it to calibrate vocabulary, assumed knowledge level, and what makes a description compelling for your specific readers. Fill this in before running any AI generation.'],
-                        ['rec'=>'✅ Recommended','name'=>'Writing tone','desc'=>'The voice and style of your content — e.g. "direct and technical", "warm and encouraging", or "authoritative and concise". Combined with target audience, this tells the AI how to write for your brand rather than producing generic SEO copy. Fill in both this and Target audience before generating anything.'],
+                        ['rec'=>'✅ Recommended','name'=>'Home title','desc'=>'The SEO title for your homepage specifically. This is what Google shows as the blue link for your homepage in search results. Make it descriptive and keyword-rich, e.g. "Andrew Baker – CIO, Cloud Architect & Technology Leader".'],
+                        ['rec'=>'✅ Recommended','name'=>'Home description','desc'=>'The meta description for your homepage. Shown as the snippet under your homepage title in Google. Aim for 140–155 characters. Write for humans. This is your elevator pitch to someone seeing your site for the first time.'],
+                        ['rec'=>'✅ Recommended','name'=>'Default OG image URL','desc'=>'The fallback image used when a post is shared on social media and has no featured image. Should be 1200×630px. Use a branded image with your name/logo. This appears as the preview card on LinkedIn, Twitter/X, and WhatsApp.'],
+                        ['rec'=>'✅ Recommended','name'=>'Target audience','desc'=>'Who reads your site, e.g. "software engineers, CTOs" or "first-time homebuyers". This is injected into every AI request as site context and has the biggest single impact on output quality. The AI uses it to calibrate vocabulary, assumed knowledge level, and what makes a description compelling for your specific readers. Fill this in before running any AI generation.'],
+                        ['rec'=>'✅ Recommended','name'=>'Writing tone','desc'=>'The voice and style of your content, e.g. "direct and technical", "warm and encouraging", or "authoritative and concise". Combined with target audience, this tells the AI how to write for your brand rather than producing generic SEO copy. Fill in both this and Target audience before generating anything.'],
                         ['rec'=>'⬜ Optional','name'=>'Locale','desc'=>'BCP 47 language tag used in OpenGraph metadata. "en-US" is fine for most English sites. Use "en-ZA" if you want to signal a South African audience to Facebook/LinkedIn. Has minimal impact on Google rankings.'],
                         ['rec'=>'⬜ Optional','name'=>'Twitter handle','desc'=>'Your Twitter/X username including the @ symbol. Added to Twitter Card metadata so when your posts are shared on X, your account gets attributed as the author. Only matters if you actively use Twitter/X.'],
                     ]); ?>
@@ -163,7 +163,7 @@ trait CS_SEO_Settings_Page {
                                 <div style="font-size:22px;flex-shrink:0">✨</div>
                                 <div style="flex:1;font-size:13px;line-height:1.6;color:#1e1b4b">
                                     <strong>Fill these in to unlock significantly better AI meta descriptions.</strong><br>
-                                    Without them the AI writes generic copy. With them it writes for <em>your</em> readers in <em>your</em> voice — the single biggest quality lever available without touching the system prompt.<br>
+                                    Without them the AI writes generic copy. With them it writes for <em>your</em> readers in <em>your</em> voice. That is the single biggest quality lever available without touching the system prompt.<br>
                                     <span style="display:inline-block;margin-top:6px;background:#e0e7ff;border-radius:4px;padding:4px 10px;font-size:12px;font-family:monospace;color:#3730a3">Target audience: WordPress developers, agency owners &nbsp;·&nbsp; Writing tone: direct and technical</span>
                                 </div>
                             </div>
@@ -172,10 +172,10 @@ trait CS_SEO_Settings_Page {
                     <tr>
                         <th><label for="cs_seo_target_audience">Target audience:</label></th>
                         <td><input id="cs_seo_target_audience" class="regular-text" style="width:100%" name="<?php echo esc_attr(self::OPT); ?>[target_audience]" value="<?php echo esc_attr((string)($o['target_audience'] ?? '')); ?>" placeholder="e.g. software engineers, CTOs, freelance developers">
-                        <p class="description">Who reads this site — the AI uses this to match vocabulary and assumed knowledge level.</p></td>
+                        <p class="description">Who reads this site. The AI uses this to match vocabulary and assumed knowledge level.</p></td>
                         <th><label for="cs_seo_writing_tone">Writing tone:</label></th>
                         <td><input id="cs_seo_writing_tone" class="regular-text" style="width:100%" name="<?php echo esc_attr(self::OPT); ?>[writing_tone]" value="<?php echo esc_attr((string)($o['writing_tone'] ?? '')); ?>" placeholder="e.g. direct and technical, casual and friendly, authoritative">
-                        <p class="description">The voice of your content — the AI uses this to match your brand's tone.</p></td>
+                        <p class="description">The voice of your content. The AI uses this to match your brand's tone.</p></td>
                     </tr>
                 </table>
                 <div style="margin-top:16px;padding:0 20px;"><?php submit_button( __( 'Save SEO Settings', 'cloudscale-seo-ai-optimizer' ), 'primary', 'submit', false ); ?></div>
@@ -187,12 +187,12 @@ trait CS_SEO_Settings_Page {
                     <span><span class="ab-zone-icon">👤</span> <?php esc_html_e( 'Person Schema', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-person" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
-                        <?php $this->explain_btn('person', '👤 Person Schema — What each field does', [
-                        ['rec'=>'✅ Recommended','name'=>'Full name','desc'=>'Your name as it appears in Google search results and Knowledge Graph. Use your real name exactly as you want it attributed — this is what Google uses to connect your content to you as an individual author.'],
-                        ['rec'=>'✅ Recommended','name'=>'Profile URL','desc'=>'The canonical URL for your personal profile — usually your homepage (https://yoursite.com/). Google uses this as the authoritative identifier for you as a person in its Knowledge Graph.'],
+                        <?php $this->explain_btn('person', '👤 Person Schema: What each field does', [
+                        ['rec'=>'✅ Recommended','name'=>'Full name','desc'=>'Your name as it appears in Google search results and Knowledge Graph. Use your real name exactly as you want it attributed. This is what Google uses to connect your content to you as an individual author.'],
+                        ['rec'=>'✅ Recommended','name'=>'Profile URL','desc'=>'The canonical URL for your personal profile, usually your homepage (https://yoursite.com/). Google uses this as the authoritative identifier for you as a person in its Knowledge Graph.'],
                         ['rec'=>'✅ Recommended','name'=>'Job title','desc'=>'Your current job title, e.g. "Chief Information Officer". Included in your Person JSON-LD schema and helps Google understand your professional authority in your subject area.'],
                         ['rec'=>'✅ Recommended','name'=>'Person image URL','desc'=>'URL to your headshot or profile photo. Used in Person schema so Google can associate a face with your content. Ideally a square image of at least 400×400px already uploaded to your media library.'],
-                        ['rec'=>'✅ Recommended','name'=>'Social profiles (sameAs)','desc'=>'One URL per line — your LinkedIn, Twitter/X, GitHub, Google Scholar etc. Google uses these to verify your identity and connect your various online presences. The more authoritative profiles you link, the stronger your author entity signal.'],
+                        ['rec'=>'✅ Recommended','name'=>'Social profiles (sameAs)','desc'=>'One URL per line, e.g. your LinkedIn, Twitter/X, GitHub, Google Scholar etc. Google uses these to verify your identity and connect your various online presences. The more authoritative profiles you link, the stronger your author entity signal.'],
                     ]); ?>
                     </span>
                 </div>
@@ -217,7 +217,7 @@ trait CS_SEO_Settings_Page {
                     <tr><th><?php esc_html_e( 'SameAs URLs (one per line):', 'cloudscale-seo-ai-optimizer' ); ?></th>
                         <td colspan="3">
                             <textarea class="large-text" rows="4" name="<?php echo esc_attr(self::OPT); ?>[sameas]" placeholder="e.g. https://www.linkedin.com/in/yourname&#10;e.g. https://x.com/yourhandle&#10;e.g. https://github.com/yourname"><?php echo esc_textarea($o['sameas']); ?></textarea>
-                            <p class="description">Your profiles on other platforms — one URL per line. Twitter/X is auto-added from the handle above. Helps Google connect your identity across the web.</p>
+                            <p class="description">Your profiles on other platforms, one URL per line. Twitter/X is auto-added from the handle above. Helps Google connect your identity across the web.</p>
                             <?php
                             $tw_handle = trim( ltrim( (string) ( $o['twitter_handle'] ?? '' ), '@' ) );
                             $sameas_val = (string) ( $o['sameas'] ?? '' );
@@ -225,7 +225,7 @@ trait CS_SEO_Settings_Page {
                             if ( $tw_missing ) :
                                 $tw_url = 'https://x.com/' . esc_attr( $tw_handle );
                             ?>
-                            <p style="color:#d97706;font-size:12px;margin:4px 0 0;font-weight:500">⚠ Hint: Twitter/X URL missing — add <code style="color:#d97706"><?php echo esc_html( $tw_url ); ?></code></p>
+                            <p style="color:#d97706;font-size:12px;margin:4px 0 0;font-weight:500">⚠ Hint: Twitter/X URL missing. Add <code style="color:#d97706"><?php echo esc_html( $tw_url ); ?></code></p>
                             <?php endif; ?>
                         </td></tr>
                     <tr>
@@ -239,7 +239,7 @@ trait CS_SEO_Settings_Page {
                     <tr><th><label for="cs_seo_knows_about">knowsAbout topics:</label></th>
                         <td colspan="3">
                             <textarea id="cs_seo_knows_about" class="large-text" rows="4" name="<?php echo esc_attr(self::OPT); ?>[knows_about]" placeholder="e.g. Cloud computing&#10;e.g. Cybersecurity&#10;e.g. WordPress development"><?php echo esc_textarea((string)($o['knows_about'] ?? '')); ?></textarea>
-                            <p class="description">Your areas of expertise — one topic per line. Added to Person schema as <code>knowsAbout</code> array. Strengthens topical authority and E-E-A-T signals.</p>
+                            <p class="description">Your areas of expertise, one topic per line. Added to Person schema as <code>knowsAbout</code> array. Strengthens topical authority and E-E-A-T signals.</p>
                         </td>
                     </tr>
                 </table>
@@ -260,14 +260,14 @@ trait CS_SEO_Settings_Page {
                     <span><span class="ab-zone-icon">✦</span> <?php esc_html_e( 'AI Provider and Model', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-ai" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
-                        <?php $this->explain_btn('ai', '✦ AI Provider and Model — What each setting does', [
-                        ['rec'=>'✅ Recommended','name'=>'AI Provider','desc'=>'Choose between Anthropic Claude or Google Gemini. Both support all generation features — pick based on your existing API key or pricing preference.'],
-                        ['rec'=>'✅ Recommended','name'=>'API Key (Anthropic)','desc'=>'Your secret key from console.anthropic.com. Required when using Anthropic Claude. Keep this private — anyone with this key can use your Anthropic account. The key is stored securely in your WordPress database.'],
-                        ['rec'=>'✅ Recommended','name'=>'API Key (Gemini)','desc'=>'Your secret key from aistudio.google.com. Required when using Google Gemini. Keep this private — anyone with this key can use your Google AI account. The key is stored securely in your WordPress database.'],
-                        ['rec'=>'ℹ️ Info','name'=>'Model','desc'=>'Which model to use for generation. "Automatic" (the default) always uses the current recommended model for your provider — it updates automatically when a newer recommended model is available. If you need a specific version for cost or quality reasons, pin it manually. For Anthropic: Haiku is fast and cheap (ideal for bulk), Sonnet is higher quality. For Gemini: Flash models are fast and affordable, Pro models offer higher quality and longer context.'],
-                        ['rec'=>'⬜ Optional','name'=>'Overwrite existing','desc'=>'When enabled, the AI will regenerate descriptions for posts that already have one. Leave OFF to only fill in missing descriptions — this protects any manually written descriptions you\'ve already crafted.'],
+                        <?php $this->explain_btn('ai', '✦ AI Provider and Model: What each setting does', [
+                        ['rec'=>'✅ Recommended','name'=>'AI Provider','desc'=>'Choose between Anthropic Claude or Google Gemini. Both support all generation features. Pick based on your existing API key or pricing preference.'],
+                        ['rec'=>'✅ Recommended','name'=>'API Key (Anthropic)','desc'=>'Your secret key from console.anthropic.com. Required when using Anthropic Claude. Keep this private. Anyone with this key can use your Anthropic account. The key is stored securely in your WordPress database.'],
+                        ['rec'=>'✅ Recommended','name'=>'API Key (Gemini)','desc'=>'Your secret key from aistudio.google.com. Required when using Google Gemini. Keep this private. Anyone with this key can use your Google AI account. The key is stored securely in your WordPress database.'],
+                        ['rec'=>'ℹ️ Info','name'=>'Model','desc'=>'Which model to use for generation. "Automatic" (the default) always uses the current recommended model for your provider. It updates automatically when a newer recommended model is available. If you need a specific version for cost or quality reasons, pin it manually. For Anthropic: Haiku is fast and cheap (ideal for bulk), Sonnet is higher quality. For Gemini: Flash models are fast and affordable, Pro models offer higher quality and longer context.'],
+                        ['rec'=>'⬜ Optional','name'=>'Overwrite existing','desc'=>'When enabled, the AI will regenerate descriptions for posts that already have one. Leave OFF to only fill in missing descriptions. This protects any manually written descriptions you\'ve already crafted.'],
                         ['rec'=>'⬜ Optional','name'=>'Min / Max characters','desc'=>'Target character range for generated descriptions. Google typically shows 140–160 characters in search results before truncating. Descriptions shorter than 120 characters look thin; longer than 165 get cut off with an ellipsis.'],
-                        ['rec'=>'⬜ Optional','name'=>'Custom prompt','desc'=>'Advanced: override the default AI instructions. The best way to improve output quality is to fill in Target audience and Writing tone in the Site Identity panel — those are injected automatically into every request. Only edit the prompt here if you need structural changes: writing in a language other than English, enforcing a specific format, or other niche requirements. Use Reset to default to restore the original prompt.'],
+                        ['rec'=>'⬜ Optional','name'=>'Custom prompt','desc'=>'Advanced: override the default AI instructions. The best way to improve output quality is to fill in Target audience and Writing tone in the Site Identity panel. Those are injected automatically into every request. Only edit the prompt here if you need structural changes: writing in a language other than English, enforcing a specific format, or other niche requirements. Use Reset to default to restore the original prompt.'],
                     ]); ?>
                     </span>
                 </div>
@@ -302,10 +302,10 @@ trait CS_SEO_Settings_Page {
                                 <span id="ab-key-status" class="ab-key-status"></span>
                             </div>
                             <p class="description" id="ab-key-hint-anthropic" style="<?php echo esc_attr( ($ai['ai_provider'] ?? 'anthropic') === 'gemini' ? 'display:none' : '' ); ?>">
-                                Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>. Stored in wp_options — never output to frontend.
+                                Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>. Stored in wp_options. Never output to frontend.
                             </p>
                             <p class="description" id="ab-key-hint-gemini" style="<?php echo esc_attr( ($ai['ai_provider'] ?? 'anthropic') !== 'gemini' ? 'display:none' : '' ); ?>">
-                                Get your key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>. Stored in wp_options — never output to frontend.
+                                Get your key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>. Stored in wp_options. Never output to frontend.
                             </p>
                         </td>
                     </tr>
@@ -318,13 +318,13 @@ trait CS_SEO_Settings_Page {
                                 $provider = $ai['ai_provider'] ?? 'anthropic';
                                 $anthropic_models = [
                                     'claude-opus-4-6'           => 'Claude Opus 4.6 (best quality, highest cost)',
-                                    'claude-sonnet-4-6'         => 'Claude Sonnet 4.6 (recommended — quality + speed)',
+                                    'claude-sonnet-4-6'         => 'Claude Sonnet 4.6 (recommended, quality + speed)',
                                     'claude-sonnet-4-5'         => 'Claude Sonnet 4.5',
                                     'claude-sonnet-4.20.140514'  => 'Claude Sonnet 4 (stable pinned)',
                                     'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5 (fastest, cheapest)',
                                 ];
                                 $gemini_models = [
-                                    'gemini-2.0-flash'      => 'Gemini 2.0 Flash (recommended — stable, fast)',
+                                    'gemini-2.0-flash'      => 'Gemini 2.0 Flash (recommended, stable, fast)',
                                     'gemini-2.0-flash-001'  => 'Gemini 2.0 Flash 001 (pinned stable)',
                                     'gemini-2.0-flash-lite' => 'Gemini 2.0 Flash Lite (fast, cheapest 2.0)',
                                     'gemini-1.5-pro'        => 'Gemini 1.5 Pro (high quality, long context)',
@@ -342,7 +342,7 @@ trait CS_SEO_Settings_Page {
                                         <?php if ( $provider !== $group ) echo 'style="display:none"'; ?>
                                         ><?php echo esc_html($l); ?></option>
                                 <?php endforeach; ?>
-                                <option value="_custom">— Custom model ID (enter below) —</option>
+                                <option value="_custom">Custom model ID (enter below)</option>
                             </select>
                             <p style="margin:4px 0 0;font-size:12px;">
                                 <a href="https://docs.anthropic.com/en/docs/about-claude/models/overview" target="_blank" rel="noopener" id="ab-model-link-anthropic" style="<?php echo esc_attr( ($provider === 'gemini') ? 'display:none' : '' ); ?>">View latest Claude models &rarr;</a>
@@ -378,14 +378,14 @@ trait CS_SEO_Settings_Page {
                         <td>
                             <input type="number" style="width:70px" name="<?php echo esc_attr(self::AI_OPT); ?>[min_chars]" value="<?php echo esc_attr($ai['min_chars']); ?>" min="100" max="160"> min &nbsp;
                             <input type="number" style="width:70px" name="<?php echo esc_attr(self::AI_OPT); ?>[max_chars]" value="<?php echo esc_attr($ai['max_chars']); ?>" min="100" max="200"> max characters
-                            <p class="description">Google shows 120–160 chars. The range you set here is automatically injected into the prompt — you do not need to mention it in the system prompt above.</p>
+                            <p class="description">Google shows 120–160 chars. The range you set here is automatically injected into the prompt. You do not need to mention it in the system prompt above.</p>
                         </td>
                     </tr>
                     <tr>
                         <th><?php esc_html_e( 'ALT text article excerpt:', 'cloudscale-seo-ai-optimizer' ); ?></th>
                         <td>
                             <input type="number" style="width:80px" name="<?php echo esc_attr(self::AI_OPT); ?>[alt_excerpt_chars]" value="<?php echo esc_attr((string)($ai['alt_excerpt_chars'] ?? 600)); ?>" min="100" max="2000"> characters
-                            <p class="description">How much of the article text to send alongside each image when generating ALT text. More context produces better results for images with generic filenames, but increases API token usage. 600 is a good balance — enough to cover the intro and first heading. Increase to 1200+ for dense technical posts where images appear mid-article. Range: 100–2000.</p>
+                            <p class="description">How much of the article text to send alongside each image when generating ALT text. More context produces better results for images with generic filenames, but increases API token usage. 600 is a good balance, enough to cover the intro and first heading. Increase to 1200+ for dense technical posts where images appear mid-article. Range: 100–2000.</p>
                         </td>
                     </tr>
                     <tr>
@@ -409,7 +409,7 @@ trait CS_SEO_Settings_Page {
                 </div><!-- /ab-card-ai -->
             </form>
 
-            <?php /* ── Managed API card (outside the save form — no settings fields here) ── */
+            <?php /* ── Managed API card (outside the save form. no settings fields here) ── */
             $proxy_status    = (string)($ai['proxy_status']      ?? '');
             $proxy_key       = (string)($ai['proxy_license_key'] ?? '');
             $proxy_enabled   = (int)($ai['proxy_enabled']        ?? 0);
@@ -421,7 +421,7 @@ trait CS_SEO_Settings_Page {
             ?>
             <div class="ab-zone-card" id="ab-card-managed-api" style="margin-top:16px">
             <div class="ab-zone-header" style="justify-content:space-between">
-                <span><span class="ab-zone-icon">💳</span> <?php esc_html_e( 'Managed API — $5/month', 'cloudscale-seo-ai-optimizer' ); ?></span>
+                <span><span class="ab-zone-icon">💳</span> <?php esc_html_e( 'Managed API ($5/month)', 'cloudscale-seo-ai-optimizer' ); ?></span>
                 <span style="display:flex;align-items:center;gap:8px;">
                     <?php if ($proxy_status === 'active'): ?>
                     <span style="background:#22c55e;color:#fff;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">✓ Active</span>
@@ -458,22 +458,24 @@ trait CS_SEO_Settings_Page {
                     <input type="text" readonly value="<?php echo esc_attr($masked_key); ?>" style="font-family:monospace;width:320px;background:#f9fafb">
                     <button type="button" class="button" id="ab-proxy-copy-key" data-key="<?php echo esc_attr($proxy_key); ?>">Copy Key</button>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <button type="button" class="button button-primary" id="ab-proxy-boost-btn">
                         ⚡ Boost +200 requests for $5
                     </button>
-                    <a href="#" id="ab-proxy-billing-link" style="font-size:13px" target="_blank">
-                        <?php esc_html_e('Manage billing →', 'cloudscale-seo-ai-optimizer'); ?>
-                    </a>
-                    <button type="button" class="button" id="ab-proxy-refresh-status" style="margin-left:auto">
+                    <button type="button" class="button" id="ab-proxy-refresh-status">
                         ↻ Refresh status
                     </button>
+                    <button type="button" class="button" id="ab-proxy-cancel-btn"
+                        style="margin-left:auto;color:#b91c1c;border-color:#fca5a5">
+                        <?php esc_html_e('Cancel subscription', 'cloudscale-seo-ai-optimizer'); ?>
+                    </button>
                 </div>
+                <p id="ab-proxy-cancel-msg" style="display:none;font-size:12px;margin-top:8px"></p>
 
             <?php elseif ($proxy_status === 'past_due'): ?>
                 <?php /* ── STATE 4: Past due ── */ ?>
                 <p style="color:#b45309;font-weight:600;margin-bottom:12px">
-                    ⚠ <?php esc_html_e('Payment failed — your subscription needs attention to restore access.', 'cloudscale-seo-ai-optimizer'); ?>
+                    ⚠ <?php esc_html_e('Payment failed. Your subscription needs attention to restore access.', 'cloudscale-seo-ai-optimizer'); ?>
                 </p>
                 <a href="#" id="ab-proxy-billing-link-due" class="button button-primary" target="_blank">
                     <?php esc_html_e('Manage subscription →', 'cloudscale-seo-ai-optimizer'); ?>
@@ -497,7 +499,7 @@ trait CS_SEO_Settings_Page {
             <?php else: ?>
                 <?php /* ── STATE 1: Not subscribed ── */ ?>
                 <p style="font-size:15px;margin-bottom:8px">
-                    <strong><?php esc_html_e("No API key? We'll handle it — $5/month.", 'cloudscale-seo-ai-optimizer'); ?></strong>
+                    <strong><?php esc_html_e("No API key? We'll handle it for $5/month.", 'cloudscale-seo-ai-optimizer'); ?></strong>
                 </p>
                 <ul style="margin:0 0 16px 20px;list-style:disc;font-size:13px;line-height:1.8">
                     <li><?php esc_html_e('200 AI requests per month included', 'cloudscale-seo-ai-optimizer'); ?></li>
@@ -524,7 +526,7 @@ trait CS_SEO_Settings_Page {
                 <span style="font-size:22px">⚡</span>
                 <div style="flex:1;min-width:200px;">
                     <strong style="color:#14532d;font-size:14px;"><?php esc_html_e( 'Auto Pipeline is active', 'cloudscale-seo-ai-optimizer' ); ?></strong>
-                    <p style="margin:2px 0 0;color:#166534;font-size:12px;"><?php esc_html_e( 'Every post you publish will automatically receive a meta description, ALT text, AI summary, and FAQ schema — no manual work required.', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                    <p style="margin:2px 0 0;color:#166534;font-size:12px;"><?php esc_html_e( 'Every post you publish will automatically receive a meta description, ALT text, AI summary, and FAQ schema. No manual work required.', 'cloudscale-seo-ai-optimizer' ); ?></p>
                 </div>
             </div>
             <?php else : ?>
@@ -532,7 +534,7 @@ trait CS_SEO_Settings_Page {
                 <span style="font-size:22px">💤</span>
                 <div style="flex:1;min-width:200px;">
                     <strong style="color:#78350f;font-size:14px;"><?php esc_html_e( 'Auto Pipeline is off', 'cloudscale-seo-ai-optimizer' ); ?></strong>
-                    <p style="margin:2px 0 0;color:#92400e;font-size:12px;"><?php esc_html_e( 'Enable it below to automatically process every new post you publish — meta description, ALT text, summary box, and FAQ schema all generated in the background.', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                    <p style="margin:2px 0 0;color:#92400e;font-size:12px;"><?php esc_html_e( 'Enable it below to automatically process every new post you publish. Meta description, ALT text, summary box, and FAQ schema are all generated in the background.', 'cloudscale-seo-ai-optimizer' ); ?></p>
                 </div>
                 <a href="#ab-card-auto-pipeline" style="background:#f59e0b;color:#fff;border-radius:6px;padding:7px 16px;font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap;"><?php esc_html_e( '→ Enable it', 'cloudscale-seo-ai-optimizer' ); ?></a>
             </div>
@@ -545,13 +547,13 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="background:linear-gradient(120deg,#4338ca 0%,#6366f1 60%,#818cf8 100%);justify-content:space-between;">
                     <span><span class="ab-zone-icon">⚡</span> <?php esc_html_e( 'Auto Pipeline', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                    <?php $this->explain_btn('auto_pipeline', '⚡ Auto Pipeline — How it works', [
-                        ['rec'=>'ℹ️ Info',         'name'=>'What it does',          'desc'=>'Automatically runs every AI operation — meta description, focus keyword, ALT text for attached images, internal link suggestions, AI summary box, FAQ schema, Related Articles, and readability scoring — immediately when a post is published or updated. Each step runs in a background HTTP request so publish is never blocked.'],
+                    <?php $this->explain_btn('auto_pipeline', '⚡ Auto Pipeline: How it works', [
+                        ['rec'=>'ℹ️ Info',         'name'=>'What it does',          'desc'=>'Automatically runs every AI operation. meta description, focus keyword, ALT text for attached images, internal link suggestions, AI summary box, FAQ schema, Related Articles, and readability scoring. Triggered immediately when a post is published or updated. Each step runs in a background HTTP request so publish is never blocked.'],
                         ['rec'=>'✅ Recommended',  'name'=>'Run on first publish',  'desc'=>'Triggers once when a post goes from any status to Published. Will not re-run on subsequent saves unless "Re-run on update" is also enabled. Prevents duplicate API calls on minor edits.'],
                         ['rec'=>'⬜ Optional',     'name'=>'Re-run on update',      'desc'=>'Re-triggers the full pipeline every time an already-published post is saved. Useful for keeping AI content fresh when you make major content changes. Each re-run replaces all previous AI-generated data for that post.'],
                         ['rec'=>'ℹ️ Info',         'name'=>'Minimum content',       'desc'=>'All AI steps silently skip if the post has fewer than 50 words. This prevents generating meaningless output for stubs, drafts accidentally published, or test posts.'],
                         ['rec'=>'ℹ️ Info',         'name'=>'FAQ Schema (auto)',     'desc'=>'On every new post publish, the pipeline generates a FAQPage JSON-LD schema block and saves it to the post. This appears automatically in search results as expandable Q&A entries. Only runs if no schema already exists for the post and the content is at least 100 words.'],
-                        ['rec'=>'ℹ️ Info',         'name'=>'Related Articles',      'desc'=>'Related Articles generation always runs synchronously on publish regardless of whether the Auto Pipeline toggle is enabled — it is purely local (no API calls) and fast enough to run inline.'],
+                        ['rec'=>'ℹ️ Info',         'name'=>'Related Articles',      'desc'=>'Related Articles generation always runs synchronously on publish regardless of whether the Auto Pipeline toggle is enabled. It is purely local (no API calls) and fast enough to run inline.'],
                     ]); ?>
                     </span>
                 </div>
@@ -593,22 +595,22 @@ trait CS_SEO_Settings_Page {
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
                         <button class="button" id="ab-reload-hdr" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-update-posts" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
-                        <?php $this->explain_btn('updateposts', '✦ Update Posts — How this works', [
-                        ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Writes the short text snippet that appears under your page title in Google search results — using AI to craft a compelling 140–155 character summary for each post.'],
+                        <?php $this->explain_btn('updateposts', '✦ Update Posts: How this works', [
+                        ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Writes the short text snippet that appears under your page title in Google search results, using AI to craft a compelling 140–155 character summary for each post.'],
                         ['rec'=>'ℹ️ Info','name'=>'Total Posts','desc'=>'The total number of published posts and pages on your site that are eligible for meta description generation.'],
-                        ['rec'=>'ℹ️ Info','name'=>'Have Description','desc'=>'Posts that already have a meta description saved — either written manually or previously generated by the AI.'],
-                        ['rec'=>'ℹ️ Info','name'=>'Unprocessed','desc'=>'Posts with no meta description yet. These are the ones Google is currently generating its own snippet for — which is often not the best representation of your content.'],
+                        ['rec'=>'ℹ️ Info','name'=>'Have Description','desc'=>'Posts that already have a meta description saved, either written manually or previously generated by the AI.'],
+                        ['rec'=>'ℹ️ Info','name'=>'Unprocessed','desc'=>'Posts with no meta description yet. These are the ones Google is currently generating its own snippet for. This is often not the best representation of your content.'],
                         ['rec'=>'ℹ️ Info','name'=>'Generated This Session','desc'=>'How many descriptions have been written by the AI since you opened this page. Resets each time you load the page.'],
-                        ['rec'=>'ℹ️ Info','name'=>'Generate Missing','desc'=>'Runs the AI on every post that has no meta description yet. For each post, the AI also automatically generates ALT text for any images that are missing it — both tasks happen in a single API call, saving cost. Will never overwrite descriptions you\'ve already written.'],
+                        ['rec'=>'ℹ️ Info','name'=>'Generate Missing','desc'=>'Runs the AI on every post that has no meta description yet. For each post, the AI also automatically generates ALT text for any images that are missing it. Both tasks happen in a single API call, saving cost. Will never overwrite descriptions you\'ve already written.'],
                         ['rec'=>'⬜ Optional','name'=>'Regenerate All','desc'=>'Forces the AI to rewrite descriptions for every post, including ones that already have descriptions. Also generates missing ALT text for images in each post in the same call. Use this if you\'ve changed your prompt or want a fresh pass. Note: this will overwrite any manually written descriptions.'],
-                        ['rec'=>'⬜ Optional','name'=>'Fix Long/Short','desc'=>'Finds descriptions that fall outside your target character range and rewrites only those. Does not touch ALT text — use the ALT Text Generator panel for that.'],
-                        ['rec'=>'⬜ Optional','name'=>'Fix Titles','desc'=>'Scans all posts for title tags that fall outside the ideal 50–60 character range and AI-rewrites them to fit. The rewritten title is saved as a custom SEO title — your original WordPress post title is never changed. Skips the homepage (fix that manually) and any titles already in range.'],
-                        ['rec'=>'⬜ Optional','name'=>'Regenerate Static','desc'=>'Fixes stale static data for every post — specifically, clears any custom OG image URL that has been overridden, so the post falls back to its current featured image. Run this if you have updated featured images on posts and LinkedIn, Twitter/X, or other platforms are still showing the old image. It does not touch AI descriptions or ALT text.'],
-                        ['rec'=>'✅ Recommended','name'=>'Generate Missing AEO','desc'=>'Writes a 40–60 word plain-prose paragraph for every post that is missing one. The paragraph is inserted invisibly before your content — Google reads it as the page\'s primary answer and can surface it at position zero as a featured snippet. Posts that already have an AEO answer are never touched. Run this once after enabling AEO; new posts are covered automatically by the Auto Pipeline.'],
+                        ['rec'=>'⬜ Optional','name'=>'Fix Long/Short','desc'=>'Finds descriptions that fall outside your target character range and rewrites only those. Does not touch ALT text. Use the ALT Text Generator panel for that.'],
+                        ['rec'=>'⬜ Optional','name'=>'Fix Titles','desc'=>'Scans all posts for title tags that fall outside the ideal 50–60 character range and AI-rewrites them to fit. The rewritten title is saved as a custom SEO title. your original WordPress post title is never changed. Skips the homepage (fix that manually) and any titles already in range.'],
+                        ['rec'=>'⬜ Optional','name'=>'Regenerate Static','desc'=>'Fixes stale static data for every post. Specifically, clears any custom OG image URL that has been overridden, so the post falls back to its current featured image. Run this if you have updated featured images on posts and LinkedIn, Twitter/X, or other platforms are still showing the old image. It does not touch AI descriptions or ALT text.'],
+                        ['rec'=>'✅ Recommended','name'=>'Generate Missing AEO','desc'=>'Writes a 40–60 word plain-prose paragraph for every post that is missing one. The paragraph is inserted invisibly before your content. Google reads it as the page\'s primary answer and can surface it at position zero as a featured snippet. Posts that already have an AEO answer are never touched. Run this once after enabling AEO; new posts are covered automatically by the Auto Pipeline.'],
                         ['rec'=>'ℹ️ Info','name'=>'Generate (per row)','desc'=>'Rewrites the description for a single post and also generates missing image ALT text for that post in the same API call. Click this next to any post to manually trigger the AI for just that one entry.'],
-                        ['rec'=>'ℹ️ Info','name'=>'ALT Images column','desc'=>'Shows how many images in each post are still missing ALT text. ⚠ yellow means images need attention — generating the description will fix them automatically. ✓ green means all images have ALT text.'],
+                        ['rec'=>'ℹ️ Info','name'=>'ALT Images column','desc'=>'Shows how many images in each post are still missing ALT text. ⚠ yellow means images need attention, generating the description will fix them automatically. ✓ green means all images have ALT text.'],
                         ['rec'=>'ℹ️ Info','name'=>'Title column','desc'=>'Shows the character count of each post\'s effective title tag (custom SEO title if set, otherwise the WordPress post title). Green = 50–60 chars (ideal). Amber = 40–69 chars (acceptable). Red = outside that range (too short or too long for Google). Hover the badge to see the full title text. Use Fix Titles to auto-fix all out-of-range titles in one pass.'],
-                        ['rec'=>'ℹ️ Info','name'=>'SEO Score column','desc'=>'AI-generated score (0–100%) rating how well each article is optimised for search engine indexing. Considers: title keyword clarity, meta description quality, content depth and specificity, and search intent alignment. Score is generated automatically when you click Generate on a row, or run Score All. Click any badge to re-score that post. Green ≥ 75, Amber 50–74, Red < 50. Run time for Score All depends on your selected model — faster/cheaper models score more posts per minute than higher-quality ones.'],
+                        ['rec'=>'ℹ️ Info','name'=>'SEO Score column','desc'=>'AI-generated score (0–100%) rating how well each article is optimised for search engine indexing. Considers: title keyword clarity, meta description quality, content depth and specificity, and search intent alignment. Score is generated automatically when you click Generate on a row, or run Score All. Click any badge to re-score that post. Green ≥ 75, Amber 50–74, Red < 50. Run time for Score All depends on your selected model. faster/cheaper models score more posts per minute than higher-quality ones.'],
                         ['rec'=>'ℹ️ Info','name'=>'Schema column','desc'=>'Shows whether each post has a per-post JSON-LD schema block (FAQPage, HowTo, or custom). ✓ green = schema present and will be injected into the page head for Google to read. ✗ red = no schema. Use the SEO Site Audit → "✦ Generate FAQ with AI" quick fix to generate FAQ schema for your top posts in one click, or the Auto Pipeline generates it automatically on new publishes.'],
                     ]); ?>
                     </span>
@@ -622,8 +624,8 @@ trait CS_SEO_Settings_Page {
                         <strong><?php esc_html_e( 'AI features are not yet configured.', 'cloudscale-seo-ai-optimizer' ); ?></strong>
                         <?php esc_html_e( 'Choose one of the options below to unlock AI writing:', 'cloudscale-seo-ai-optimizer' ); ?>
                         <ol style="margin:6px 0 0 16px;padding:0">
-                            <li><?php echo wp_kses( __( '<strong>Subscribe</strong> for R69/month — no API account needed (<a href="?page=cloudscale-seo-ai-optimizer#start">Get Started →</a>)', 'cloudscale-seo-ai-optimizer' ), array( 'strong' => array(), 'a' => array( 'href' => array() ) ) ); ?></li>
-                            <li><?php echo wp_kses( __( '<strong>Use your own key</strong> — paste an Anthropic or Gemini key in the ✦ AI Provider section above and Save', 'cloudscale-seo-ai-optimizer' ), array( 'strong' => array() ) ); ?></li>
+                            <li><?php echo wp_kses( __( '<strong>Subscribe</strong> for $5/month, no API account needed (<a href="?page=cloudscale-seo-ai-optimizer#start">Get Started →</a>)', 'cloudscale-seo-ai-optimizer' ), array( 'strong' => array(), 'a' => array( 'href' => array() ) ) ); ?></li>
+                            <li><?php echo wp_kses( __( '<strong>Use your own key</strong>: paste an Anthropic or Gemini key in the ✦ AI Provider section above and Save', 'cloudscale-seo-ai-optimizer' ), array( 'strong' => array() ) ); ?></li>
                         </ol>
                     </div>
                 </div>
@@ -684,14 +686,14 @@ trait CS_SEO_Settings_Page {
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
                         <button class="button" id="ab-alt-reload-hdr" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-alt" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
-                        <?php $this->explain_btn('alttext', '🖼 ALT Text — How this works', [
-                        ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Adds descriptive labels to every image on your site — used by screen readers for accessibility and by Google to understand image content for search ranking.'],
-                        ['rec'=>'✅ Recommended','name'=>'Why ALT text matters','desc'=>'ALT (alternative) text describes images to screen readers and search engines. Missing ALT text is an accessibility failure and an SEO missed opportunity — Google uses ALT text to understand image content and rank your images in Google Images search.'],
+                        <?php $this->explain_btn('alttext', '🖼 ALT Text: How this works', [
+                        ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Adds descriptive labels to every image on your site. used by screen readers for accessibility and by Google to understand image content for search ranking.'],
+                        ['rec'=>'✅ Recommended','name'=>'Why ALT text matters','desc'=>'ALT (alternative) text describes images to screen readers and search engines. Missing ALT text is an accessibility failure and an SEO missed opportunity. Google uses ALT text to understand image content and rank your images in Google Images search.'],
                         ['rec'=>'ℹ️ Info','name'=>'Posts with missing ALT','desc'=>'Shows how many posts have at least one image with an empty ALT attribute. Click Load to scan your site.'],
                         ['rec'=>'ℹ️ Info','name'=>'Images missing ALT','desc'=>'The total count of individual image tags across all posts that have empty ALT attributes.'],
                         ['rec'=>'ℹ️ Info','name'=>'Generate All Missing','desc'=>'Runs the AI on every post that has images with missing ALT text. For each image, the AI reads the post title and image filename to write a concise, contextually appropriate ALT description (5 to 15 words). If the AI returns text outside that range, it automatically retries once. The post content is updated in place and the attachment media library entry is also updated.'],
                         ['rec'=>'ℹ️ Info','name'=>'Force Regenerate All','desc'=>'Overwrites ALL existing ALT text across every post, not just missing ones. Useful if you want to improve previously generated ALT text or standardise quality across your site. A confirmation prompt appears before running. The same 5 to 15 word validation with retry applies.'],
-                        ['rec'=>'ℹ️ Info','name'=>'Generate (per row)','desc'=>'Process a single post — useful to check results before running the full batch. All images in that post with empty ALT will be processed.'],
+                        ['rec'=>'ℹ️ Info','name'=>'Generate (per row)','desc'=>'Process a single post. useful to check results before running the full batch. All images in that post with empty ALT will be processed.'],
                     ]); ?>
                     </span>
                 </div>
@@ -706,7 +708,7 @@ trait CS_SEO_Settings_Page {
                 ?>">
                     <div class="ab-warn-icon">⚠️</div>
                     <div class="ab-warn-body">
-                        <strong><?php esc_html_e( 'No AI API key saved — ALT text generation is disabled.', 'cloudscale-seo-ai-optimizer' ); ?></strong>
+                        <strong><?php esc_html_e( 'No AI API key saved. ALT text generation is disabled.', 'cloudscale-seo-ai-optimizer' ); ?></strong>
                         <?php echo wp_kses( __( 'Add an Anthropic API key in the <strong>✦ AI Meta Writer</strong> section above and save.', 'cloudscale-seo-ai-optimizer' ), array( 'strong' => array() ) ); ?>
                     </div>
                 </div>
@@ -749,8 +751,8 @@ trait CS_SEO_Settings_Page {
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
                         <button class="button" id="ab-sum-reload-hdr" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-summary" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
-                        <?php $this->explain_btn('summary', '📋 AI Summary Box — How this works', [
-                        ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Generates the three-field AI Summary Box shown at the top of each post — What it is, Why it matters, and Key takeaway. Summaries are now written SEO-first: primary keyword in the opening sentence, secondary keywords woven in naturally, and sentences written to match search intent rather than for conversational reading.'],
+                        <?php $this->explain_btn('summary', '📋 AI Summary Box: How this works', [
+                        ['rec'=>'ℹ️ Summary','name'=>'What this panel does','desc'=>'Generates the three-field AI Summary Box shown at the top of each post. What it is, Why it matters, and Key takeaway. Summaries are now written SEO-first: primary keyword in the opening sentence, secondary keywords woven in naturally, and sentences written to match search intent rather than for conversational reading.'],
                         ['rec'=>'✅ Recommended','name'=>'Why SEO summaries matter','desc'=>'AI-powered search engines like Perplexity and SearchGPT use structured, keyword-rich summaries to decide whether to cite your content. A summary that leads with keywords and answers search intent directly is far more likely to be cited than a vague human-readable blurb.'],
                         ['rec'=>'ℹ️ Info','name'=>'Generate Missing','desc'=>'Processes every published post that has no existing AI summary. Runs one post at a time and shows progress. Safe to stop and restart at any time.'],
                         ['rec'=>'ℹ️ Info','name'=>'Force Regenerate All','desc'=>'Overwrites all existing AI summaries across every post. Use this after the SEO-first prompt upgrade to refresh older human-readable summaries with keyword-optimised versions.'],
@@ -762,7 +764,7 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-api-key-warning" id="ab-sum-api-warn" style="<?php echo esc_attr( $alt_has_key ? 'display:none' : '' ); ?>">
                     <div class="ab-warn-icon">⚠️</div>
                     <div class="ab-warn-body">
-                        <strong>No AI API key saved — summary generation is disabled.</strong>
+                        <strong>No AI API key saved: summary generation is disabled.</strong>
                         Add an Anthropic API key in the <strong>✦ AI Meta Writer</strong> section above and save.
                     </div>
                 </div>
@@ -819,7 +821,7 @@ trait CS_SEO_Settings_Page {
                         <span>&#128279; Related Articles</span>
                         <span style="display:flex;align-items:center;gap:8px;">
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-rc-settings-card" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
-                        <?php $this->explain_btn('rc_settings', '&#128279; Related Articles — Settings', [
+                        <?php $this->explain_btn('rc_settings', '&#128279; Related Articles: Settings', [
                             ['name'=>'Enable feature',       'rec'=>'ℹ️ Info',      'desc'=>'Enables or disables the Related Articles and You Might Also Like blocks on all posts. Disabling hides the blocks from the front end immediately without deleting any stored data.'],
                             ['name'=>'Related Articles block','rec'=>'ℹ️ Info',     'desc'=>'The block that appears near the top of each post, directly after the AI summary box. Shows the closest conceptual matches based on shared categories, tags, and keyword overlap. Requires at least 2 links to display.'],
                             ['name'=>'You Might Also Like',  'rec'=>'ℹ️ Info',      'desc'=>'The block that appears at the bottom of each post before the comments section. Draws from a broader pool of related posts to extend session depth. Requires at least 3 links to display.'],
@@ -832,7 +834,7 @@ trait CS_SEO_Settings_Page {
                         </span>
                     </div>
                     <div class="ab-zone-body ab-card-rc-settings" style="padding:20px 24px;display:none;">
-                        <p style="color:#555;margin:0 0 16px;">Controls where and how Related Articles and You Might Also Like link blocks appear on your posts. Links are generated using local signals only &mdash; no AI calls, no timeouts.</p>
+                        <p style="color:#555;margin:0 0 16px;">Controls where and how Related Articles and You Might Also Like link blocks appear on your posts. Links are generated using local signals only, no AI calls, no timeouts.</p>
                         <table class="form-table" style="margin:0;">
                             <tr>
                                 <th style="width:220px;padding:12px 0;"><?php esc_html_e( 'Enable feature', 'cloudscale-seo-ai-optimizer' ); ?></th>
@@ -869,26 +871,26 @@ trait CS_SEO_Settings_Page {
                                 <td style="padding:12px 0;">
                                     <?php
                                     $rc_styles = [
-                                        '1'  => 'Style 1  — Purple gradient header (default)',
-                                        '2'  => 'Style 2  — Dark gold: dark navy, gold accents',
-                                        '3'  => 'Style 3  — Royal blue minimal',
-                                        '4'  => 'Style 4  — Emerald green bordered cards',
-                                        '5'  => 'Style 5  — Steel grey side stripe',
-                                        '6'  => 'Style 6  — Crimson magazine rows',
-                                        '7'  => 'Style 7  — Ocean teal gradient header',
-                                        '8'  => 'Style 8  — Warm amber dark panel',
-                                        '9'  => 'Style 9  — Navy blue gradient header',
-                                        '10' => 'Style 10 — Charcoal minimal',
-                                        '11' => 'Style 11 — Forest green gradient header',
-                                        '12' => 'Style 12 — Rose pink gradient header',
-                                        '13' => 'Style 13 — Sunset orange gradient header',
-                                        '14' => 'Style 14 — Midnight dark (sky blue on black)',
-                                        '15' => 'Style 15 — Deep purple dark panel',
-                                        '16' => 'Style 16 — Teal minimal',
-                                        '17' => 'Style 17 — Rose pink minimal',
-                                        '18' => 'Style 18 — Amber side stripe',
-                                        '19' => 'Style 19 — Slate bordered box',
-                                        '20' => 'Style 20 — Violet pill badges',
+                                        '1'  => 'Style 1 . Purple gradient header (default)',
+                                        '2'  => 'Style 2 . Dark gold: dark navy, gold accents',
+                                        '3'  => 'Style 3 . Royal blue minimal',
+                                        '4'  => 'Style 4 . Emerald green bordered cards',
+                                        '5'  => 'Style 5 . Steel grey side stripe',
+                                        '6'  => 'Style 6 . Crimson magazine rows',
+                                        '7'  => 'Style 7 . Ocean teal gradient header',
+                                        '8'  => 'Style 8 . Warm amber dark panel',
+                                        '9'  => 'Style 9 . Navy blue gradient header',
+                                        '10' => 'Style 10. Charcoal minimal',
+                                        '11' => 'Style 11. Forest green gradient header',
+                                        '12' => 'Style 12. Rose pink gradient header',
+                                        '13' => 'Style 13. Sunset orange gradient header',
+                                        '14' => 'Style 14. Midnight dark (sky blue on black)',
+                                        '15' => 'Style 15. Deep purple dark panel',
+                                        '16' => 'Style 16. Teal minimal',
+                                        '17' => 'Style 17. Rose pink minimal',
+                                        '18' => 'Style 18. Amber side stripe',
+                                        '19' => 'Style 19. Slate bordered box',
+                                        '20' => 'Style 20. Violet pill badges',
                                     ];
                                     $rc_style_val = (string)($o['rc_style'] ?? '1');
                                     ?>
@@ -897,7 +899,7 @@ trait CS_SEO_Settings_Page {
                                             <option value="<?php echo esc_attr($val); ?>" <?php selected($rc_style_val, $val); ?>><?php echo esc_html($label); ?></option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <p class="description" style="margin-top:4px;">Changes take effect immediately — no need to regenerate.</p>
+                                    <p class="description" style="margin-top:4px;">Changes take effect immediately, no need to regenerate.</p>
                                     <div id="rc-style-preview" style="margin-top:14px;max-width:400px;"></div>
                                 </td>
                             </tr>
@@ -946,12 +948,12 @@ trait CS_SEO_Settings_Page {
             <?php /* ── Related Articles Generation Table ── */ ?>
             <div class="ab-zone-card ab-card-rc-table" style="margin-top:24px;">
                 <div class="ab-zone-header" style="background:linear-gradient(120deg,#4338ca 0%,#6366f1 60%,#818cf8 100%);display:flex;align-items:center;justify-content:space-between;">
-                    <span>&#128279; Related Articles — Post Status</span>
+                    <span>&#128279; Related Articles. Post Status</span>
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-rc-table" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9658; Show Details</button>
-                        <?php $this->explain_btn('rc_table', '&#128279; Related Articles — How it works', [
+                        <?php $this->explain_btn('rc_table', '&#128279; Related Articles: How it works', [
                             ['name'=>'What it does',       'rec'=>'ℹ️ Info',      'desc'=>'For every published post, Related Articles finds and ranks other posts on your site that are topically related. It surfaces two blocks on the front end: a &ldquo;Related Articles&rdquo; block near the top of the article (closest conceptual matches) and a &ldquo;You Might Also Like&rdquo; block at the bottom (broader related posts).'],
-                            ['name'=>'No AI required',     'rec'=>'✅ Free',       'desc'=>'Generation uses only signals already on your site — shared categories, shared tags, title keyword overlap, and your existing AI summary text. There are zero API calls and no cost. It scores every candidate post locally in PHP and ranks by relevance.'],
+                            ['name'=>'No AI required',     'rec'=>'✅ Free',       'desc'=>'Generation uses only signals already on your site. shared categories, shared tags, title keyword overlap, and your existing AI summary text. There are zero API calls and no cost. It scores every candidate post locally in PHP and ranks by relevance.'],
                             ['name'=>'Generate Missing',   'rec'=>'✅ Recommended','desc'=>'Processes all posts that have not yet been generated. Run this once after installing the plugin to populate your full post library. Each post takes under a second and the batch runs with a small delay between posts to avoid overloading the server.'],
                             ['name'=>'Refresh Stale',      'rec'=>'⬜ Optional',   'desc'=>'Re-runs generation for all posts regardless of status. Use this after making significant changes to your category or tag structure, or after adding AI summaries to posts that previously lacked them.'],
                             ['name'=>'Retry Failed',       'rec'=>'⬜ Optional',   'desc'=>'Re-runs only posts that errored during a previous batch. Useful if a batch was interrupted or a post had missing data.'],
@@ -969,7 +971,7 @@ trait CS_SEO_Settings_Page {
                         <button type="button" class="button rc-filter-btn"                  data-filter="complete">&#9989; Complete</button>
                         <button type="button" class="button rc-filter-btn"                  data-filter="error"   >&#10060; Error</button>
                         <span style="flex:1;"></span>
-                        <button type="button" class="button button-primary" id="rc-btn-sync-counts"      title="Generates missing Related Articles for new posts and syncs link counts for existing ones — single server-side pass">&#9881; Generate &amp; Sync</button>
+                        <button type="button" class="button button-primary" id="rc-btn-sync-counts"      title="Generates missing Related Articles for new posts and syncs link counts for existing ones, single server-side pass">&#9881; Generate &amp; Sync</button>
                         <button type="button" class="button"               id="rc-btn-refresh-stale"   >&#8635; Refresh Stale</button>
                         <button type="button" class="button"               id="rc-btn-retry-failed"    >&#128257; Retry Failed</button>
                         <button type="button" class="button"               id="rc-btn-reset-all"        style="color:#b91c1c;border-color:#b91c1c;">&#128465; Reset All</button>
@@ -1048,16 +1050,16 @@ trait CS_SEO_Settings_Page {
                     <span><span class="ab-zone-icon">⚙</span> <?php esc_html_e( 'Features &amp; Robots', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-features" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
-                        <?php $this->explain_btn('features', '⚙ Features & Robots — What each option does', [
+                        <?php $this->explain_btn('features', '⚙ Features & Robots: What each option does', [
                         ['rec'=>'✅ Recommended','name'=>'OpenGraph + Twitter Cards','desc'=>'Adds structured metadata so your posts display with a title, description and image when shared on LinkedIn, Twitter/X, WhatsApp or any other platform. Without this, shared links look blank or use random images.'],
                         ['rec'=>'✅ Recommended','name'=>'WebSite JSON-LD (front page)','desc'=>'Tells Google the name and URL of your site in structured data format. Helps Google display your site name correctly in search results and can unlock sitelinks beneath your homepage listing.'],
                         ['rec'=>'✅ Recommended','name'=>'Person JSON-LD schema','desc'=>'Embeds your name, job title, photo, and social profiles into your site so Google can connect your content to you as an individual. Important for personal brand and author authority signals.'],
                         ['rec'=>'✅ Recommended','name'=>'BlogPosting JSON-LD schema','desc'=>'Marks up each post as an article with author, publish date, and headline. Google uses this for rich results and to better understand your content type. Can improve click-through rates in search.'],
-                        ['rec'=>'⬜ Optional','name'=>'Breadcrumb JSON-LD schema','desc'=>'Adds breadcrumb trail markup to posts. Most useful on large sites with deep category hierarchies. For a flat personal blog this adds little value — Google will figure out your structure without it.'],
+                        ['rec'=>'⬜ Optional','name'=>'Breadcrumb JSON-LD schema','desc'=>'Adds breadcrumb trail markup to posts. Most useful on large sites with deep category hierarchies. For a flat personal blog this adds little value. Google will figure out your structure without it.'],
                         ['rec'=>'⬜ Optional','name'=>'Strip UTM params in canonical URLs','desc'=>'If you use UTM tracking parameters on your own internal links (e.g. ?utm_source=newsletter), this stops them creating duplicate pages in Google\'s index. Only needed if you track internal clicks with UTM.'],
                         ['rec'=>'✅ Recommended','name'=>'Enable /sitemap.xml','desc'=>'Generates a sitemap listing all your posts and pages. Submit this URL to Google Search Console so Google knows exactly what to crawl. Also automatically added to your robots.txt.'],
-                        ['rec'=>'✅ Recommended','name'=>'noindex search results','desc'=>'Prevents Google from indexing your WordPress search result pages (e.g. /?s=keyword). These pages have no unique value and waste Google\'s crawl budget — always block them.'],
-                        ['rec'=>'✅ Recommended','name'=>'noindex 404 pages','desc'=>'Stops Google indexing error pages. A 404 page has no content worth ranking — keeping these out of the index keeps your crawl budget focused on real content.'],
+                        ['rec'=>'✅ Recommended','name'=>'noindex search results','desc'=>'Prevents Google from indexing your WordPress search result pages (e.g. /?s=keyword). These pages have no unique value and waste Google\'s crawl budget. always block them.'],
+                        ['rec'=>'✅ Recommended','name'=>'noindex 404 pages','desc'=>'Stops Google indexing error pages. A 404 page has no content worth ranking, keeping these out of the index keeps your crawl budget focused on real content.'],
                         ['rec'=>'✅ Recommended','name'=>'noindex attachment pages','desc'=>'WordPress creates a separate page for every uploaded image or file. These pages are near-empty and often outrank your actual posts for image searches. Always block them.'],
                         ['rec'=>'✅ Recommended','name'=>'noindex author archives','desc'=>'On a single-author blog, your author archive page (/author/yourname/) is essentially a duplicate of your homepage. Blocking it prevents a duplicate content penalty.'],
                         ['rec'=>'✅ Recommended','name'=>'noindex tag archives','desc'=>'Tag archive pages (/tag/aws/) often duplicate post content and can dilute your rankings. Unless your tag pages have unique introductory text and real editorial value, block them.'],
@@ -1091,12 +1093,12 @@ trait CS_SEO_Settings_Page {
                     <span><span class="ab-zone-icon">⚙</span> <?php esc_html_e( 'Sitemap Settings', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-sitemap-settings" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
-                        <?php $this->explain_btn('sitemap', '⚙ Sitemap Settings — What each option does', [
+                        <?php $this->explain_btn('sitemap', '⚙ Sitemap Settings: What each option does', [
                         ['rec'=>'✅ Recommended','name'=>'Enable /sitemap.xml','desc'=>'Generates a sitemap at yoursite.com/sitemap.xml listing all your published content. Submit this URL to Google Search Console so Google knows exactly what pages to crawl. Also automatically appends the sitemap URL to your robots.txt.'],
-                        ['rec'=>'✅ Recommended','name'=>'Include Posts','desc'=>'Adds all your published blog posts to the sitemap. This should always be on — posts are your primary content and the main thing you want Google to discover and index.'],
-                        ['rec'=>'✅ Recommended','name'=>'Include Pages','desc'=>'Adds your WordPress pages (About, Contact etc.) to the sitemap. Keep this on — pages like your About and Contact pages should be indexed.'],
-                        ['rec'=>'⬜ Optional','name'=>'Taxonomy archives','desc'=>'Includes category, tag, and custom taxonomy archive pages in the sitemap. Turn this on only if your archive pages have unique introductory content and genuine value for visitors. For most blogs, leave it off — archive pages often duplicate post content.'],
-                        ['rec'=>'⬜ Optional','name'=>'Exclude URLs or IDs','desc'=>'Enter specific URLs or post IDs to omit from the sitemap — one per line. Use this for thank-you pages, landing pages, privacy policy pages, or any content you don\'t want Google to prioritise. Numeric IDs (e.g. 42) refer to the WordPress post/page ID shown in the edit URL.'],
+                        ['rec'=>'✅ Recommended','name'=>'Include Posts','desc'=>'Adds all your published blog posts to the sitemap. This should always be on. posts are your primary content and the main thing you want Google to discover and index.'],
+                        ['rec'=>'✅ Recommended','name'=>'Include Pages','desc'=>'Adds your WordPress pages (About, Contact etc.) to the sitemap. Keep this on. pages like your About and Contact pages should be indexed.'],
+                        ['rec'=>'⬜ Optional','name'=>'Taxonomy archives','desc'=>'Includes category, tag, and custom taxonomy archive pages in the sitemap. Turn this on only if your archive pages have unique introductory content and genuine value for visitors. For most blogs, leave it off. archive pages often duplicate post content.'],
+                        ['rec'=>'⬜ Optional','name'=>'Exclude URLs or IDs','desc'=>'Enter specific URLs or post IDs to omit from the sitemap. one per line. Use this for thank-you pages, landing pages, privacy policy pages, or any content you don\'t want Google to prioritise. Numeric IDs (e.g. 42) refer to the WordPress post/page ID shown in the edit URL.'],
                     ]); ?>
                     </span>
                 </div>
@@ -1164,11 +1166,11 @@ trait CS_SEO_Settings_Page {
                     <span><span class="ab-zone-icon">🤖</span> <?php esc_html_e( 'Robots.txt', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-robots" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
-                        <?php $this->explain_btn('robots', '🤖 Robots.txt — What this all means', [
-                        ['rec'=>'ℹ️ Info','name'=>'What is robots.txt?','desc'=>'A plain text file at yoursite.com/robots.txt that tells search engine crawlers which pages they are and aren\'t allowed to visit. It doesn\'t prevent indexing — it prevents crawling. Google respects it; malicious bots ignore it entirely.'],
-                        ['rec'=>'ℹ️ Info','name'=>'Physical file warning','desc'=>'If a robots.txt file exists on disk, the web server serves it directly — bypassing WordPress and this plugin completely. You must rename or delete it to let the plugin take control. The plugin offers a one-click rename to robots.txt.bak.'],
+                        <?php $this->explain_btn('robots', '🤖 Robots.txt: What this all means', [
+                        ['rec'=>'ℹ️ Info','name'=>'What is robots.txt?','desc'=>'A plain text file at yoursite.com/robots.txt that tells search engine crawlers which pages they are and aren\'t allowed to visit. It doesn\'t prevent indexing. it prevents crawling. Google respects it; malicious bots ignore it entirely.'],
+                        ['rec'=>'ℹ️ Info','name'=>'Physical file warning','desc'=>'If a robots.txt file exists on disk, the web server serves it directly. bypassing WordPress and this plugin completely. You must rename or delete it to let the plugin take control. The plugin offers a one-click rename to robots.txt.bak.'],
                         ['rec'=>'⬜ Optional','name'=>'Block AI training bots','desc'=>'Adds Disallow: / rules for GPTBot, CCBot, Claude-Web, anthropic-ai and other AI training crawlers. Turn this ON if you don\'t want AI companies training their models on your content. Leave OFF if you want AI assistants to surface your content when users ask relevant questions.'],
-                        ['rec'=>'✅ Recommended','name'=>'Custom robots.txt rules','desc'=>'The full content of your robots.txt file. The plugin automatically appends your sitemap URL and the AI bot blocklist (if enabled) — do not add those here manually. Changes take effect immediately on every request — there is no caching.'],
+                        ['rec'=>'✅ Recommended','name'=>'Custom robots.txt rules','desc'=>'The full content of your robots.txt file. The plugin automatically appends your sitemap URL and the AI bot blocklist (if enabled). do not add those here manually. Changes take effect immediately on every request. there is no caching.'],
                         ['rec'=>'ℹ️ Info','name'=>'User-agent: Googlebot','desc'=>'Rules that apply specifically to Google\'s crawler. Googlebot respects these rules more strictly than other crawlers. Disallowing /wp-admin/, /wp-login.php and search pages stops Google wasting crawl budget on admin and junk pages.'],
                         ['rec'=>'ℹ️ Info','name'=>'User-agent: *','desc'=>'Rules that apply to all other crawlers not specifically named above. This is the catch-all for Bing, DuckDuckGo, and any other well-behaved search engine crawler.'],
                         ['rec'=>'ℹ️ Info','name'=>'Live preview','desc'=>'Shows exactly what search engines see when they fetch yoursite.com/robots.txt right now. If the sitemap URL appears at the bottom, everything is working correctly.'],
@@ -1210,7 +1212,7 @@ trait CS_SEO_Settings_Page {
                     <div style="font-size:22px;flex-shrink:0">⚠️</div>
                     <div style="flex:1">
                         <strong>A physical robots.txt file exists on your server</strong><br>
-                        WordPress (and this plugin) cannot control your robots.txt while a real file exists on disk — the web server serves the file directly, bypassing WordPress entirely. To let the plugin manage your robots.txt, the file needs to be renamed.<br><br>
+                        WordPress (and this plugin) cannot control your robots.txt while a real file exists on disk. the web server serves the file directly, bypassing WordPress entirely. To let the plugin manage your robots.txt, the file needs to be renamed.<br><br>
                         <strong>Current file location:</strong> <code><?php echo esc_html($robots_path); ?></code>
                         &nbsp;·&nbsp; <strong>Writable:</strong> <?php echo wp_kses_post( $physical_writable ? '<span style="color:#1a7a34">Yes</span>' : '<span style="color:#c3372b">No</span>' ); ?><br><br>
                         <?php if ($physical_contents): ?>
@@ -1225,7 +1227,7 @@ trait CS_SEO_Settings_Page {
                         <span id="ab-rename-robots-status" style="margin-left:10px;font-size:13px"></span>
                         <?php else: ?>
                         <div style="background:#fef0f0;border:1px solid #f5bcbb;border-radius:4px;padding:10px;margin-top:4px">
-                            <strong style="color:#c3372b">File is not writable</strong> — the web server does not have permission to rename this file.<br>
+                            <strong style="color:#c3372b">File is not writable</strong>. the web server does not have permission to rename this file.<br>
                             Fix via FTP or your host's file manager: right-click <code>robots.txt</code> → set permissions to <strong>644</strong>, then reload this page.<br><br>
                             Alternatively, rename the file manually via FTP: rename <code>robots.txt</code> to <code>robots.txt.bak</code> in your WordPress root.
                         </div>
@@ -1236,7 +1238,7 @@ trait CS_SEO_Settings_Page {
                 <div style="display:flex;gap:12px;align-items:flex-start;background:#edfaef;border:1px solid #1a7a34;border-radius:6px;padding:14px 18px;margin:12px 20px">
                     <div style="font-size:22px;flex-shrink:0">✅</div>
                     <div style="font-size:13px">
-                        <strong>No physical robots.txt file detected</strong> — this plugin is managing your robots.txt dynamically. Search engines will see the content shown in the Live robots.txt preview below.<br><br>
+                        <strong>No physical robots.txt file detected</strong>. this plugin is managing your robots.txt dynamically. Search engines will see the content shown in the Live robots.txt preview below.<br><br>
                         <span style="color:#50575e">If you recently deleted or renamed the file manually, this is correct. The Live preview below shows exactly what Google will see.</span>
                     </div>
                 </div>
@@ -1271,7 +1273,7 @@ trait CS_SEO_Settings_Page {
                         <td>
                             <label><input type="checkbox" name="<?php echo esc_attr(self::OPT); ?>[allow_ai_indexers]" value="1" <?php checked((int)($o['allow_ai_indexers'] ?? 0), 1); ?>>
                             Explicitly allow ClaudeBot, PerplexityBot, Google-Extended, Amazonbot, Applebot</label>
-                            <p class="description">Adds explicit <code>User-agent + Allow: /</code> blocks for AI citation and indexing crawlers. Explicit grants are a stronger signal than inheriting from <code>User-agent: *</code> — recommended for maximum AI citation visibility.</p>
+                            <p class="description">Adds explicit <code>User-agent + Allow: /</code> blocks for AI citation and indexing crawlers. Explicit grants are a stronger signal than inheriting from <code>User-agent: *</code>, recommended for maximum AI citation visibility.</p>
                         </td>
                     </tr>
                     <tr>
@@ -1279,7 +1281,7 @@ trait CS_SEO_Settings_Page {
                         <td>
                             <textarea id="cs-robots-txt" name="<?php echo esc_attr(self::OPT); ?>[robots_txt]"
                                 rows="16" style="width:100%"><?php echo esc_textarea((string)($o['robots_txt'] ?? self::default_robots_txt())); ?></textarea>
-                            <p class="description">Full robots.txt content. The AI bot blocklist (if enabled) and your sitemap URL are appended automatically — do not add them here. Changes take effect immediately at <a href="<?php echo esc_url(home_url('/robots.txt')); ?>" target="_blank"><?php echo esc_html(home_url('/robots.txt')); ?></a></p>
+                            <p class="description">Full robots.txt content. The AI bot blocklist (if enabled) and your sitemap URL are appended automatically. do not add them here. Changes take effect immediately at <a href="<?php echo esc_url(home_url('/robots.txt')); ?>" target="_blank"><?php echo esc_html(home_url('/robots.txt')); ?></a></p>
                             <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px">
                                 <button type="button" class="button" id="ab-robots-copy">⎘ Copy</button>
                                 <button type="button" class="button" id="ab-robots-reset-btn">Reset to default</button>
@@ -1299,19 +1301,19 @@ trait CS_SEO_Settings_Page {
             <div class="ab-zone-header" style="justify-content:space-between;align-items:center">
                 <span><span class="ab-zone-icon">🔍</span> <?php esc_html_e( 'Sitemap Preview', 'cloudscale-seo-ai-optimizer' ); ?></span>
                 <div style="display:flex;gap:8px;align-items:center">
-                    <?php $this->explain_btn('sitemappreview', '🔍 Sitemap Preview — How to use this', [
-                        ['rec'=>'ℹ️ Info','name'=>'What this shows','desc'=>'A table of every URL that will appear in your sitemap.xml when Google crawls it. This is the live data — if a post appears here, it is in your sitemap. If it doesn\'t appear, Google won\'t find it via the sitemap.'],
+                    <?php $this->explain_btn('sitemappreview', '🔍 Sitemap Preview: How to use this', [
+                        ['rec'=>'ℹ️ Info','name'=>'What this shows','desc'=>'A table of every URL that will appear in your sitemap.xml when Google crawls it. This is the live data. if a post appears here, it is in your sitemap. If it doesn\'t appear, Google won\'t find it via the sitemap.'],
                         ['rec'=>'ℹ️ Info','name'=>'Type badges','desc'=>'Each row shows the content type: Post (blog post), Page (WordPress page), Home (your homepage), Taxonomy (category/tag archive). Use this to verify the right content types are being included based on your Sitemap Settings.'],
                         ['rec'=>'ℹ️ Info','name'=>'Last Modified','desc'=>'The date the post was last updated. Google uses this to decide how often to re-crawl a page. Recently updated posts get re-crawled sooner. If a post shows an old date, consider updating it to signal freshness.'],
                         ['rec'=>'ℹ️ Info','name'=>'Pagination','desc'=>'Results are shown 200 at a time. Use Prev/Next to browse all your URLs. The count at the bottom right shows which URLs you\'re viewing out of the total.'],
-                        ['rec'=>'ℹ️ Info','name'=>'View live sitemap','desc'=>'The link opens your actual sitemap.xml in a new tab — this is what Google sees. The index file lists all your sub-sitemaps (one per post type). Click through to see the raw XML.'],
+                        ['rec'=>'ℹ️ Info','name'=>'View live sitemap','desc'=>'The link opens your actual sitemap.xml in a new tab. this is what Google sees. The index file lists all your sub-sitemaps (one per post type). Click through to see the raw XML.'],
                     ]); ?>
                     <button id="ab-sitemap-load" class="button" style="background:#f0b429;color:#1d2327;border-color:#c8911a;font-weight:700">⬇ Load Preview</button>
                     <button id="ab-sitemap-copy" class="button">⎘ Copy URLs</button>
                 </div>
             </div>
             <div class="ab-zone-body" style="padding:16px 20px">
-                <p style="color:#50575e;margin:0 0 14px;font-size:13px">Shows all URLs that will appear in your sitemap. Paginated at 200 rows — use Prev/Next to browse. Save settings before previewing.</p>
+                <p style="color:#50575e;margin:0 0 14px;font-size:13px">Shows all URLs that will appear in your sitemap. Paginated at 200 rows; use Prev/Next to browse. Save settings before previewing.</p>
                 <div id="ab-sitemap-preview-wrap">
                     <p style="color:#a7aaad;font-size:13px">Click <strong>Load Preview</strong> to fetch the current sitemap contents.</p>
                 </div>
@@ -1321,14 +1323,14 @@ trait CS_SEO_Settings_Page {
             <?php /* ── llms.txt Card ── */ ?>
             <div class="ab-zone-card ab-card-llms">
             <div class="ab-zone-header" style="justify-content:space-between">
-                <span><span class="ab-zone-icon">🤖</span> llms.txt — LLM Crawler Guidance</span>
+                <span><span class="ab-zone-icon">🤖</span> llms.txt. LLM Crawler Guidance</span>
                 <span style="display:flex;align-items:center;gap:8px;">
                     <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-llms" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
-                    <?php $this->explain_btn('llms', '🤖 llms.txt — What this does', [
-                    ['rec'=>'✅ Recommended','name'=>'What is llms.txt','desc'=>'llms.txt is an emerging standard (proposed 2024) that helps large language model crawlers like ChatGPT, Claude, and Perplexity understand your site\'s content structure. It\'s a plain-text markdown file served at yoursite.com/llms.txt listing your posts, pages, and descriptions — similar to what sitemap.xml does for traditional search engines, but optimised for AI indexing.'],
+                    <?php $this->explain_btn('llms', '🤖 llms.txt: What this does', [
+                    ['rec'=>'✅ Recommended','name'=>'What is llms.txt','desc'=>'llms.txt is an emerging standard (proposed 2024) that helps large language model crawlers like ChatGPT, Claude, and Perplexity understand your site\'s content structure. It\'s a plain-text markdown file served at yoursite.com/llms.txt listing your posts, pages, and descriptions. similar to what sitemap.xml does for traditional search engines, but optimised for AI indexing.'],
                     ['rec'=>'✅ Recommended','name'=>'Enable /llms.txt','desc'=>'Serves a dynamically generated llms.txt at yoursite.com/llms.txt. The file is built from your published posts and pages, using your AI-generated meta descriptions as the per-post summaries. Enable this if you want AI assistants and LLM-powered search engines to have an accurate, structured view of your site content.'],
-                    ['rec'=>'ℹ️ Info','name'=>'What it contains','desc'=>'The file includes your site name, site description, author name and title, and a structured list of all published posts and pages with their URLs and meta descriptions. Posts with no meta description are listed without a summary — another reason to run Generate Missing first.'],
-                    ['rec'=>'ℹ️ Info','name'=>'Preview','desc'=>'Click Load Preview to see exactly what the file currently contains. The preview reflects live data — if you generate new meta descriptions, reload the preview to see the updated content.'],
+                    ['rec'=>'ℹ️ Info','name'=>'What it contains','desc'=>'The file includes your site name, site description, author name and title, and a structured list of all published posts and pages with their URLs and meta descriptions. Posts with no meta description are listed without a summary, another reason to run Generate Missing first.'],
+                    ['rec'=>'ℹ️ Info','name'=>'Preview','desc'=>'Click Load Preview to see exactly what the file currently contains. The preview reflects live data. if you generate new meta descriptions, reload the preview to see the updated content.'],
                 ]); ?>
                     </span>
             </div>
@@ -1369,12 +1371,12 @@ trait CS_SEO_Settings_Page {
             <?php /* ── HTTPS Fix Card ── */ ?>
             <div class="ab-zone-card ab-card-https">
             <div class="ab-zone-header" style="justify-content:space-between">
-                <span><span class="ab-zone-icon">🔒</span> Mixed Content Fix — HTTP → HTTPS</span>
+                <span><span class="ab-zone-icon">🔒</span> Mixed Content Fix. HTTP → HTTPS</span>
                 <span style="display:flex;align-items:center;gap:8px;">
-                <?php $this->explain_btn('https', '🔒 Mixed Content Fix — How it works', [
+                <?php $this->explain_btn('https', '🔒 Mixed Content Fix: How it works', [
                     ['rec'=>'ℹ️ Info',        'name'=>'What is mixed content?', 'desc'=>'Mixed content is when an HTTPS page loads resources (images, scripts, stylesheets) over HTTP. Browsers block or warn about these, causing broken images, console errors, and security warnings. It most commonly happens when a site migrates from HTTP to HTTPS but old URLs remain in the database.'],
                     ['rec'=>'ℹ️ Info',        'name'=>'What Scan does',         'desc'=>'Counts http:// references across your posts, pages, metadata, options, and comments without changing anything. Run this first to understand the scope before committing to a fix.'],
-                    ['rec'=>'⚠️ Caution',     'name'=>'What Fix does',          'desc'=>'Replaces all found http:// references with https://. This is a bulk database update — take a backup before running. The operation is not reversible from within this tool. It covers post_content, post_excerpt, postmeta, options, and comments.'],
+                    ['rec'=>'⚠️ Caution',     'name'=>'What Fix does',          'desc'=>'Replaces all found http:// references with https://. This is a bulk database update. take a backup before running. The operation is not reversible from within this tool. It covers post_content, post_excerpt, postmeta, options, and comments.'],
                     ['rec'=>'ℹ️ Info',        'name'=>'External links',         'desc'=>'The fix also updates external URLs in your content from http to https where present. This is generally safe but worth reviewing if you link to sites that may not support HTTPS.'],
                 ]); ?>
                 <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-https" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
@@ -1417,7 +1419,7 @@ trait CS_SEO_Settings_Page {
                     return Array.from(document.querySelectorAll('.ab-https-domain-cb:checked')).map(function(cb){ return cb.value; });
                 }
 
-                // Safe fetch wrapper — always reads raw text first so a PHP fatal
+                // Safe fetch wrapper. always reads raw text first so a PHP fatal
                 // (which returns HTML, not JSON) shows the actual error message
                 // rather than a useless "Unexpected token '<'" SyntaxError.
                 function safeFetch(url, opts) {
@@ -1467,7 +1469,7 @@ trait CS_SEO_Settings_Page {
                                 '<td style="' + td + ';font-weight:700;color:#b45309;text-align:right">' + c.count + '</td></tr>';
                         }).join('');
 
-                        // Per-domain rows — behaviour differs by domain type
+                        // Per-domain rows. behaviour differs by domain type
                         var domainRows = Object.entries(d.domain_meta).map(function(entry) {
                             var domain = entry[0], meta = entry[1];
                             var uid = 'ab-https-urls-' + domain.replace(/[^a-z0-9]/gi, '-');
@@ -1525,7 +1527,7 @@ trait CS_SEO_Settings_Page {
                             // --- Normal fixable domain ---
                             var checked = ' checked';
                             if (domain.match(/example\.|yoursite\.|placeholder/i)) {
-                                checked = '';  // placeholder — opt-out by default
+                                checked = '';  // placeholder. opt-out by default
                             }
                             var ownBadge = meta.is_own ? '<span style="color:#1a7a34;font-size:10px;margin-left:6px">\u2713 your domain</span>' : '';
 
@@ -1535,7 +1537,7 @@ trait CS_SEO_Settings_Page {
                             var coreWarn = '';
                             if (overridden.length > 0) {
                                 // wp-config.php has WP_HOME/WP_SITEURL defined as http://
-                                // Fixing the DB row is pointless — the constant overwrites it on every request
+                                // Fixing the DB row is pointless. the constant overwrites it on every request
                                 coreWarn = '<div style="margin-top:6px;padding:8px 10px;background:#fff8e1;border:1px solid #f0c040;border-radius:3px;font-size:11px;color:#5a4000">' +
                                     '\u26a0 <strong>This row keeps reverting because <code>WP_' + overridden.map(function(o){return o.toUpperCase();}).join('</code> / <code>WP_') + '</code> ' +
                                     (overridden.length === 1 ? 'is' : 'are') + ' hardcoded in <code>wp-config.php</code>.</strong><br>' +
@@ -1547,7 +1549,7 @@ trait CS_SEO_Settings_Page {
                                     }).join('<br>') + '</code></div>';
                                 checked = '';  // don't offer the DB fix when it won't stick
                             } else if (coreOpts.length > 0) {
-                                // In wp_options but no wp-config override — DB fix will work,
+                                // In wp_options but no wp-config override. DB fix will work,
                                 // but warn that this is the core site URL
                                 coreWarn = '<div style="margin-top:5px;font-size:11px;color:#5a4000">' +
                                     '\u2139 This appears in the core WordPress <code>' + coreOpts.join('</code> / <code>') + '</code> option' +
@@ -1644,7 +1646,7 @@ trait CS_SEO_Settings_Page {
                     if (!confirm('Replace http:// with https:// for ' + domains.length + ' selected domain' + (domains.length !== 1 ? 's' : '') + '.\n\nEnsure you have a recent database backup before proceeding.')) return;
                     fixBtn.disabled = true;
                     scanBtn.disabled = true;
-                    setStatus('Fixing — this may take a moment…', '#50575e');
+                    setStatus('Fixing, this may take a moment…', '#50575e');
                     resultsEl.innerHTML = '';
                     safeFetch(_ajax, {
                         method: 'POST',
@@ -1712,13 +1714,13 @@ trait CS_SEO_Settings_Page {
                     <span><span class="ab-zone-icon">🔤</span> <?php esc_html_e( 'Font-Display Optimization', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-fonts" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
-                        <?php $this->explain_btn('perf', '⚡ Performance Tab — What each feature does', [
+                        <?php $this->explain_btn('perf', '⚡ Performance Tab: What each feature does', [
                         ['rec'=>'✅ Recommended','name'=>'Font-Display: Swap','desc'=>'Adds font-display: swap to your @font-face rules. This tells browsers to show text immediately using a fallback font, then swap in the custom font once loaded. Eliminates the "Flash of Invisible Text" (FOIT) and dramatically improves Largest Contentful Paint (LCP) scores. Typical savings: 500ms–2s.'],
                         ['rec'=>'✅ Recommended','name'=>'Font Metric Overrides','desc'=>'Adds size-adjust, ascent-override, and descent-override properties to match your web font metrics to the fallback font. This prevents layout shift (CLS) when the custom font loads. Without this, text may jump or reflow as fonts swap.'],
-                        ['rec'=>'⬜ Optional','name'=>'Defer Font CSS Loading','desc'=>'Changes font stylesheets to load with media="print" and swap to media="all" after page load. This prevents font CSS from blocking initial render. Enable this for maximum LCP improvement, but test thoroughly — some themes may show a brief flash of unstyled text.'],
+                        ['rec'=>'⬜ Optional','name'=>'Defer Font CSS Loading','desc'=>'Changes font stylesheets to load with media="print" and swap to media="all" after page load. This prevents font CSS from blocking initial render. Enable this for maximum LCP improvement, but test thoroughly. some themes may show a brief flash of unstyled text.'],
                         ['rec'=>'⬜ Optional','name'=>'Auto-Download CDN Fonts','desc'=>'Detects Google Fonts loaded from CDN (fonts.googleapis.com) and downloads them to your local server. Local fonts load faster and eliminate third-party requests. Also improves privacy compliance (GDPR) by keeping font requests on your domain.'],
-                        ['rec'=>'✅ Recommended','name'=>'Defer Render-Blocking JavaScript','desc'=>'Adds the defer attribute to JavaScript files, allowing them to download in parallel and execute after HTML parsing. This prevents scripts from blocking page rendering. Some scripts (jQuery, payment widgets) should be excluded — use the exclusions field.'],
-                        ['rec'=>'⬜ Optional','name'=>'HTML/CSS/JS Minification','desc'=>'Removes whitespace, comments, and unnecessary characters from your HTML output. Reduces page size by 5–15% with zero visual change. Safe and conservative — protects pre-formatted content, JSON-LD, and textareas.'],
+                        ['rec'=>'✅ Recommended','name'=>'Defer Render-Blocking JavaScript','desc'=>'Adds the defer attribute to JavaScript files, allowing them to download in parallel and execute after HTML parsing. This prevents scripts from blocking page rendering. Some scripts (jQuery, payment widgets) should be excluded. use the exclusions field.'],
+                        ['rec'=>'⬜ Optional','name'=>'HTML/CSS/JS Minification','desc'=>'Removes whitespace, comments, and unnecessary characters from your HTML output. Reduces page size by 5–15% with zero visual change. Safe and conservative. protects pre-formatted content, JSON-LD, and textareas.'],
                         ['rec'=>'✅ Recommended','name'=>'HTTPS Mixed Content Scanner','desc'=>'Scans your database for http:// references to your own domain that should be https://. Mixed content triggers browser warnings and hurts SEO. One-click fix replaces all instances across posts, pages, meta, options, and comments.'],
                     ]); ?>
                     </span>
@@ -1769,9 +1771,9 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="background:#7c3aed;justify-content:space-between">
                     <span><span class="ab-zone-icon">🚀</span> <?php esc_html_e( 'Render &amp; Minification', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                    <?php $this->explain_btn('render', '🚀 Render & Minification — What each option does', [
-                        ['rec'=>'⬜ Optional',   'name'=>'Defer JavaScript',   'desc'=>'Adds defer to all script tags, preventing JavaScript from blocking page rendering. Text and images load first; scripts execute after. Safe for most themes and plugins. Disable if your site breaks — some scripts must run before content renders (e.g. anti-flicker scripts for A/B testing tools).'],
-                        ['rec'=>'⬜ Optional',   'name'=>'Minify HTML',        'desc'=>'Strips whitespace, comments, and redundant characters from HTML output. Typical savings of 5–15% page size. Purely cosmetic — does not change content or break functionality. The minified HTML is served directly; no files are written to disk.'],
+                    <?php $this->explain_btn('render', '🚀 Render & Minification: What each option does', [
+                        ['rec'=>'⬜ Optional',   'name'=>'Defer JavaScript',   'desc'=>'Adds defer to all script tags, preventing JavaScript from blocking page rendering. Text and images load first; scripts execute after. Safe for most themes and plugins. Disable if your site breaks. some scripts must run before content renders (e.g. anti-flicker scripts for A/B testing tools).'],
+                        ['rec'=>'⬜ Optional',   'name'=>'Minify HTML',        'desc'=>'Strips whitespace, comments, and redundant characters from HTML output. Typical savings of 5–15% page size. Purely cosmetic. does not change content or break functionality. The minified HTML is served directly; no files are written to disk.'],
                         ['rec'=>'⬜ Optional',   'name'=>'Defer web fonts',    'desc'=>'Defers font stylesheet loading so text renders immediately using fallback fonts, then swaps once the font file arrives. Eliminates render-blocking from Google Fonts and similar CDN-hosted fonts. Works in combination with Font-Display: Swap in the Font Optimizer above.'],
                     ]); ?>
                     <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-render" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
@@ -1807,7 +1809,7 @@ trait CS_SEO_Settings_Page {
                         <textarea class="large-text" rows="4"
                             name="<?php echo esc_attr(self::OPT); ?>[defer_js_excludes]"
                             placeholder="jquery&#10;woocommerce&#10;my-critical-script"><?php echo esc_textarea((string)($o['defer_js_excludes'] ?? '')); ?></textarea>
-                        <p class="description">Scripts whose handle name or URL contains any of these strings will be excluded from deferring. jQuery and a set of other commonly problematic scripts are excluded automatically — you only need to add scripts that are still breaking your site after enabling defer.</p>
+                        <p class="description">Scripts whose handle name or URL contains any of these strings will be excluded from deferring. jQuery and a set of other commonly problematic scripts are excluded automatically; you only need to add scripts that are still breaking your site after enabling defer.</p>
                     </div>
                     <?php /* defer-toggle listener moved to admin_enqueue_assets() */ ?>
                     </div>
@@ -1846,17 +1848,17 @@ trait CS_SEO_Settings_Page {
                     <span><span class="ab-zone-icon">⏱</span> <?php esc_html_e( 'Scheduled Batch Generation', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-schedule" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
-                        <?php $this->explain_btn('schedule', '⏱ Scheduled Batch — How this works', [
-                        ['rec'=>'ℹ️ Info','name'=>'What this does','desc'=>'Automatically runs the AI meta description generator on a schedule — no need to manually click Generate Missing. The batch only processes posts that don\'t yet have a description, so it never overwrites existing ones.'],
-                        ['rec'=>'⬜ Optional','name'=>'Enable schedule','desc'=>'Turns the scheduled batch on or off. When enabled, the batch runs automatically at midnight (server time) on the days you select. When disabled, no automatic generation happens — you can still run it manually from the Optimise SEO tab.'],
-                        ['rec'=>'⬜ Optional','name'=>'Days of the week','desc'=>'Choose which days the batch runs. For a high-volume blog that publishes daily, tick every day. For a weekly blog, once or twice a week is sufficient. The batch only does work if there are unprocessed posts — if everything is up to date, it completes instantly.'],
+                        <?php $this->explain_btn('schedule', '⏱ Scheduled Batch: How this works', [
+                        ['rec'=>'ℹ️ Info','name'=>'What this does','desc'=>'Automatically runs the AI meta description generator on a schedule. no need to manually click Generate Missing. The batch only processes posts that don\'t yet have a description, so it never overwrites existing ones.'],
+                        ['rec'=>'⬜ Optional','name'=>'Enable schedule','desc'=>'Turns the scheduled batch on or off. When enabled, the batch runs automatically at midnight (server time) on the days you select. When disabled, no automatic generation happens. you can still run it manually from the Optimise SEO tab.'],
+                        ['rec'=>'⬜ Optional','name'=>'Days of the week','desc'=>'Choose which days the batch runs. For a high-volume blog that publishes daily, tick every day. For a weekly blog, once or twice a week is sufficient. The batch only does work if there are unprocessed posts; if everything is up to date, it completes instantly.'],
                         ['rec'=>'ℹ️ Info','name'=>'Midnight server time','desc'=>'The batch runs at midnight based on your server\'s timezone, not your local time. Check your WordPress timezone setting under Settings → General if the timing seems off.'],
                         ['rec'=>'ℹ️ Info','name'=>'API costs','desc'=>'Each description generated makes one API call to your chosen provider. For Anthropic, Claude Haiku costs roughly $0.001–$0.003 per post; for Google, Gemini Flash is similarly priced. A full run across 100 unprocessed posts typically costs $0.10–$0.30 with a fast/cheap model.'],
                     ]); ?>
                     </span>
                 </div>
                 <div class="ab-zone-body">
-                <p style="padding:12px 20px 0;color:#50575e;margin:0">The batch runs automatically on selected days at midnight (server time). <strong style="color:#6b3fa0">It only processes posts that do not yet have a meta description</strong> — it never overwrites existing ones.</p>
+                <p style="padding:12px 20px 0;color:#50575e;margin:0">The batch runs automatically on selected days at midnight (server time). <strong style="color:#6b3fa0">It only processes posts that do not yet have a meta description</strong>; it never overwrites existing ones.</p>
                 <table class="form-table" role="presentation">
                     <tr>
                         <th><?php esc_html_e( 'Enable schedule:', 'cloudscale-seo-ai-optimizer' ); ?></th>
@@ -1914,9 +1916,9 @@ trait CS_SEO_Settings_Page {
                                         esc_html_e( 'No matching days selected.', 'cloudscale-seo-ai-optimizer' );
                                     }
                                 } elseif ($cron_next && (int)($ai['schedule_enabled'] ?? 0)) {
-                                    echo wp_kses( '<span style="color:#c3372b">No days selected — tick at least one day above.</span>', array( 'span' => array( 'style' => array() ) ) );
+                                    echo wp_kses( '<span style="color:#c3372b">No days selected. tick at least one day above.</span>', array( 'span' => array( 'style' => array() ) ) );
                                 } elseif ((int)($ai['schedule_enabled'] ?? 0)) {
-                                    echo wp_kses( '<span style="color:#c3372b">No cron event found — try saving settings again.</span>', array( 'span' => array( 'style' => array() ) ) );
+                                    echo wp_kses( '<span style="color:#c3372b">No cron event found. try saving settings again.</span>', array( 'span' => array( 'style' => array() ) ) );
                                 } else {
                                     esc_html_e( 'Schedule is disabled.', 'cloudscale-seo-ai-optimizer' );
                                 } ?>
@@ -1939,12 +1941,12 @@ trait CS_SEO_Settings_Page {
                 <span><span class="ab-zone-icon">📋</span> <?php esc_html_e( 'Batch Run History (28 days)', 'cloudscale-seo-ai-optimizer' ); ?></span>
                 <span style="display:flex;align-items:center;gap:8px;">
                     <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-lastrun" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
-                    <?php $this->explain_btn('lastrun', '📋 Batch Run History — Reading the results', [
+                    <?php $this->explain_btn('lastrun', '📋 Batch Run History: Reading the results', [
                     ['rec'=>'ℹ️ Info','name'=>'Run history','desc'=>'Shows all batch runs from the last 28 days, newest first. Each entry shows when the batch ran, how many posts were processed, and any errors. Entries older than 28 days are automatically pruned.'],
                     ['rec'=>'ℹ️ Info','name'=>'Processed','desc'=>'How many posts the batch attempted to generate descriptions for in each run. Posts that already had descriptions are skipped and not counted here.'],
                     ['rec'=>'ℹ️ Info','name'=>'Succeeded','desc'=>'Posts that were successfully updated with a new AI-generated description. These posts now have meta descriptions and will be skipped in future batch runs.'],
-                    ['rec'=>'ℹ️ Info','name'=>'Errors','desc'=>'Posts where generation failed — usually due to an API error, rate limit, or the post having no readable content. The batch will retry these on the next scheduled run. Check your API key if errors are consistently high.'],
-                    ['rec'=>'ℹ️ Info','name'=>'Next scheduled run','desc'=>'When the batch will next execute automatically. If this shows "Not scheduled" but the schedule is enabled, try saving your schedule settings again — this re-registers the WordPress cron event.'],
+                    ['rec'=>'ℹ️ Info','name'=>'Errors','desc'=>'Posts where generation failed. usually due to an API error, rate limit, or the post having no readable content. The batch will retry these on the next scheduled run. Check your API key if errors are consistently high.'],
+                    ['rec'=>'ℹ️ Info','name'=>'Next scheduled run','desc'=>'When the batch will next execute automatically. If this shows "Not scheduled" but the schedule is enabled, try saving your schedule settings again. this re-registers the WordPress cron event.'],
                 ]); ?>
                     </span>
             </div>
@@ -2138,11 +2140,11 @@ trait CS_SEO_Settings_Page {
                     <span style="display:flex;align-items:center;gap:8px;">
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-catmig" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
                         <?php $this->explain_btn('catmig', 'Migrate Categories', [
-                            ['name'=>'When to use','rec'=>'ℹ️ Info','desc'=>'Use this panel when you want to retire or consolidate a low-traffic category. Categories are listed from fewest posts to most — the lowest-count ones are the best candidates to migrate away.'],
-                            ['name'=>'Single-category posts','rec'=>'ℹ️ Info','desc'=>'A post assigned to only this category must be swapped to another category — it cannot simply be removed or it would end up uncategorised.'],
+                            ['name'=>'When to use','rec'=>'ℹ️ Info','desc'=>'Use this panel when you want to retire or consolidate a low-traffic category. Categories are listed from fewest posts to most, the lowest-count ones are the best candidates to migrate away.'],
+                            ['name'=>'Single-category posts','rec'=>'ℹ️ Info','desc'=>'A post assigned to only this category must be swapped to another category. it cannot simply be removed or it would end up uncategorised.'],
                             ['name'=>'Multi-category posts','rec'=>'ℹ️ Info','desc'=>'A post already in two or more categories can either have this category removed (keeping the others) or swapped to a different one.'],
                             ['name'=>'Applying changes','rec'=>'ℹ️ Info','desc'=>'Set the action for each post, then click Apply on individual rows or Apply All to process every pending row at once.'],
-                            ['name'=>'Deleting the category','rec'=>'ℹ️ Info','desc'=>'Once all posts have been migrated away, a red Delete Category button appears. Click it to permanently delete the empty category — no need to leave the plugin.'],
+                            ['name'=>'Deleting the category','rec'=>'ℹ️ Info','desc'=>'Once all posts have been migrated away, a red Delete Category button appears. Click it to permanently delete the empty category, no need to leave the plugin.'],
                         ]); ?>
                     </span>
                 </div>
@@ -2182,7 +2184,7 @@ trait CS_SEO_Settings_Page {
                             ['name'=>'What it does',    'rec'=>'ℹ️ Info',     'desc'=>'Combines two categories into one. Every post from the source category is moved into the target category, the source is deleted, and the target can be renamed at the same time.'],
                             ['name'=>'Source category', 'rec'=>'ℹ️ Info',     'desc'=>'The category that will be absorbed and then permanently deleted. Choose the one you no longer want.'],
                             ['name'=>'Target category', 'rec'=>'ℹ️ Info',     'desc'=>'The category that will survive the merge and receive all the posts. Its existing posts are kept.'],
-                            ['name'=>'Rename target',   'rec'=>'⬜ Optional', 'desc'=>'Leave blank to keep the target\'s current name. Fill it in to rename the surviving category at the same time as the merge — useful when neither name is quite right and you want a fresh label.'],
+                            ['name'=>'Rename target',   'rec'=>'⬜ Optional', 'desc'=>'Leave blank to keep the target\'s current name. Fill it in to rename the surviving category at the same time as the merge. useful when neither name is quite right and you want a fresh label.'],
                             ['name'=>'Undo',            'rec'=>'⚠️ Warning',  'desc'=>'This action is not reversible from the plugin. Posts will be re-assigned and the source term deleted. Use the Migrate Categories panel above if you want finer per-post control before committing.'],
                         ]); ?>
                     </span>
@@ -2292,7 +2294,7 @@ trait CS_SEO_Settings_Page {
                         </div>
                     </div>
                     <div style="margin-bottom:16px;">
-                        <label for="cmg-rename" style="display:block;font-weight:600;font-size:13px;color:#374151;margin-bottom:6px;">Rename target <span style="font-weight:400;color:#6b7280;">(optional — leave blank to keep current name)</span></label>
+                        <label for="cmg-rename" style="display:block;font-weight:600;font-size:13px;color:#374151;margin-bottom:6px;">Rename target <span style="font-weight:400;color:#6b7280;">(optional; leave blank to keep current name)</span></label>
                         <input id="cmg-rename" type="text" placeholder="New category name…" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#111827;box-sizing:border-box;">
                     </div>
                     <div id="cmg-preview" style="display:none;margin-bottom:16px;padding:12px 16px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;font-size:13px;color:#4c1d95;line-height:1.6;"></div>
@@ -2355,7 +2357,7 @@ trait CS_SEO_Settings_Page {
                         done++;
                     }
                     btn.textContent='✅ Done'; btn.style.background='#10b981'; btn.style.borderColor='#059669';
-                    setS(done+'/'+total+' categories updated — review and edit below, then save.');
+                    setS(done+'/'+total+' categories updated. review and edit below, then save.');
                     // Render editable results table
                     if (results && rows.length) {
                         var html = '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:16px">'
@@ -2405,11 +2407,11 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">🔗</span> <?php esc_html_e( 'Broken Link Checker', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <?php $this->explain_btn( 'blc', '🔗 Broken Link Checker — How it works', [
-                            [ 'rec' => 'ℹ️ Info', 'name' => 'What it scans',         'desc' => 'Checks every outbound <a href="…"> link found in published posts and pages. Internal links (same domain) are skipped — only external URLs are verified.' ],
+                        <?php $this->explain_btn( 'blc', '🔗 Broken Link Checker: How it works', [
+                            [ 'rec' => 'ℹ️ Info', 'name' => 'What it scans',         'desc' => 'Checks every outbound <a href="…"> link found in published posts and pages. Internal links (same domain) are skipped. only external URLs are verified.' ],
                             [ 'rec' => 'ℹ️ Info', 'name' => 'Deduplication',          'desc' => 'Each unique URL is fetched only once, no matter how many posts contain it. This keeps the scan fast even on large sites.' ],
                             [ 'rec' => 'ℹ️ Info', 'name' => 'HTTP status codes',     'desc' => '2xx responses are OK. 3xx redirects are flagged as warnings (the link still works but points to an outdated URL). 4xx/5xx responses are flagged as broken.' ],
-                            [ 'rec' => '⚡ Tip',  'name' => 'Stopping a scan',        'desc' => 'You can stop the scan at any time — results found so far are still shown in the table below. Re-running a scan clears the previous results and starts fresh.' ],
+                            [ 'rec' => '⚡ Tip',  'name' => 'Stopping a scan',        'desc' => 'You can stop the scan at any time. results found so far are still shown in the table below. Re-running a scan clears the previous results and starts fresh.' ],
                             [ 'rec' => '⚡ Tip',  'name' => 'Fixing broken links',    'desc' => 'Click the post title in the results table to open the editor. Find the broken URL and either update it to the new address or remove the link entirely.' ],
                         ] ); ?>
                     </span>
@@ -2458,9 +2460,9 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-zone-header" style="justify-content:space-between">
                     <span><span class="ab-zone-icon">🖼</span> <?php esc_html_e( 'Image SEO Audit', 'cloudscale-seo-ai-optimizer' ); ?></span>
                     <span style="display:flex;align-items:center;gap:8px;">
-                        <?php $this->explain_btn( 'imgseo', '🖼 Image SEO Audit — What each issue means', [
-                            [ 'rec' => '🔴 Fix',  'name' => 'Missing ALT text',       'desc' => 'The image has no alt attribute set in the Media Library. ALT text is read by screen readers and used by Google to understand image content. Add a short, descriptive phrase — e.g. "laptop on a wooden desk" rather than "image1".' ],
-                            [ 'rec' => '🔴 Fix',  'name' => 'Non-descriptive filename','desc' => 'The filename looks like a camera default (IMG_001.jpg, screenshot2.png, DSC_0042.jpg etc.). Google uses filenames as a ranking signal. Rename images to something descriptive before uploading — e.g. "cloud-architecture-diagram.png".' ],
+                        <?php $this->explain_btn( 'imgseo', '🖼 Image SEO Audit: What each issue means', [
+                            [ 'rec' => '🔴 Fix',  'name' => 'Missing ALT text',       'desc' => 'The image has no alt attribute set in the Media Library. ALT text is read by screen readers and used by Google to understand image content. Add a short, descriptive phrase. e.g. "laptop on a wooden desk" rather than "image1".' ],
+                            [ 'rec' => '🔴 Fix',  'name' => 'Non-descriptive filename','desc' => 'The filename looks like a camera default (IMG_001.jpg, screenshot2.png, DSC_0042.jpg etc.). Google uses filenames as a ranking signal. Rename images to something descriptive before uploading. e.g. "cloud-architecture-diagram.png".' ],
                             [ 'rec' => '🟡 Warn', 'name' => 'Oversized file (>500 KB)','desc' => 'The image file on disk exceeds 500 KB. Large images slow page load times and hurt Core Web Vitals scores. Compress or resize the image using a tool like Squoosh, TinyPNG, or ShortPixel.' ],
                             [ 'rec' => 'ℹ️ Info', 'name' => 'Results scope',          'desc' => 'Only images with at least one issue are listed. Images that pass all three checks are not shown. The scan covers all media in your WordPress Media Library, not just images attached to posts.' ],
                             [ 'rec' => '⚡ Tip',  'name' => 'Bulk fixing',             'desc' => 'Click the image title to open the Media Library attachment editor where you can update the ALT text directly. For filenames, re-upload the renamed file and update any posts that reference the old URL.' ],
@@ -2512,15 +2514,15 @@ trait CS_SEO_Settings_Page {
                     <span style="display:flex;align-items:center;gap:8px;margin-left:auto">
                         <button class="button" id="ab-titleopt-reload-hdr" style="visibility:hidden;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)">↻ Reload</button>
                         <button type="button" class="button ab-toggle-card-btn" data-card-id="ab-card-titleopt" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">&#9660; Hide Details</button>
-                        <?php $this->explain_btn('titleopt', '🎯 Title Optimiser — How this works', [
+                        <?php $this->explain_btn('titleopt', '🎯 Title Optimiser: How this works', [
                             ['rec'=>'ℹ️ Info','name'=>'What this panel does','desc'=>'Scans all your published posts and uses AI to suggest SEO-optimised titles. Each suggestion includes the primary keywords identified, a before/after SEO score, and a note on what was weak and what was fixed. You can apply titles individually or in bulk.'],
-                            ['rec'=>'✅ Recommended','name'=>'Why title SEO matters','desc'=>'Google weighs the title heavily when deciding rankings. A title that leads with the primary keyword, is 50–60 characters long, and matches clear search intent (how-to, best, guide) consistently outranks a clever or conversational title. Most blog titles are written for humans first — this tool rewrites them for search engines first.'],
+                            ['rec'=>'✅ Recommended','name'=>'Why title SEO matters','desc'=>'Google weighs the title heavily when deciding rankings. A title that leads with the primary keyword, is 50–60 characters long, and matches clear search intent (how-to, best, guide) consistently outranks a clever or conversational title. Most blog titles are written for humans first. this tool rewrites them for search engines first.'],
                             ['rec'=>'ℹ️ Info','name'=>'SEO score','desc'=>'The score (0–100) measures keyword clarity, title length (ideal 50–60 chars), and search intent alignment. A score below 50 means the title is likely too vague or missing keywords. Above 70 is good. The goal is to see a meaningful jump from before to after.'],
                             ['rec'=>'ℹ️ Info','name'=>'Analyse All','desc'=>'Runs the AI suggestion pass across every post that has not yet been analysed. Runs one post at a time in a polling loop. Safe to stop and restart. Does not change any post titles.'],
-                            ['rec'=>'⚠️ Important','name'=>'Apply','desc'=>'Applying a title updates the post title and URL slug. A 301 redirect is automatically created from the old URL to the new one — so existing links and search engine rankings are preserved. The redirect appears in the Sitemap & Redirects tab.'],
+                            ['rec'=>'⚠️ Important','name'=>'Apply','desc'=>'Applying a title updates the post title and URL slug. A 301 redirect is automatically created from the old URL to the new one. so existing links and search engine rankings are preserved. The redirect appears in the Sitemap & Redirects tab.'],
                             ['rec'=>'ℹ️ Info','name'=>'Min. gain % threshold','desc'=>'Set a minimum percentage improvement before a title is eligible for bulk apply. For example, 10% means only apply titles where the AI score improved by at least 10% relative to the original. The "Will Apply" column in the table updates live as you type. Posts below the threshold show their actual gain % so you can decide individually. Leave the field blank or set to 0 to apply all suggested titles.'],
                             ['rec'=>'ℹ️ Info','name'=>'Will Apply column','desc'=>'Shows whether each post will be included in the next "Apply to X posts" bulk run, based on the current Min. gain threshold. Green badge = will be applied. "Below threshold" = suggested but gain is below your cutoff. You can sort and filter by this column to preview exactly what will change before committing.'],
-                            ['rec'=>'ℹ️ Info','name'=>'Sort options','desc'=>'"Sort by Date" shows newest posts first. "Sort by Comments" shows most-engaged posts first — useful for prioritising high-traffic posts for optimisation.'],
+                            ['rec'=>'ℹ️ Info','name'=>'Sort options','desc'=>'"Sort by Date" shows newest posts first. "Sort by Comments" shows most-engaged posts first, useful for prioritising high-traffic posts for optimisation.'],
                         ]); ?>
                     </span>
                 </div>
@@ -2529,7 +2531,7 @@ trait CS_SEO_Settings_Page {
                 <div class="ab-api-key-warning" id="ab-titleopt-api-warn" style="<?php echo esc_attr( $alt_has_key ? 'display:none' : '' ); ?>">
                     <div class="ab-warn-icon">⚠️</div>
                     <div class="ab-warn-body">
-                        <strong>No AI API key saved — title analysis is disabled.</strong>
+                        <strong>No AI API key saved. title analysis is disabled.</strong>
                         Add an Anthropic API key in the <strong>✨ AI Tools</strong> tab → AI Meta Writer section and save.
                     </div>
                 </div>
@@ -2549,13 +2551,13 @@ trait CS_SEO_Settings_Page {
                         <input type="number" id="ab-titleopt-threshold" min="0" max="100" value="10" style="width:44px;border:none;background:transparent;font-size:13px;text-align:center;padding:0;-moz-appearance:textfield" placeholder="—" title="Leave blank to apply all suggested titles, or enter a % threshold (e.g. 20 = only apply where score improves by ≥20%)">
                         <span style="font-size:11px;color:#50575e">%</span>
                     </span>
-                    <button class="button ab-action-btn" id="ab-titleopt-apply-all" style="background:#1a7a34;border-color:#155724;color:#fff;font-weight:600" disabled>✅ Apply to — posts</button>
+                    <button class="button ab-action-btn" id="ab-titleopt-apply-all" style="background:#1a7a34;border-color:#155724;color:#fff;font-weight:600" disabled>✅ Apply to 0 posts</button>
                     <button class="button ab-action-btn" id="ab-titleopt-scan-links" style="background:#6b3fa0;border-color:#4a2a7a;color:#fff;font-weight:600" title="Scan posts for internal links still pointing to old slugs">🔍 Scan Broken Links</button>
                     <button class="button ab-action-btn" id="ab-titleopt-fix-links" style="background:#0073aa;border-color:#005177;color:#fff;font-weight:600" title="Rewrite internal post links from old slugs to new URLs" disabled>🔗 Fix Broken Links</button>
-                    <?php $this->explain_btn('fix_links', '🔗 Fix Broken Internal Links — How it works', [
-                        ['rec' => 'ℹ️ Info', 'name' => 'What these buttons do', 'desc' => 'When a post slug is renamed, any other posts that link to the old URL will still have the old URL in their content — they rely on the 301 redirect. These buttons let you update the actual post content so the links point directly to the new URL, eliminating the redirect hop.'],
-                        ['rec' => '✅ Step 1 — Scan', 'name' => 'Scan for Broken Links', 'desc' => 'Scans all published posts and checks whether any contain URLs that now have a redirect on them. Returns a list of affected posts. No changes are made at this stage.'],
-                        ['rec' => '✅ Step 2 — Fix', 'name' => 'Fix Broken Links', 'desc' => 'Rewrites the old URLs found during the scan directly to the new destination URL inside the post content. Safe to run multiple times — if a URL is already correct the rewrite is a no-op.'],
+                    <?php $this->explain_btn('fix_links', '🔗 Fix Broken Internal Links: How it works', [
+                        ['rec' => 'ℹ️ Info', 'name' => 'What these buttons do', 'desc' => 'When a post slug is renamed, any other posts that link to the old URL will still have the old URL in their content. they rely on the 301 redirect. These buttons let you update the actual post content so the links point directly to the new URL, eliminating the redirect hop.'],
+                        ['rec' => '✅ Step 1. Scan', 'name' => 'Scan for Broken Links', 'desc' => 'Scans all published posts and checks whether any contain URLs that now have a redirect on them. Returns a list of affected posts. No changes are made at this stage.'],
+                        ['rec' => '✅ Step 2. Fix', 'name' => 'Fix Broken Links', 'desc' => 'Rewrites the old URLs found during the scan directly to the new destination URL inside the post content. Safe to run multiple times. if a URL is already correct the rewrite is a no-op.'],
                         ['rec' => 'ℹ️ Info', 'name' => 'Why bother if the redirect already works', 'desc' => 'A redirect adds a round-trip for every visitor and crawler. Google does transfer PageRank through redirects, but direct links are faster and cleaner. For internal links on your own site there is no reason to keep the redirect hop in place.'],
                     ]); ?>
                     <span id="ab-titleopt-link-scan-result" style="display:none;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap"></span>
@@ -2893,7 +2895,7 @@ trait CS_SEO_Settings_Page {
             }
         }
 
-        // Restore the active tab — URL ?tab= takes priority over localStorage.
+        // Restore the active tab. URL ?tab= takes priority over localStorage.
         (function() {
             try {
                 const urlTab = new URLSearchParams(window.location.search).get('tab');
@@ -3118,14 +3120,14 @@ trait CS_SEO_Settings_Page {
                 abRefreshRobotsPreview();
             }
 
-            // Delegated click handler for title badges — works even after table is re-rendered
+            // Delegated click handler for title badges. works even after table is re-rendered
             document.addEventListener('click', function(e) {
                 const badge = e.target.closest('[data-titleid]');
                 if (badge) {
                     e.stopPropagation();
                     abShowTitlePopup(parseInt(badge.getAttribute('data-titleid'), 10), badge);
                 } else {
-                    // Click outside any badge — dismiss popup if open
+                    // Click outside any badge. dismiss popup if open
                     const popup = document.getElementById('ab-title-popup');
                     if (popup) popup.remove();
                 }
@@ -3257,7 +3259,7 @@ trait CS_SEO_Settings_Page {
         function abCheckApiKey() {
             if (abHasApiKey) return true;
             document.getElementById('ab-api-warn').classList.add('visible');
-            abLog('✦ AI not configured. Subscribe for R69/month or enter an API key in the AI Provider section above.', 'err');
+            abLog('✦ AI not configured. Subscribe for $5/month or enter an API key in the AI Provider section above.', 'err');
             return false;
         }
 
@@ -3289,7 +3291,7 @@ trait CS_SEO_Settings_Page {
             return abEsc(url);
         }
 
-        // Title popup — store titles in a plain object to avoid HTML attribute escaping issues
+        // Title popup. store titles in a plain object to avoid HTML attribute escaping issues
         const abTitleMap = {};
 
         function abShowTitlePopup(postId, el) {
@@ -3383,17 +3385,17 @@ trait CS_SEO_Settings_Page {
             }).then(r => r.json());
         }
 
-        // Model lists — kept in JS so we can rebuild the <select> on provider change.
+        // Model lists. kept in JS so we can rebuild the <select> on provider change.
         // display:none on <option> is ignored by Safari; DOM removal is the only reliable cross-browser approach.
         var abAnthropicModels = [
             {value: 'claude-opus-4-6',           label: 'Claude Opus 4.6 (best quality, highest cost)'},
-            {value: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6 (recommended — quality + speed)'},
+            {value: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6 (recommended. quality + speed)'},
             {value: 'claude-sonnet-4-5',         label: 'Claude Sonnet 4.5'},
             {value: 'claude-sonnet-4.20.140514', label: 'Claude Sonnet 4 (stable pinned)'},
             {value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 (fastest, cheapest)'},
         ];
         var abGeminiModels = [
-            {value: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash (recommended — stable, fast)'},
+            {value: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash (recommended. stable, fast)'},
             {value: 'gemini-2.0-flash-001',  label: 'Gemini 2.0 Flash 001 (pinned stable)'},
             {value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite (fast, cheapest 2.0)'},
             {value: 'gemini-1.5-pro',        label: 'Gemini 1.5 Pro (high quality, long context)'},
@@ -3722,10 +3724,10 @@ trait CS_SEO_Settings_Page {
 
             const bg = !s ? '#666' : s >= 80 ? '#1a7a34' : s >= 60 ? '#2271b1' : s >= 40 ? '#b45309' : '#b91c1c';
             hdr.style.background = bg;
-            titleEl.textContent  = post.title + ' — Readability: ' + (s ? s + '% ' + lbl : 'unscored');
+            titleEl.textContent  = post.title + '. Readability: ' + (s ? s + '% ' + lbl : 'unscored');
 
             const rows = [
-                ['Score',            s !== null && s !== undefined ? s + '% — ' + lbl : '—'],
+                ['Score',            s !== null && s !== undefined ? s + '%. ' + lbl : '—'],
                 ['Avg sentence',     d.sentence_len    !== undefined && d.sentence_len !== null ? d.sentence_len + ' words (ideal ≤ 15)' : '—'],
                 ['Heading density',  d.heading_density !== undefined && d.heading_density !== null ? '1 heading per ' + d.heading_density + ' words' : '—'],
                 ['Passive voice',    d.passive_pct     !== undefined ? d.passive_pct + '% (target < 5%)' : '—'],
@@ -3824,7 +3826,7 @@ trait CS_SEO_Settings_Page {
                     descCell = abBadge(p) + editBtn + existDesc + genDesc;
                 }
                 const canGen = !p._processing && !p.no_post;
-                // ALT badge — update after generation using alts_saved
+                // ALT badge. update after generation using alts_saved
                 const missingAlt = (p.missing_alt || 0) - (p._alts_saved || 0);
                 const altCell = missingAlt > 0
                     ? '<span style="display:inline-block;background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;white-space:nowrap">⚠ ' + missingAlt + ' missing</span>'
@@ -3836,7 +3838,7 @@ trait CS_SEO_Settings_Page {
                 const tChars = p._new_title_chars !== undefined ? p._new_title_chars : (p.title_chars || 0);
                 const tTitle = p._new_title || p.effective_title || p.title || '';
                 const isAiTitle = p._new_title !== undefined;
-                // Store title in map for popup — avoids all HTML attribute escaping issues
+                // Store title in map for popup. avoids all HTML attribute escaping issues
                 if (tTitle) {
                     abTitleMap[p.id] = tTitle;
                     abTitleMap['_ai_' + p.id] = isAiTitle;
@@ -3865,7 +3867,7 @@ trait CS_SEO_Settings_Page {
                     ? '<span style="background:#6b3fa0;color:#fff;border-radius:3px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:4px">📄 Page</span>'
                     : '';
                 const noPostNote = p.no_post
-                    ? '<span style="color:#888;font-size:12px">Blog posts index — no post object. Set a static front page to enable AI generation.</span>'
+                    ? '<span style="color:#888;font-size:12px">Blog posts index; no post object. Set a static front page to enable AI generation.</span>'
                     : '';
                 const actionCell = p.no_post
                     ? '<span style="color:#aaa;font-size:12px">N/A</span>'
@@ -3971,7 +3973,7 @@ trait CS_SEO_Settings_Page {
                 abRenderTable();
                 const scoreCell = document.querySelector('#ab-row-' + postId + ' .ab-score-cell');
                 if (scoreCell) { scoreCell.style.transition = 'background 0.3s'; scoreCell.style.background = '#d1e7dd'; setTimeout(() => { scoreCell.style.background = ''; }, 1200); }
-                // Readability score (pure PHP — no API cost)
+                // Readability score (pure PHP. no API cost)
                 abPost('cs_seo_readability_score_one', {post_id: postId}).then(rd => {
                     if (rd.success) {
                         post._readability_score = rd.data.score;
@@ -3979,7 +3981,7 @@ trait CS_SEO_Settings_Page {
                         abRenderTable();
                     }
                 }).catch(() => {});
-                // AEO answer — generate silently if not already set
+                // AEO answer. generate silently if not already set
                 if (!post.has_aeo) {
                     abPost('cs_seo_aeo_gen_one', {post_id: postId, force: 0}).then(ad => {
                         if (ad.success && ad.data.status === 'generated') {
@@ -4007,7 +4009,7 @@ trait CS_SEO_Settings_Page {
                 if (data.success) {
                     post._seo_score = data.data.seo_score;
                     post._seo_notes = data.data.seo_notes || '';
-                    abLog('📊 SEO score: ' + data.data.seo_score + '% — ' + (data.data.seo_notes || ''), 'info');
+                    abLog('📊 SEO score: ' + data.data.seo_score + '%. ' + (data.data.seo_notes || ''), 'info');
                 } else {
                     post._seo_score = undefined;
                     abLog('✗ Score error for post ' + postId + ': ' + (data.data || 'Unknown error'), 'err');
@@ -4058,8 +4060,8 @@ trait CS_SEO_Settings_Page {
 
             const bg = !s ? '#666' : s >= 90 ? '#1a7a34' : s >= 75 ? '#2271b1' : s >= 50 ? '#b45309' : '#b91c1c';
             hdr.style.background  = bg;
-            titleEl.textContent   = post.title + ' — SEO Score: ' + (s ? s + '%' : 'unscored');
-            notesEl.textContent   = n || 'No feedback yet — click Re-score to generate.';
+            titleEl.textContent   = post.title + '. SEO Score: ' + (s ? s + '%' : 'unscored');
+            notesEl.textContent   = n || 'No feedback yet. click Re-score to generate.';
 
             copyBtn.innerHTML = '&#128203; Copy Feedback';
             copyBtn.onclick = function() {
@@ -4210,7 +4212,7 @@ trait CS_SEO_Settings_Page {
                         const r = data.data;
                         if (r.status === 'skipped') {
                             skipped++;
-                            abLog('⊘ "' + post.title.slice(0,55) + '" — skipped (has desc)', 'skip');
+                            abLog('⊘ "' + post.title.slice(0,55) + '". skipped (has desc)', 'skip');
                         } else {
                             done++;
                             abState.generated++;
@@ -4230,7 +4232,7 @@ trait CS_SEO_Settings_Page {
                                 }
                                 if (r.seo_score !== undefined) { local._seo_score = r.seo_score; local._seo_notes = r.seo_notes || ''; }
                             }
-                            // Readability score (pure PHP — no API cost)
+                            // Readability score (pure PHP. no API cost)
                             const rdG = await abPost('cs_seo_readability_score_one', {post_id: post.id}).catch(() => null);
                             if (rdG && rdG.success && local) { local._readability_score = rdG.data.score; local.readability_data = rdG.data; }
                         }
@@ -4238,7 +4240,7 @@ trait CS_SEO_Settings_Page {
                         errors++;
                         const msg = typeof data.data === 'object' ? data.data.message : data.data;
                         abLog('✗ "' + post.title.slice(0,45) + '": ' + msg, 'err');
-                        await abSleep(12000); // longer pause on error — likely a rate limit
+                        await abSleep(12000); // longer pause on error. likely a rate limit
                     }
                 } catch(e) {
                     errors++;
@@ -4248,11 +4250,11 @@ trait CS_SEO_Settings_Page {
 
                 abUpdateSummary();
                 abRenderTable();
-                await abSleep(2500); // ~24 posts/min — stays under Anthropic's 30k token/min limit
+                await abSleep(2500); // ~24 posts/min. stays under Anthropic's 30k token/min limit
             }
 
             abSetProgress(done + skipped, targets.length);
-            abSetStatus('Done — ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors');
+            abSetStatus('Done. ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors');
             abLog('Run complete: ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors', done > 0 ? 'ok' : 'info');
             if (done > 0) abPost('cs_seo_rebuild_health', {}).catch(() => {});
 
@@ -4299,7 +4301,7 @@ trait CS_SEO_Settings_Page {
                 }
                 if (toScore.length > 0) {
                     abLog('Phase 2 complete: ' + scoresDone + ' scored' + (scoresErr > 0 ? ', ' + scoresErr + ' errors' : ''), scoresDone > 0 ? 'ok' : 'info');
-                    abSetStatus('Done — ' + scoresDone + ' posts scored');
+                    abSetStatus('Done. ' + scoresDone + ' posts scored');
                 }
             }
 
@@ -4333,7 +4335,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-stop').style.display            = 'inline-block';
 
             try {
-            abLog('Starting fix run — scanning for short and long descriptions...', 'info');
+            abLog('Starting fix run. scanning for short and long descriptions...', 'info');
 
             // Fetch all posts across all pages.
             let allPosts = [];
@@ -4354,7 +4356,7 @@ trait CS_SEO_Settings_Page {
             });
 
             if (targets.length === 0) {
-                abLog('No out-of-range descriptions found — nothing to fix.', 'info');
+                abLog('No out-of-range descriptions found. nothing to fix.', 'info');
                 abSetStatus('Nothing to fix.');
                 return;
             }
@@ -4368,7 +4370,7 @@ trait CS_SEO_Settings_Page {
 
                 const len = post.desc ? post.desc.length : 0;
                 const issue = len < abMinChar ? 'too short (' + len + 'c)' : 'too long (' + len + 'c)';
-                abSetStatus('Fixing: "' + post.title.slice(0,50) + '" — ' + issue);
+                abSetStatus('Fixing: "' + post.title.slice(0,50) + '". ' + issue);
                 abSetProgress(done, targets.length);
 
                 try {
@@ -4378,7 +4380,7 @@ trait CS_SEO_Settings_Page {
                         const r = data.data;
                         if (r.status === 'skipped') {
                             skipped++;
-                            abLog('⊘ "' + post.title.slice(0,55) + '" — ' + r.message, 'skip');
+                            abLog('⊘ "' + post.title.slice(0,55) + '". ' + r.message, 'skip');
                         } else {
                             done++;
                             abState.generated++;
@@ -4408,7 +4410,7 @@ trait CS_SEO_Settings_Page {
             }
 
             abSetProgress(done + skipped, targets.length);
-            abSetStatus('Fix run done — ' + done + ' fixed, ' + skipped + ' skipped, ' + errors + ' errors');
+            abSetStatus('Fix run done. ' + done + ' fixed, ' + skipped + ' skipped, ' + errors + ' errors');
             abLog('Fix run complete: ' + done + ' fixed, ' + skipped + ' skipped, ' + errors + ' errors', done > 0 ? 'ok' : 'info');
 
             } catch(e) { abLog('✗ Unexpected error: ' + e.message, 'err'); } finally {
@@ -4441,7 +4443,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-stop').style.display            = 'inline-block';
 
             try {
-            abLog('Starting title fix run — scanning for titles outside 50–60 chars...', 'info');
+            abLog('Starting title fix run. scanning for titles outside 50–60 chars...', 'info');
 
             let allPosts = [];
             abSetStatus('Fetching full post list...');
@@ -4457,7 +4459,7 @@ trait CS_SEO_Settings_Page {
             abLog('Found ' + targets.length + ' title(s) outside 50–60 char range', 'info');
 
             if (targets.length === 0) {
-                abLog('All titles are within range — nothing to fix.', 'info');
+                abLog('All titles are within range. nothing to fix.', 'info');
                 abSetStatus('Nothing to fix.');
                 return;
             }
@@ -4468,7 +4470,7 @@ trait CS_SEO_Settings_Page {
                 if (abState.stopped) { abLog('Stopped by user after ' + done + ' posts', 'skip'); break; }
 
                 const issue = post.title_chars < 50 ? 'too short (' + post.title_chars + 'c)' : 'too long (' + post.title_chars + 'c)';
-                abSetStatus('Fixing title: "' + post.title.slice(0,50) + '" — ' + issue);
+                abSetStatus('Fixing title: "' + post.title.slice(0,50) + '". ' + issue);
                 abSetProgress(done, targets.length);
 
                 try {
@@ -4477,7 +4479,7 @@ trait CS_SEO_Settings_Page {
                         const r = data.data;
                         if (r.status === 'skipped') {
                             skipped++;
-                            abLog('⊘ "' + post.title.slice(0,55) + '" — already in range', 'skip');
+                            abLog('⊘ "' + post.title.slice(0,55) + '". already in range', 'skip');
                         } else {
                             done++;
                             const local = abState.posts.find(p => p.id === post.id);
@@ -4510,7 +4512,7 @@ trait CS_SEO_Settings_Page {
             }
 
             abSetProgress(done + skipped, targets.length);
-            abSetStatus('Title fix done — ' + done + ' fixed, ' + skipped + ' skipped, ' + errors + ' errors');
+            abSetStatus('Title fix done. ' + done + ' fixed, ' + skipped + ' skipped, ' + errors + ' errors');
             abLog('Title fix complete: ' + done + ' fixed, ' + skipped + ' skipped, ' + errors + ' errors', done > 0 ? 'ok' : 'info');
 
             } catch(e) { abLog('✗ Unexpected error: ' + e.message, 'err'); } finally {
@@ -4542,7 +4544,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-stop').style.display            = 'inline-block';
 
             try {
-            abLog('Generating missing titles — fetching full post list...', 'info');
+            abLog('Generating missing titles. fetching full post list...', 'info');
 
             let allPosts = [];
             abSetStatus('Fetching full post list...');
@@ -4558,7 +4560,7 @@ trait CS_SEO_Settings_Page {
             abLog('Found ' + targets.length + ' post(s) with no SEO title', 'info');
 
             if (targets.length === 0) {
-                abLog('All posts have a title tag — nothing to generate.', 'info');
+                abLog('All posts have a title tag. nothing to generate.', 'info');
                 abSetStatus('Nothing to generate.');
                 return;
             }
@@ -4571,7 +4573,7 @@ trait CS_SEO_Settings_Page {
                     const post = queue.shift();
                     if (!post) break;
 
-                    abSetStatus('Generating titles — ' + (done + skipped + errors) + '/' + targets.length + ' done, ' + queue.length + ' remaining');
+                    abSetStatus('Generating titles. ' + (done + skipped + errors) + '/' + targets.length + ' done, ' + queue.length + ' remaining');
                     abSetProgress(done + skipped + errors, targets.length);
 
                     try {
@@ -4580,7 +4582,7 @@ trait CS_SEO_Settings_Page {
                             const r = data.data;
                             if (r.status === 'skipped') {
                                 skipped++;
-                                abLog('⊘ "' + post.title.slice(0, 55) + '" — already has a title', 'skip');
+                                abLog('⊘ "' + post.title.slice(0, 55) + '". already has a title', 'skip');
                             } else {
                                 done++;
                                 abState.generatedTitles++;
@@ -4617,7 +4619,7 @@ trait CS_SEO_Settings_Page {
             else { await Promise.all(Array.from({length: Math.min(3, targets.length)}, titleWorker)); }
 
             abSetProgress(done + skipped, targets.length);
-            abSetStatus('Done — ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors');
+            abSetStatus('Done. ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors');
             abLog('Generate missing titles complete: ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors', done > 0 ? 'ok' : 'info');
 
             } catch(e) { abLog('✗ Unexpected error: ' + e.message, 'err'); } finally {
@@ -4648,7 +4650,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-stop').style.display            = 'inline-block';
 
             try {
-            abLog('Starting static regeneration — clearing stale OG image data for all posts...', 'info');
+            abLog('Starting static regeneration. clearing stale OG image data for all posts...', 'info');
             abSetStatus('Regenerating static data...');
 
             let done = 0, cleared = 0, errors = 0;
@@ -4669,9 +4671,9 @@ trait CS_SEO_Settings_Page {
                             const src = r.source === 'featured_image' ? 'now using featured image'
                                       : r.source === 'site_default'   ? 'now using site default OG image'
                                       : 'no image found';
-                            abLog('✓ "' + post.title.slice(0,55) + '" — cleared stale custom image, ' + src, 'ok');
+                            abLog('✓ "' + post.title.slice(0,55) + '". cleared stale custom image, ' + src, 'ok');
                         } else {
-                            abLog('⊘ "' + post.title.slice(0,55) + '" — no custom image was set, nothing to clear', 'skip');
+                            abLog('⊘ "' + post.title.slice(0,55) + '". no custom image was set, nothing to clear', 'skip');
                         }
                     } else {
                         errors++;
@@ -4686,7 +4688,7 @@ trait CS_SEO_Settings_Page {
             }
 
             abSetProgress(done, abState.posts.length);
-            abSetStatus('Static regen done — ' + cleared + ' posts updated, ' + errors + ' errors');
+            abSetStatus('Static regen done. ' + cleared + ' posts updated, ' + errors + ' errors');
             abLog('Static regeneration complete: ' + cleared + ' OG images cleared, ' + (done - cleared) + ' already clean, ' + errors + ' errors', cleared > 0 ? 'ok' : 'info');
 
             } catch(e) { abLog('✗ Unexpected error: ' + e.message, 'err'); } finally {
@@ -4719,7 +4721,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-ai-stop').style.display            = 'inline-block';
 
             try {
-            abLog('Generating AEO answer paragraphs — fetching full post list...', 'info');
+            abLog('Generating AEO answer paragraphs. fetching full post list...', 'info');
 
             let allPosts = [];
             abSetStatus('Fetching full post list...');
@@ -4735,7 +4737,7 @@ trait CS_SEO_Settings_Page {
             abLog('Found ' + targets.length + ' post(s) with no AEO answer paragraph', 'info');
 
             if (targets.length === 0) {
-                abLog('All posts have AEO answer paragraphs — nothing to generate.', 'info');
+                abLog('All posts have AEO answer paragraphs. nothing to generate.', 'info');
                 abSetStatus('Nothing to generate.');
             } else {
 
@@ -4747,7 +4749,7 @@ trait CS_SEO_Settings_Page {
                     const post = queue.shift();
                     if (!post) break;
 
-                    abSetStatus('Generating AEO answers — ' + (done + skipped + errors) + '/' + targets.length + ' done, ' + queue.length + ' remaining');
+                    abSetStatus('Generating AEO answers. ' + (done + skipped + errors) + '/' + targets.length + ' done, ' + queue.length + ' remaining');
                     abSetProgress(done + skipped + errors, targets.length);
 
                     try {
@@ -4756,7 +4758,7 @@ trait CS_SEO_Settings_Page {
                             const r = data.data;
                             if (r.status === 'skipped') {
                                 skipped++;
-                                abLog('⊘ "' + post.title.slice(0, 55) + '" — already has AEO answer', 'skip');
+                                abLog('⊘ "' + post.title.slice(0, 55) + '". already has AEO answer', 'skip');
                             } else {
                                 done++;
                                 const local = abState.posts.find(p => p.id === post.id);
@@ -4783,7 +4785,7 @@ trait CS_SEO_Settings_Page {
             else { await Promise.all(Array.from({length: Math.min(3, targets.length)}, aeoWorker)); }
 
             abSetProgress(done + skipped, targets.length);
-            abSetStatus('Done — ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors');
+            abSetStatus('Done. ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors');
             abLog('AEO generation complete: ' + done + ' generated, ' + skipped + ' skipped, ' + errors + ' errors', done > 0 ? 'ok' : 'info');
 
             } // end if targets.length > 0
@@ -5025,7 +5027,7 @@ trait CS_SEO_Settings_Page {
                         if (match) img.alt = match.alt;
                     });
                     altState.fixed += updated;
-                    altLog('✓ "' + abDecodeTitle(post.title).slice(0,55) + '" — ' + updated + ' image(s) updated', 'ok');
+                    altLog('✓ "' + abDecodeTitle(post.title).slice(0,55) + '". ' + updated + ' image(s) updated', 'ok');
                     altUpdateSummary();
                 } else {
                     altLog('✗ "' + abDecodeTitle(post.title).slice(0,45) + '": ' + (data.data || 'Unknown error'), 'err');
@@ -5052,7 +5054,7 @@ trait CS_SEO_Settings_Page {
             document.getElementById('ab-alt-stop').style.display   = 'inline-block';
 
             try {
-            altLog('Starting ALT text generation run' + (force ? ' (FORCE mode — all images)' : '') + '...', 'info');
+            altLog('Starting ALT text generation run' + (force ? ' (FORCE mode. all images)' : '') + '...', 'info');
 
             // In force mode: process all posts with images. In normal mode: only posts with missing ALT.
             const postsToProcess = force
@@ -5086,7 +5088,7 @@ trait CS_SEO_Settings_Page {
                         });
                         totalFixed += updated;
                         altState.fixed += updated;
-                        altLog('✓ "' + abDecodeTitle(post.title).slice(0,55) + '" — ' + updated + ' image(s) updated', 'ok');
+                        altLog('✓ "' + abDecodeTitle(post.title).slice(0,55) + '". ' + updated + ' image(s) updated', 'ok');
                     } else {
                         errors++;
                         altLog('✗ "' + post.title.slice(0,45) + '": ' + (data.data || 'Error'), 'err');
@@ -5106,7 +5108,7 @@ trait CS_SEO_Settings_Page {
             }
 
             altSetProgress(done, postsToProcess.length);
-            altSetStatus('Done — ' + totalFixed + ' image(s) updated across ' + done + ' post(s), ' + errors + ' errors');
+            altSetStatus('Done. ' + totalFixed + ' image(s) updated across ' + done + ' post(s), ' + errors + ' errors');
             altLog('Run complete: ' + totalFixed + ' images updated, ' + errors + ' errors', totalFixed > 0 ? 'ok' : 'info');
             if (totalFixed > 0) abPost('cs_seo_rebuild_health', {}).catch(() => {});
 
@@ -5282,7 +5284,7 @@ trait CS_SEO_Settings_Page {
             }
             if (!sumState.stopped) {
                 sumSetProgress(100);
-                sumSetStatus('✓ Done — ' + sumState.done + ' summaries generated');
+                sumSetStatus('✓ Done. ' + sumState.done + ' summaries generated');
                 sumLog('✓ Batch complete: ' + sumState.done + ' generated', 'ab-log-ok');
                 document.getElementById('ab-sum-gen-all').disabled = true;
                 if (sumState.done > 0) abPost('cs_seo_rebuild_health', {}).catch(() => {});
@@ -5472,7 +5474,7 @@ trait CS_SEO_Settings_Page {
 
         async function cfLoad() {
             // Two-phase batched scan: Phase 1 gets all post IDs instantly (~10ms, no analysis).
-            // Phase 2 analyses in batches of 25 with a live counter — each batch is fast
+            // Phase 2 analyses in batches of 25 with a live counter. each batch is fast
             // and the table populates progressively so filters work throughout.
             const CF_BATCH   = 25;
             const CF_TIMEOUT = 30000; // 30 s per batch before skipping
@@ -5530,7 +5532,7 @@ trait CS_SEO_Settings_Page {
                         }
                     } catch(batchErr) {
                         console.error('[catfix] batch at offset ' + i + ' failed:', batchErr);
-                        // Continue with remaining batches — don't abort the whole scan
+                        // Continue with remaining batches. don't abort the whole scan
                     }
                 }
 
@@ -5867,7 +5869,7 @@ trait CS_SEO_Settings_Page {
             let parts = [];
             if (catchAll) parts.push(`<strong>${catchAll}</strong> catch-all ${catchAll === 1 ? 'category' : 'categories'}`);
             if (drifting) parts.push(`<strong>${drifting}</strong> drifting ${drifting === 1 ? 'category' : 'categories'}`);
-            const cacheNote = cachedAt ? ` <span style="font-size:11px;opacity:0.75;">(cached &mdash; ${abEsc(cachedAt)})</span>` : '';
+            const cacheNote = cachedAt ? ` <span style="font-size:11px;opacity:0.75;">(cached. ${abEsc(cachedAt)})</span>` : '';
             summary.innerHTML = '<div style="background:#fef9ec;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;color:#92400e;font-size:13px;">'
                 + '&#129302; AI identified ' + parts.join(' and ') + ' across ' + totalPosts + ' posts.' + cacheNote + '</div>';
             cdRenderDrift();
@@ -5881,7 +5883,7 @@ trait CS_SEO_Settings_Page {
             const cacheBtn = document.getElementById('cd-btn-cache');
             const ctaMsg  = document.getElementById('cd-cta-msg');
 
-            // Already have data in memory from this session — just re-render, no AJAX needed
+            // Already have data in memory from this session. just re-render, no AJAX needed
             if (cdDrift && cdDrift.length > 0) {
                 cta.style.display = 'none';
                 if (reload) reload.style.display = 'inline-block';
@@ -5905,7 +5907,7 @@ trait CS_SEO_Settings_Page {
                 if (reload) reload.style.display = 'inline-block';
                 cdRender(cdTotalPosts, d.cached_at);
             } else if (d.stale) {
-                // Taxonomy has changed but data is still useful — just load it silently
+                // Taxonomy has changed but data is still useful. just load it silently
                 cta.style.display = 'none';
                 cdDrift      = d.drift;
                 cdTotalPosts = d.total_posts;
@@ -5918,7 +5920,7 @@ trait CS_SEO_Settings_Page {
             }
         }
 
-        // cdLoad: always makes a fresh API call — called by Re-run Analysis button
+        // cdLoad: always makes a fresh API call. called by Re-run Analysis button
         let _cdLoadAbort = null;
         async function cdLoad() {
             const cta     = document.getElementById('cd-cta');
@@ -5995,7 +5997,7 @@ trait CS_SEO_Settings_Page {
             }));
             const unCount = unanalysed.length;
 
-            // Show loading state — elapsed counter lives inside the button text so it's visible
+            // Show loading state. elapsed counter lives inside the button text so it's visible
             btn.disabled = true;
             let elapsed = 0;
             const updateBtnText = () => {
@@ -6053,7 +6055,7 @@ trait CS_SEO_Settings_Page {
                 return;
             }
 
-            // Merge into cdDrift state — moves and the flat list of analysed post IDs
+            // Merge into cdDrift state. moves and the flat list of analysed post IDs
             cdDrift[catIdx].moves = [...(cdDrift[catIdx].moves || []), ...newMoves];
             const returnedAnalysedIds = (d.analysed_post_ids || []).map(Number);
             const existingAnalysed    = (cdDrift[catIdx].analysed_post_ids || []).map(Number);
@@ -6316,7 +6318,7 @@ trait CS_SEO_Settings_Page {
                             if (!parentLi.querySelector('.cd-moved-lbl')) parentLi.insertAdjacentHTML('beforeend', '<span class="cd-moved-lbl" style="color:#1a7a34;font-size:11px;font-weight:600;flex-shrink:0;">&#10003; Moved</span>');
                         }
                     });
-                    // Check each group that contained this post — mark Move All done if none left
+                    // Check each group that contained this post. mark Move All done if none left
                     document.querySelectorAll('[id^="cd-move-"]').forEach(groupEl => {
                         const remaining = groupEl.querySelectorAll('.cd-move-btn:not([style*="display: none"])');
                         if (!remaining.length) {
@@ -6359,12 +6361,12 @@ trait CS_SEO_Settings_Page {
             } catch(e) {
                 console.error('[cs-seo] cdMoveAll failed', e);
                 btn.disabled = false;
-                btn.textContent = '\u2192 Move all (error — retry)';
+                btn.textContent = '\u2192 Move all (error. retry)';
             }
         }
 
         // =====================================================================
-        // Category Migrate — admin UI
+        // Category Migrate. admin UI
         // =====================================================================
 
         let cmCurrentCatId   = 0;
@@ -6536,7 +6538,7 @@ trait CS_SEO_Settings_Page {
                 // Action select
                 let actionHtml;
                 if (isSingle) {
-                    // Must swap — show only swap options with a label
+                    // Must swap. show only swap options with a label
                     actionHtml = '<span style="font-size:11px;color:#888;display:block;margin-bottom:3px;">Must swap (only category)</span>'
                         + '<select id="' + selectId + '" class="cm-target-sel" data-pid="' + p.post_id + '" data-single="1"'
                         + ' style="width:100%;max-width:200px;font-size:12px;" data-mode="swap">'
@@ -6762,7 +6764,7 @@ trait CS_SEO_Settings_Page {
                 // Show optimistic count immediately, then refine with server overlap count.
                 function renderPreview(uniqueCount, overlap) {
                     var overlapNote = (overlap > 0)
-                        ? ' <em style="color:#7c3aed">(' + overlap + ' post' + (overlap !== 1 ? 's' : '') + ' already in both — counted once)</em>'
+                        ? ' <em style="color:#7c3aed">(' + overlap + ' post' + (overlap !== 1 ? 's' : '') + ' already in both. counted once)</em>'
                         : '';
                     preview.innerHTML =
                         '<strong>' + srcCount + ' posts</strong> from <strong>' + srcName + '</strong> will move into ' +
@@ -6823,7 +6825,7 @@ trait CS_SEO_Settings_Page {
                         if (resp.success) {
                             const d = resp.data;
                             const skipNote = d.skipped > 0 ? ' (' + d.skipped + ' already had this category)' : '';
-                            resultEl.textContent = '✅ Done — ' + d.total + ' posts moved into "' + d.final_name + '"' + skipNote + '. Combined: ' + d.final_count + ' posts. Source deleted.';
+                            resultEl.textContent = '✅ Done. ' + d.total + ' posts moved into "' + d.final_name + '"' + skipNote + '. Combined: ' + d.final_count + ' posts. Source deleted.';
                             resultEl.style.cssText = 'display:inline-block;background:#d1fae5;color:#065f46;font-size:13px;font-weight:600;padding:5px 12px;border-radius:12px;';
                             preview.style.display = 'none';
                             mergeBtn.style.display = 'none';
@@ -6876,7 +6878,7 @@ trait CS_SEO_Settings_Page {
                         .then(resp => {
                             if (resp.success) {
                                 const d = resp.data;
-                                resultEl.textContent = '✅ Partial merge done — "' + d.src_name + '" removed from ' + d.removed + ' shared post' + (d.removed !== 1 ? 's' : '') + '. ' + d.src_remaining + ' post' + (d.src_remaining !== 1 ? 's' : '') + ' remain in "' + d.src_name + '".';
+                                resultEl.textContent = '✅ Partial merge done. "' + d.src_name + '" removed from ' + d.removed + ' shared post' + (d.removed !== 1 ? 's' : '') + '. ' + d.src_remaining + ' post' + (d.src_remaining !== 1 ? 's' : '') + ' remain in "' + d.src_name + '".';
                                 resultEl.style.cssText = 'display:inline-block;background:#dbeafe;color:#1e3a8a;font-size:13px;font-weight:600;padding:5px 12px;border-radius:12px;';
                                 preview.style.display = 'none';
                                 partialBtn.style.display = 'none';
@@ -6927,7 +6929,7 @@ trait CS_SEO_Settings_Page {
         }
 
         // =====================================================================
-        // Related Articles — admin UI
+        // Related Articles. admin UI
         // =====================================================================
 
         function rcCheckCountWarning(input, warnId) {
@@ -7134,7 +7136,7 @@ trait CS_SEO_Settings_Page {
                     if (d.data.generated > 0) parts.push(d.data.generated + ' generated');
                     if (d.data.synced    > 0) parts.push(d.data.synced    + ' synced');
                     const summary = parts.length ? parts.join(', ') : 'nothing to update';
-                    alert('✓ Done — ' + summary + ' (' + d.data.top_count + ' top / ' + d.data.bottom_count + ' bottom)');
+                    alert('✓ Done. ' + summary + ' (' + d.data.top_count + ' top / ' + d.data.bottom_count + ' bottom)');
                     await rcLoadTable(rcCurrentPage, rcCurrentFilter);
                 } else {
                     alert('Failed: ' + (d.data?.message || 'unknown error'));
@@ -7209,7 +7211,7 @@ trait CS_SEO_Settings_Page {
             }
 
             // ── Phase 2: process ─────────────────────────────────────────────
-            document.getElementById('rc-batch-label').textContent = 'Starting — ' + allIds.length + ' posts';
+            document.getElementById('rc-batch-label').textContent = 'Starting. ' + allIds.length + ' posts';
             rcBatchRunning = true;
             rcBatchStop    = false;
             rcBatchDone    = 0;
@@ -7416,7 +7418,7 @@ trait CS_SEO_Settings_Page {
                                 } else {
                                     if (msg) { msg.style.display=''; msg.style.color='#b91c1c'; msg.textContent = (res.data && res.data.message) || 'Error starting checkout. Please try again.'; }
                                     subscribeBtn.disabled = false;
-                                    subscribeBtn.textContent = 'Subscribe — $5/month';
+                                    subscribeBtn.textContent = 'Subscribe $5/month';
                                 }
                             });
                     });
@@ -7472,6 +7474,40 @@ trait CS_SEO_Settings_Page {
                                     boostBtn.textContent = '⚡ Boost +200 requests for $5';
                                     alert((res.data && res.data.message) || 'Error starting boost checkout.');
                                 }
+                            });
+                    });
+                }
+
+                // Cancel subscription
+                var cancelBtn = document.getElementById('ab-proxy-cancel-btn');
+                var cancelMsg = document.getElementById('ab-proxy-cancel-msg');
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', function() {
+                        if (!confirm('Cancel your subscription? You will keep access until the end of the current billing period.')) return;
+                        cancelBtn.disabled   = true;
+                        cancelBtn.textContent = 'Cancelling…';
+                        proxyPost('cs_seo_proxy_cancel')
+                            .then(function(res) {
+                                if (res.success) {
+                                    cancelMsg.style.display = 'block';
+                                    cancelMsg.style.color   = '#15803d';
+                                    cancelMsg.textContent   = 'Subscription cancelled. Your access remains active until the end of the billing period.';
+                                    cancelBtn.style.display = 'none';
+                                } else {
+                                    var msg = (res.data && res.data.message) || 'Cancellation failed. please try again.';
+                                    cancelMsg.style.display = 'block';
+                                    cancelMsg.style.color   = '#b91c1c';
+                                    cancelMsg.textContent   = msg;
+                                    cancelBtn.disabled      = false;
+                                    cancelBtn.textContent   = 'Cancel subscription';
+                                }
+                            })
+                            .catch(function() {
+                                cancelMsg.style.display = 'block';
+                                cancelMsg.style.color   = '#b91c1c';
+                                cancelMsg.textContent   = 'Network error: please try again.';
+                                cancelBtn.disabled      = false;
+                                cancelBtn.textContent   = 'Cancel subscription';
                             });
                     });
                 }
@@ -7584,7 +7620,7 @@ trait CS_SEO_Settings_Page {
                     blcPostCount=postIds.length;
                     if(!postIds.length){ blcSetStatus('No posts found.'); return; }
 
-                    // Phase 1 — extract all links
+                    // Phase 1. extract all links
                     var allLinks=[];
                     for(var i=0;i<postIds.length;i++){
                         if(blcStop) break;
@@ -7598,7 +7634,7 @@ trait CS_SEO_Settings_Page {
                         }
                     }
 
-                    // Phase 2 — check unique URLs
+                    // Phase 2. check unique URLs
                     var uniqueUrls=[...new Set(allLinks.map(function(l){return l.url;}))];
                     blcTotalLinks=uniqueUrls.length;
                     var urlCache={};
@@ -7831,7 +7867,7 @@ trait CS_SEO_Settings_Page {
             function toWillApply(p) {
                 if (p.status !== 'suggested') return false;
                 var thresh = toState.threshold || 0;
-                if (thresh <= 0) return true; // no threshold — all suggested titles qualify
+                if (thresh <= 0) return true; // no threshold. all suggested titles qualify
                 if (!p.score_before || p.score_before <= 0) return false; // guard against division by zero
                 return ((p.score_after - p.score_before) / p.score_before * 100) >= thresh;
             }
@@ -7874,7 +7910,7 @@ trait CS_SEO_Settings_Page {
                     btn.title = '';
                 } else {
                     btn.textContent = '🔍 Analyse Remaining';
-                    btn.title = 'All posts have suggestions — use Re-analyse All to regenerate';
+                    btn.title = 'All posts have suggestions. use Re-analyse All to regenerate';
                 }
             }
 
@@ -7900,7 +7936,7 @@ trait CS_SEO_Settings_Page {
                 if (!toState.polling) {
                     abPost('cs_seo_title_queue_status', {}).then(function(r) {
                         if (r.success && r.data.running) {
-                            toLog('⚡ Background analysis in progress — resuming tracking.', 'ab-log-ok');
+                            toLog('⚡ Background analysis in progress; resuming tracking.', 'ab-log-ok');
                             toStartPolling();
                         }
                     });
@@ -8023,7 +8059,7 @@ trait CS_SEO_Settings_Page {
                     '<th style="' + thBase + ';min-width:200px">Suggested Title</th>' +
                     '<th style="' + thBase + '">Keywords</th>' +
                     '<th style="' + thCenter + '" onclick="titleOptSort(\'score_after\')">SEO After' + arrow('score_after') + '</th>' +
-                    '<th style="' + thCenter + '" onclick="titleOptSort(\'will_apply\')" title="Sort by Will Apply — posts that meet the current threshold first">' + willApplyHeader + arrow('will_apply') + '</th>' +
+                    '<th style="' + thCenter + '" onclick="titleOptSort(\'will_apply\')" title="Sort by Will Apply: posts that meet the current threshold first">' + willApplyHeader + arrow('will_apply') + '</th>' +
                     '<th style="' + thCenter + '" onclick="titleOptSort(\'stale\')" title="Sort: edited posts first">Status / Edited' + arrow('stale') + '</th>' +
                     '<th style="' + thBase + '">Actions</th>' +
                     '</tr></thead>' +
@@ -8143,12 +8179,12 @@ trait CS_SEO_Settings_Page {
                     if (!data.success) { toLog('✗ ' + (data.data || 'Unknown error'), 'ab-log-error'); return; }
                     var d = data.data;
                     if (d.queued === 0) {
-                        toLog('✓ All ' + toState.posts.length + ' posts have suggestions — nothing left to analyse. Use Re-analyse All to refresh.', 'ab-log-ok');
+                        toLog('✓ All ' + toState.posts.length + ' posts have suggestions. nothing left to analyse. Use Re-analyse All to refresh.', 'ab-log-ok');
                         toSetStatus('✓ All posts analysed');
                         toUpdateAnalyseBtn();
                         return;
                     }
-                    toLog('⚡ ' + d.queued + ' posts queued — running in background. Safe to close this tab.', 'ab-log-ok');
+                    toLog('⚡ ' + d.queued + ' posts queued. running in background. Safe to close this tab.', 'ab-log-ok');
                     toSetStatus('⚡ Background: 0 of ' + d.queued + ' processed');
                     toStartPolling();
                 } catch (e) {
@@ -8160,7 +8196,7 @@ trait CS_SEO_Settings_Page {
                 if (toState.polling) return;
                 toState.polling     = true;
                 toState.lastLoggedId = 0;
-                // Keep analyse buttons enabled — clicking them while polling stops and restarts cleanly via toQueueStart → toStopPollingUI
+                // Keep analyse buttons enabled. clicking them while polling stops and restarts cleanly via toQueueStart → toStopPollingUI
                 document.getElementById('ab-titleopt-apply-all').disabled   = true;
                 document.getElementById('ab-titleopt-stop').style.display   = '';
                 toPollStatus();
@@ -8212,12 +8248,12 @@ trait CS_SEO_Settings_Page {
                     if (!d.running) {
                         toStopPollingUI();
                         toSetProgress(100);
-                        toSetStatus('✓ Done — ' + d.processed + ' of ' + d.total + ' analysed.');
-                        toLog('✓ Background analysis complete — ' + d.processed + ' posts processed.', 'ab-log-ok');
+                        toSetStatus('✓ Done. ' + d.processed + ' of ' + d.total + ' analysed.');
+                        toLog('✓ Background analysis complete. ' + d.processed + ' posts processed.', 'ab-log-ok');
                         await toLoad();
                     }
                 } catch (e) {
-                    // swallow network errors during poll — will retry on next interval
+                    // swallow network errors during poll. will retry on next interval
                 }
             }
 
@@ -8225,7 +8261,7 @@ trait CS_SEO_Settings_Page {
                 if (toState.pollTimer) { clearInterval(toState.pollTimer); toState.pollTimer = null; }
                 try {
                     var data = await abPost('cs_seo_title_queue_stop', {});
-                    if (data.success) toLog('⏹ Stopped — ' + (data.data.processed || 0) + ' processed this run.', 'ab-log-ok');
+                    if (data.success) toLog('⏹ Stopped. ' + (data.data.processed || 0) + ' processed this run.', 'ab-log-ok');
                 } catch (e) { /* ignore */ }
                 toStopPollingUI();
                 await toLoad();
@@ -8283,7 +8319,7 @@ trait CS_SEO_Settings_Page {
                     toRenderTable();
                 }
 
-                toLog('✓ Done — ' + done + ' of ' + total + ' applied, ' + redirects + ' redirect' + (redirects !== 1 ? 's' : '') + (errors ? ', ' + errors + ' error(s)' : ''), 'ab-log-ok');
+                toLog('✓ Done. ' + done + ' of ' + total + ' applied, ' + redirects + ' redirect' + (redirects !== 1 ? 's' : '') + (errors ? ', ' + errors + ' error(s)' : ''), 'ab-log-ok');
                 if (applyBtn) { applyBtn.disabled = false; toRenderTable(); }
                 var remaining = (toState.posts || []).filter(function(p) { return p.status === 'suggested'; }).length;
                 if (applyBtn) applyBtn.disabled = remaining === 0;
@@ -8311,14 +8347,14 @@ trait CS_SEO_Settings_Page {
                         var d = data.data;
                         if (d.broken_posts.length === 0) {
                             toSetLinkScanResult('✓ No broken internal links', 'background:#dcfce7;color:#1a7a34');
-                            toLog('✓ Scan complete — ' + d.redirects_checked + ' redirect(s) checked, no broken internal links found.', 'ab-log-ok');
+                            toLog('✓ Scan complete. ' + d.redirects_checked + ' redirect(s) checked, no broken internal links found.', 'ab-log-ok');
                             if (fixBtn) fixBtn.disabled = true;
                         } else {
                             toSetLinkScanResult('⚠ ' + d.broken_posts.length + ' post(s) have broken links', 'background:#fef3c7;color:#92400e');
-                            toLog('⚠ Scan complete — ' + d.redirects_checked + ' redirect(s) checked, ' + d.broken_posts.length + ' post(s) with broken links:', 'ab-log-warn');
+                            toLog('⚠ Scan complete. ' + d.redirects_checked + ' redirect(s) checked, ' + d.broken_posts.length + ' post(s) with broken links:', 'ab-log-warn');
                             d.broken_posts.forEach(function(p) {
                                 var editLink = p.post_edit ? ' <a href="' + abEsc(p.post_edit) + '" target="_blank" rel="noopener" style="color:#2271b1">[edit]</a>' : '';
-                                toLogHtml('&nbsp;&nbsp;• ' + abEsc(p.post_title) + editLink + ' — ' + p.old_urls.length + ' old URL(s)', 'ab-log-info');
+                                toLogHtml('&nbsp;&nbsp;• ' + abEsc(p.post_title) + editLink + '. ' + p.old_urls.length + ' old URL(s)', 'ab-log-info');
                             });
                             toLog('Click "Fix Broken Links" to rewrite these links to their current destinations.', 'ab-log-info');
                             if (fixBtn) fixBtn.disabled = false;
@@ -8348,8 +8384,8 @@ trait CS_SEO_Settings_Page {
                     var data = await abPost('cs_seo_title_fix_links', {});
                     if (data.success) {
                         var d = data.data;
-                        toSetLinkScanResult('✓ Fixed — ' + d.posts_updated + ' post(s) updated', 'background:#dcfce7;color:#1a7a34');
-                        toLog('✓ Internal links fixed — ' + d.processed + ' redirect(s) scanned, ' + d.posts_updated + ' post(s) updated', 'ab-log-ok');
+                        toSetLinkScanResult('✓ Fixed. ' + d.posts_updated + ' post(s) updated', 'background:#dcfce7;color:#1a7a34');
+                        toLog('✓ Internal links fixed. ' + d.processed + ' redirect(s) scanned, ' + d.posts_updated + ' post(s) updated', 'ab-log-ok');
                         if (fixBtn) fixBtn.disabled = true;
                     } else {
                         toSetLinkScanResult('✗ Fix failed', 'background:#fee2e2;color:#9b1c1c');
@@ -8410,134 +8446,279 @@ trait CS_SEO_Settings_Page {
     }
 
     // =========================================================================
-    // Onboarding — Get Started pane
+    // Onboarding. Get Started pane
     // =========================================================================
 
     /**
      * Renders the "Get Started" pane shown to new installs before any API key is configured.
      *
-     * @since 4.21.60
+     * @since 4.21.82
      */
     private function render_onboarding_pane(): void {
-        $ai          = $this->ai_opts;
-        $user_email  = esc_attr(wp_get_current_user()->user_email ?? '');
-        $proxy_ses   = esc_attr((string)($ai['proxy_session_id'] ?? ''));
+        $ai         = $this->ai_opts;
+        $user_email = esc_attr(wp_get_current_user()->user_email ?? '');
+        $proxy_ses  = esc_attr((string)($ai['proxy_session_id'] ?? ''));
         ?>
-        <div class="ab-pane active" id="ab-pane-start">
-        <div style="max-width:900px;margin:0 auto;padding:8px 0 32px">
+        <div class="ab-pane" id="ab-pane-start">
+        <style>
+        #ab-pane-start { background:#f6f7f7; }
+        .ab-ob-hero {
+            background: linear-gradient(135deg,#1d2327 0%,#2d3a45 60%,#1a3a4a 100%);
+            border-radius:16px; padding:40px 40px 36px; margin-bottom:28px;
+            display:flex; align-items:center; gap:32px; flex-wrap:wrap;
+        }
+        .ab-ob-hero-text { flex:1; min-width:260px; }
+        .ab-ob-hero-text h2 { font-size:26px;font-weight:800;color:#fff;margin:0 0 8px;line-height:1.2; }
+        .ab-ob-hero-text p  { font-size:14px;color:#9fb8c8;margin:0 0 20px;line-height:1.6; }
+        .ab-ob-hero-by { font-size:12px;color:#6b8fa3;display:flex;align-items:center;gap:6px; }
+        .ab-ob-feat-grid {
+            display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:28px;
+        }
+        @media(max-width:700px){ .ab-ob-feat-grid { grid-template-columns:repeat(2,1fr); } }
+        .ab-ob-feat-tile {
+            background:#fff;border:1px solid #e5e7eb;border-left:3px solid #6366f1;
+            border-radius:6px;padding:9px 12px;font-size:12px;font-weight:500;color:#374151;
+            line-height:1.3;transition:transform .12s,box-shadow .12s,border-color .12s;cursor:default;
+        }
+        .ab-ob-feat-tile:hover {
+            transform:translateY(-2px);box-shadow:0 4px 12px rgba(99,102,241,.12);
+            border-color:#6366f1;color:#1d2327;
+        }
+        .ab-ob-feat-chip span { font-size:16px; }
+        .ab-ob-step-label {
+            font-size:11px;font-weight:700;letter-spacing:.08em;
+            color:#6b7280;text-transform:uppercase;margin:0 0 14px;
+        }
+        .ab-ob-cards { display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px; }
+        @media (max-width:900px) { .ab-ob-cards { grid-template-columns:1fr; } }
+        .ab-ob-card {
+            background:#fff;border:2px solid #e5e7eb;border-radius:14px;overflow:hidden;
+            display:flex;flex-direction:column;
+            transition:transform .15s,box-shadow .15s,border-color .15s;
+        }
+        .ab-ob-card:hover { transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.10);border-color:#c7d2fe; }
+        .ab-ob-card.ab-ob-featured { border-color:#6366f1;box-shadow:0 4px 20px rgba(99,102,241,.18); }
+        .ab-ob-card.ab-ob-featured:hover { box-shadow:0 10px 30px rgba(99,102,241,.25); }
+        .ab-ob-card-header {
+            padding:20px 22px 18px;display:flex;flex-direction:column;gap:6px;
+        }
+        .ab-ob-header-free { background:#f0fdf4;border-bottom:1px solid #bbf7d0; }
+        .ab-ob-header-sub  { background:linear-gradient(135deg,#4338ca 0%,#6366f1 100%);border-bottom:none; }
+        .ab-ob-header-diy  { background:#0f172a;border-bottom:none; }
+        .ab-ob-card-body   { padding:20px 22px;display:flex;flex-direction:column;flex:1; }
+        .ab-ob-card-label {
+            display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;
+            text-transform:uppercase;padding:3px 9px;border-radius:4px;align-self:flex-start;
+        }
+        .ab-ob-label-free { background:#dcfce7;color:#15803d;border:1px solid #86efac; }
+        .ab-ob-label-sub  { background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3); }
+        .ab-ob-label-diy  { background:rgba(255,255,255,.1);color:#94a3b8;border:1px solid rgba(255,255,255,.15); }
+        .ab-ob-card-header h3 { font-size:17px;font-weight:700;margin:0; }
+        .ab-ob-header-free h3 { color:#14532d; }
+        .ab-ob-header-sub  h3 { color:#fff; }
+        .ab-ob-header-diy  h3 { color:#f1f5f9; }
+        .ab-ob-card .ab-ob-price { font-size:24px;font-weight:800;color:#6366f1;margin:0 0 2px; }
+        .ab-ob-card .ab-ob-price-sub { font-size:11px;color:#6b7280;margin:0 0 14px; }
+        .ab-ob-card .ab-ob-tagline { font-size:12px;color:#6b7280;margin:0 0 16px;line-height:1.5; }
+        .ab-ob-divider { border:none;border-top:1px solid #f3f4f6;margin:14px 0; }
+        .ab-ob-feat-list { list-style:none;margin:0 0 20px;padding:0;font-size:12px;line-height:1.9;color:#374151;flex:1; }
+        .ab-ob-feat-list li.locked { color:#9ca3af; }
+        .ab-ob-cta {
+            width:100%;padding:11px 0;font-size:14px;font-weight:700;
+            border-radius:8px;border:none;cursor:pointer;transition:opacity .15s,transform .1s;
+        }
+        .ab-ob-cta:hover { opacity:.9;transform:translateY(-1px); }
+        .ab-ob-cta:active { transform:translateY(0); }
+        .ab-ob-cta-free { background:#1d2327;color:#fff; }
+        .ab-ob-cta-sub  { background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff; }
+        .ab-ob-cta-diy  { background:#f3f4f6;color:#1d2327;border:1px solid #d1d5db!important; }
+        .ab-ob-next-hint { font-size:11px;color:#9ca3af;text-align:center;margin-top:8px; }
+        .ab-ob-form-row { margin-top:12px; }
+        .ab-ob-form-row input[type=email],
+        .ab-ob-form-row input[type=password] {
+            width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;
+            font-size:13px;box-sizing:border-box;margin-bottom:8px;
+        }
+        .ab-ob-provider-row { display:flex;gap:6px;margin-bottom:8px; }
+        .ab-ob-prov-btn {
+            flex:1;padding:6px 0;font-size:12px;font-weight:600;
+            border:2px solid #e5e7eb;background:#fff;border-radius:6px;cursor:pointer;color:#374151;
+        }
+        .ab-ob-prov-btn.active { border-color:#6366f1;background:#f0f0ff;color:#4338ca; }
+        .ab-ob-inline-btns { display:flex;gap:6px; }
+        .ab-ob-inline-btns button {
+            flex:1;padding:7px 0;font-size:12px;font-weight:600;border-radius:6px;cursor:pointer;
+        }
+        .ab-ob-msg { font-size:12px;margin:8px 0 0;display:none; }
+        .ab-ob-footer { text-align:center;padding:12px 0 4px; }
+        .ab-ob-footer a { font-size:12px;color:#6b7280;text-decoration:none; }
+        .ab-ob-footer a:hover { color:#374151; }
+        </style>
 
-            <?php /* ── Hero ── */ ?>
-            <div style="text-align:center;padding:32px 24px 24px">
-                <div style="font-size:40px;margin-bottom:12px">🚀</div>
-                <h2 style="font-size:22px;font-weight:700;color:#1d2327;margin:0 0 8px"><?php esc_html_e( "Welcome to CloudScale SEO AI", 'cloudscale-seo-ai-optimizer' ); ?></h2>
-                <p style="font-size:15px;color:#50575e;margin:0"><?php esc_html_e( "Most users see results in the first 60 seconds. Pick how you'd like to get started.", 'cloudscale-seo-ai-optimizer' ); ?></p>
+        <div style="max-width:960px;margin:0 auto;padding:20px 4px 40px">
+
+            <?php /* ── Hero banner ── */ ?>
+            <div class="ab-ob-hero">
+                <div class="ab-ob-hero-text">
+                    <h2>Your complete WordPress SEO toolkit</h2>
+                    <p>CloudScale SEO AI Optimizer handles everything from technical SEO to AI-generated content, all from one place. No bloat, no hidden fees. Open source and used globally.</p>
+                    <div class="ab-ob-hero-by">
+                        <span>Built by</span>
+                        <a href="https://andrewbaker.ninja" target="_blank" rel="noopener" style="color:#9fb8c8;font-weight:700;text-decoration:none">AndrewBaker.Ninja</a>
+                        <span>·</span>
+                        <a href="https://andrewbaker.ninja/wordpress-plugin-help/seo-ai-optimizer/" target="_blank" rel="noopener" style="color:#6b8fa3;text-decoration:none">View documentation →</a>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;min-width:200px">
+                    <?php foreach (['Site Audit','AI Content','Sitemaps','Performance','Broken Links','Image SEO'] as $lb): ?>
+                    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px 12px;font-size:12px;color:#c8d8e4;font-weight:500">
+                        <?php echo esc_html($lb); ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
 
-            <?php /* ── Three mode cards ── */ ?>
-            <div id="ab-onboard-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:0 8px">
+            <?php /* ── What's included strip ── */ ?>
+            <p class="ab-ob-step-label">Everything included, even on the free plan</p>
+            <div class="ab-ob-feat-grid">
+                <?php foreach ([
+                    'SEO Score & Audit', 'XML Sitemaps',    'Robots.txt',
+                    'Open Graph / OG',   'JSON-LD Schema',  'Breadcrumbs',
+                    'Meta Tags',         'Broken Links',    'HTTPS Fixer',
+                    'Redirect Manager',  'Category Health', 'JS Defer',
+                ] as $feat): ?>
+                <div class="ab-ob-feat-tile"><?php echo esc_html($feat); ?></div>
+                <?php endforeach; ?>
+            </div>
+
+            <?php /* ── Choose your path ── */ ?>
+            <p class="ab-ob-step-label" style="margin-top:8px">Choose how to get started</p>
+
+            <div class="ab-ob-cards">
 
                 <?php /* ── FREE card ── */ ?>
-                <div class="ab-onboard-card" id="ab-onboard-free" style="background:#fff;border:2px solid #e5e7eb;border-radius:12px;padding:24px;display:flex;flex-direction:column">
-                    <div style="font-size:28px;margin-bottom:8px">🆓</div>
-                    <h3 style="font-size:16px;font-weight:700;color:#1d2327;margin:0 0 4px"><?php esc_html_e( 'Free', 'cloudscale-seo-ai-optimizer' ); ?></h3>
-                    <p style="font-size:12px;color:#6b7280;margin:0 0 16px"><?php esc_html_e( 'No account. No card. Start now.', 'cloudscale-seo-ai-optimizer' ); ?></p>
-                    <ul style="list-style:none;margin:0 0 20px;padding:0;font-size:12px;line-height:2;color:#374151;flex:1">
-                        <?php foreach ([
-                            'SEO audit with score',
-                            'XML Sitemap',
-                            'Robots.txt manager',
-                            'Meta tags + Open Graph',
-                            'JSON-LD Schema markup',
-                            'Breadcrumb schema',
-                            'Related articles',
-                            'Broken link checker',
-                            'HTTPS / mixed-content fix',
-                            'Redirect manager',
-                            'Category health analysis',
-                            'JS defer + font optimisation',
-                        ] as $feat): ?>
-                        <li>✓ <?php echo esc_html( $feat ); ?></li>
-                        <?php endforeach; ?>
-                        <li style="color:#9ca3af">✦ AI writing — locked</li>
+                <div class="ab-ob-card" id="ab-onboard-free">
+                    <div class="ab-ob-card-header ab-ob-header-free">
+                        <div class="ab-ob-card-label ab-ob-label-free">Free</div>
+                        <h3>Start without an account</h3>
+                    </div>
+                    <div class="ab-ob-card-body">
+                    <p class="ab-ob-tagline">No sign-up. No credit card. All 12 SEO tools active the moment you click.</p>
+                    <hr class="ab-ob-divider">
+                    <ul class="ab-ob-feat-list">
+                        <li>✓ Full site audit with score</li>
+                        <li>✓ XML Sitemap + llms.txt</li>
+                        <li>✓ Schema, OG, Meta tags</li>
+                        <li>✓ Broken link checker</li>
+                        <li>✓ HTTPS fixer + redirects</li>
+                        <li>✓ Category analysis</li>
+                        <li>✓ Performance tools</li>
+                        <li class="locked">✦ AI writing (not included)</li>
                     </ul>
-                    <button type="button" class="button button-primary" id="ab-onboard-free-btn"
-                        style="width:100%;padding:10px 0;font-size:14px;font-weight:700;border-radius:8px">
-                        <?php esc_html_e( 'Start Free →', 'cloudscale-seo-ai-optimizer' ); ?>
+                    <button type="button" class="ab-ob-cta ab-ob-cta-free" id="ab-onboard-free-btn">
+                        Start Free, run my first audit →
                     </button>
+                    <p class="ab-ob-next-hint">Takes you straight to your Site Audit</p>
+                    </div>
                 </div>
 
                 <?php /* ── SUBSCRIBE card ── */ ?>
-                <div class="ab-onboard-card" id="ab-onboard-sub" style="background:#fff;border:2px solid #6366f1;border-radius:12px;padding:24px;display:flex;flex-direction:column;position:relative">
-                    <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#6366f1;color:#fff;font-size:11px;font-weight:700;padding:3px 14px;border-radius:20px;letter-spacing:.06em;white-space:nowrap">MOST POPULAR</div>
-                    <div style="font-size:28px;margin-bottom:8px">⚡</div>
-                    <h3 style="font-size:16px;font-weight:700;color:#1d2327;margin:0 0 4px"><?php esc_html_e( 'AI Subscription', 'cloudscale-seo-ai-optimizer' ); ?></h3>
-                    <p style="font-size:12px;color:#6b7280;margin:0 0 4px"><strong style="color:#6366f1;font-size:15px">R69/month</strong> <?php esc_html_e( '· 200 AI requests included', 'cloudscale-seo-ai-optimizer' ); ?></p>
-                    <p style="font-size:11px;color:#10b981;margin:0 0 16px;font-weight:600"><?php esc_html_e( 'Cancel anytime · Uninstalling auto-cancels', 'cloudscale-seo-ai-optimizer' ); ?></p>
-                    <ul style="list-style:none;margin:0 0 16px;padding:0;font-size:12px;line-height:2;color:#374151;flex:1">
-                        <li style="color:#6366f1;font-weight:600"><?php esc_html_e( 'Everything in Free, plus:', 'cloudscale-seo-ai-optimizer' ); ?></li>
-                        <?php foreach ([
-                            'AI meta descriptions',
-                            'AI ALT text generation',
-                            'FAQ + HowTo schema (AI)',
-                            'AI summary boxes',
-                            'AEO answer generation',
-                            'Category SEO descriptions',
-                            'Auto Pipeline on publish',
-                        ] as $feat): ?>
-                        <li>✦ <?php echo esc_html( $feat ); ?></li>
-                        <?php endforeach; ?>
+                <div class="ab-ob-card ab-ob-featured" id="ab-onboard-sub">
+                    <div class="ab-ob-card-header ab-ob-header-sub">
+                        <div class="ab-ob-card-label ab-ob-label-sub">Recommended</div>
+                        <h3>AI Subscription</h3>
+                        <div class="ab-ob-price" style="color:#fff;margin:4px 0 0">$5 <span style="font-size:14px;font-weight:400;opacity:.8">/month</span></div>
+                        <p style="font-size:11px;color:rgba(255,255,255,.7);margin:2px 0 0">200 AI requests · Cancel anytime</p>
+                    </div>
+                    <div class="ab-ob-card-body">
+                    <p class="ab-ob-tagline" style="font-size:11px;color:#6b7280;background:#f5f3ff;border:1px solid #e0e7ff;border-radius:6px;padding:8px 10px;line-height:1.5">
+                        We are a small open-source project. We buy bulk API tokens at a discount and pass them on to you at cost. We make no profit on this subscription.
+                    </p>
+                    <hr class="ab-ob-divider" style="margin-top:0">
+                    <ul class="ab-ob-feat-list">
+                        <li style="color:#6366f1;font-weight:700">Everything in Free, plus:</li>
+                        <li>✦ AI meta descriptions</li>
+                        <li>✦ AI ALT text generation</li>
+                        <li>✦ FAQ + HowTo schema (AI)</li>
+                        <li>✦ AI summary boxes</li>
+                        <li>✦ AEO answer generation</li>
+                        <li>✦ Category SEO descriptions</li>
+                        <li>✦ Auto Pipeline on publish</li>
                     </ul>
-                    <div id="ab-onboard-sub-form" style="display:none;margin-bottom:12px">
+                    <div class="ab-ob-form-row" id="ab-onboard-sub-form" style="display:none">
+                        <label for="ab-onboard-email" style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Your email address</label>
                         <input type="email" id="ab-onboard-email"
                             value="<?php echo $user_email; ?>"
-                            placeholder="your@email.com"
-                            style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;margin-bottom:8px;box-sizing:border-box">
-                        <p id="ab-onboard-sub-msg" style="display:none;font-size:12px;margin:0 0 6px;color:#b91c1c"></p>
+                            placeholder="your@email.com">
+                        <p class="ab-ob-msg" id="ab-onboard-sub-msg" style="color:#b91c1c"></p>
                     </div>
-                    <button type="button" id="ab-onboard-sub-btn"
-                        style="width:100%;padding:10px 0;font-size:14px;font-weight:700;border-radius:8px;background:#6366f1;color:#fff;border:none;cursor:pointer">
-                        <?php esc_html_e( 'Subscribe — R69/month', 'cloudscale-seo-ai-optimizer' ); ?>
+                    <button type="button" class="ab-ob-cta ab-ob-cta-sub" id="ab-onboard-sub-btn">
+                        Subscribe $5/month →
                     </button>
+                    <p class="ab-ob-next-hint">You'll be taken to PayFast to complete payment</p>
+                    <p style="text-align:center;margin-top:10px">
+                        <button type="button" id="ab-ob-cancel-sub-btn"
+                            style="background:none;border:none;color:#9ca3af;font-size:11px;cursor:pointer;text-decoration:underline;padding:0">
+                            Cancel existing subscription
+                        </button>
+                    </p>
+                    <p id="ab-ob-cancel-sub-msg" style="display:none;font-size:11px;text-align:center;margin-top:6px"></p>
+                    </div>
                 </div>
 
                 <?php /* ── DIY card ── */ ?>
-                <div class="ab-onboard-card" id="ab-onboard-diy" style="background:#fff;border:2px solid #e5e7eb;border-radius:12px;padding:24px;display:flex;flex-direction:column">
-                    <div style="font-size:28px;margin-bottom:8px">🔑</div>
-                    <h3 style="font-size:16px;font-weight:700;color:#1d2327;margin:0 0 4px"><?php esc_html_e( 'Use My Own Key', 'cloudscale-seo-ai-optimizer' ); ?></h3>
-                    <p style="font-size:12px;color:#6b7280;margin:0 0 16px"><?php esc_html_e( 'Already have an Anthropic or Gemini API key? Connect it and all AI features activate instantly.', 'cloudscale-seo-ai-optimizer' ); ?></p>
-                    <ul style="list-style:none;margin:0 0 16px;padding:0;font-size:12px;line-height:2;color:#374151;flex:1">
-                        <li>✓ <?php esc_html_e( 'Full control over costs', 'cloudscale-seo-ai-optimizer' ); ?></li>
-                        <li>✓ <?php esc_html_e( 'No subscription needed', 'cloudscale-seo-ai-optimizer' ); ?></li>
-                        <li>✓ <?php esc_html_e( 'Choose your model', 'cloudscale-seo-ai-optimizer' ); ?></li>
-                        <li style="color:#6b7280;font-size:11px"><?php esc_html_e( 'Requires an Anthropic or Google AI account', 'cloudscale-seo-ai-optimizer' ); ?></li>
-                    </ul>
-                    <div id="ab-onboard-diy-form" style="display:none;margin-bottom:12px">
-                        <div style="display:flex;gap:6px;margin-bottom:8px">
-                            <button type="button" class="ab-onboard-provider-btn active" data-provider="anthropic"
-                                style="flex:1;padding:6px 0;font-size:12px;font-weight:600;border:2px solid #6366f1;background:#f0f0ff;border-radius:6px;cursor:pointer;color:#4338ca">Anthropic</button>
-                            <button type="button" class="ab-onboard-provider-btn" data-provider="gemini"
-                                style="flex:1;padding:6px 0;font-size:12px;font-weight:600;border:2px solid #e5e7eb;background:#fff;border-radius:6px;cursor:pointer;color:#374151">Gemini</button>
-                        </div>
-                        <input type="password" id="ab-onboard-apikey"
-                            placeholder="sk-ant-api03-..." autocomplete="off"
-                            style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;margin-bottom:8px;box-sizing:border-box;font-family:monospace">
-                        <div style="display:flex;gap:6px">
-                            <button type="button" id="ab-onboard-test-btn"
-                                style="flex:1;padding:7px 0;font-size:12px;font-weight:600;border:1px solid #d1d5db;background:#f9fafb;border-radius:6px;cursor:pointer">Test Key</button>
-                            <button type="button" id="ab-onboard-save-btn"
-                                style="flex:1;padding:7px 0;font-size:12px;font-weight:700;border:none;background:#1d2327;color:#fff;border-radius:6px;cursor:pointer">Save &amp; Start</button>
-                        </div>
-                        <p id="ab-onboard-diy-msg" style="display:none;font-size:12px;margin:8px 0 0"></p>
+                <div class="ab-ob-card" id="ab-onboard-diy">
+                    <div class="ab-ob-card-header ab-ob-header-diy">
+                        <div class="ab-ob-card-label ab-ob-label-diy">Developer</div>
+                        <h3>Use My Own API Key</h3>
                     </div>
-                    <button type="button" id="ab-onboard-diy-btn"
-                        style="width:100%;padding:10px 0;font-size:14px;font-weight:700;border-radius:8px;background:#1d2327;color:#fff;border:none;cursor:pointer">
-                        <?php esc_html_e( 'Enter API Key →', 'cloudscale-seo-ai-optimizer' ); ?>
+                    <div class="ab-ob-card-body">
+                    <p class="ab-ob-tagline">Prefer to manage your own API account? Connect your key and every AI feature works identically. No functionality is locked or changed.</p>
+                    <p class="ab-ob-tagline" style="font-size:11px;color:#94a3b8;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px 10px;line-height:1.5;margin-bottom:12px">
+                        This plugin is open source. You can <a href="https://github.com/andrewjbaker/wordpress-seo-ai-optimizer" target="_blank" rel="noopener" style="color:#818cf8">view our code on GitHub</a> and verify exactly what we do with your key; it never leaves your server.
+                    </p>
+                    <hr class="ab-ob-divider">
+                    <ul class="ab-ob-feat-list">
+                        <li>✓ All AI features, identical to subscription</li>
+                        <li>✓ No monthly subscription to us</li>
+                        <li>✓ Choose your own model</li>
+                        <li>✓ Pay-as-you-go directly to provider</li>
+                        <li style="color:#9ca3af;font-size:11px">Requires an Anthropic or Google AI account</li>
+                    </ul>
+                    <div class="ab-ob-form-row" id="ab-onboard-diy-form" style="display:none">
+                        <div class="ab-ob-provider-row">
+                            <button type="button" class="ab-ob-prov-btn active" data-provider="anthropic">Anthropic</button>
+                            <button type="button" class="ab-ob-prov-btn" data-provider="gemini">Gemini</button>
+                        </div>
+                        <input type="text" id="ab-onboard-apikey"
+                            placeholder="sk-ant-api03-..."
+                            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                            style="font-family:monospace;width:100%;box-sizing:border-box">
+                        <div class="ab-ob-inline-btns">
+                            <button type="button" id="ab-onboard-test-btn"
+                                style="border:1px solid #d1d5db;background:#f9fafb;color:#374151">Test Key</button>
+                            <button type="button" id="ab-onboard-save-btn"
+                                style="border:none;background:#1d2327;color:#fff">Save &amp; Start</button>
+                        </div>
+                        <p class="ab-ob-msg" id="ab-onboard-diy-msg"></p>
+                    </div>
+                    <button type="button" class="ab-ob-cta ab-ob-cta-diy" id="ab-onboard-diy-btn">
+                        <?php echo ($ai['anthropic_key'] ?? '') || ($ai['gemini_key'] ?? '')
+                            ? esc_html__('Update API Key →', 'cloudscale-seo-ai-optimizer')
+                            : esc_html__('Enter API Key →', 'cloudscale-seo-ai-optimizer'); ?>
                     </button>
+                    <p class="ab-ob-next-hint">Your key is saved locally, never shared</p>
+                    </div>
                 </div>
 
-            </div><!-- /ab-onboard-cards -->
+            </div><!-- /ab-ob-cards -->
 
-            <?php /* ── Pending session polling (same as AI settings card) ── */ ?>
+            <?php /* ── Footer reassurance ── */ ?>
+            <div class="ab-ob-footer">
+                <a href="#" id="ab-onboard-skip-link">I'll decide later, take me to the plugin →</a>
+            </div>
+
+            <?php /* ── Pending session polling ── */ ?>
             <div id="ab-onboard-pending-session" data-session="<?php echo $proxy_ses; ?>" style="display:none"></div>
 
         </div>
@@ -8547,7 +8728,12 @@ trait CS_SEO_Settings_Page {
         (function(){
             var _ajax  = <?php echo json_encode(admin_url('admin-ajax.php')); ?>;
             var _nonce = <?php echo json_encode(wp_create_nonce('cs_seo_nonce')); ?>;
-            var _site  = <?php echo json_encode(home_url('/')); ?>;
+            var _site     = <?php echo json_encode(home_url('/')); ?>;
+            var _proxyKey = <?php echo json_encode((string)($ai['proxy_license_key'] ?? '')); ?>;
+            var _keys  = {
+                anthropic: <?php echo json_encode((string)($ai['anthropic_key'] ?? '')); ?>,
+                gemini:    <?php echo json_encode((string)($ai['gemini_key']    ?? '')); ?>
+            };
 
             function obPost(action, extra) {
                 var p = Object.assign({ action: action, nonce: _nonce }, extra || {});
@@ -8559,9 +8745,21 @@ trait CS_SEO_Settings_Page {
             }
 
             function completeOnboarding(cb) {
+                // Mark as seen (so it no longer defaults active on next load) but keep tab visible.
                 obPost('cs_seo_complete_onboarding').then(function() {
-                    document.getElementById('ab-tab-start') && document.getElementById('ab-tab-start').remove();
                     if (cb) cb();
+                });
+            }
+
+            // ── Skip link ──
+            var skipLink = document.getElementById('ab-onboard-skip-link');
+            if (skipLink) {
+                skipLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    completeOnboarding(function() {
+                        var tab = document.querySelector('.ab-tab[data-tab="siteaudit"]');
+                        if (tab) tab.click();
+                    });
                 });
             }
 
@@ -8587,55 +8785,115 @@ trait CS_SEO_Settings_Page {
             var subForm = document.getElementById('ab-onboard-sub-form');
             var subMsg  = document.getElementById('ab-onboard-sub-msg');
             var subStep = 0;
+            function subShowError(msg) {
+                subMsg.style.display = 'block';
+                subMsg.style.color   = '#b91c1c';
+                subMsg.textContent   = msg;
+                subBtn.disabled      = false;
+                subBtn.textContent   = 'Continue to checkout →';
+            }
             if (subBtn) {
                 subBtn.addEventListener('click', function() {
                     if (subStep === 0) {
-                        subForm.style.display = '';
+                        subForm.style.display = 'block';
                         subBtn.textContent = 'Continue to checkout →';
                         subStep = 1;
+                        document.getElementById('ab-onboard-email') && document.getElementById('ab-onboard-email').focus();
                         return;
                     }
                     var email = (document.getElementById('ab-onboard-email') || {}).value || '';
-                    if (!email) { subMsg.style.display=''; subMsg.textContent='Please enter your email.'; return; }
-                    subBtn.disabled = true;
-                    subBtn.textContent = 'Redirecting to checkout…';
+                    if (!email || email.indexOf('@') < 1) {
+                        subShowError('Please enter a valid email address.'); return;
+                    }
+                    subMsg.style.display = 'none';
+                    subBtn.disabled      = true;
+                    subBtn.textContent   = 'Preparing checkout…';
                     obPost('cs_seo_proxy_checkout', { email: email, site_url: _site })
                         .then(function(res) {
                             if (res.success && res.data && res.data.checkout_url) {
+                                subBtn.textContent = 'Redirecting to PayFast…';
                                 window.location.href = res.data.checkout_url;
                             } else {
-                                subMsg.style.display = '';
-                                subMsg.textContent = (res.data && res.data.message) || 'Checkout failed. Please try again.';
-                                subBtn.disabled = false;
-                                subBtn.textContent = 'Continue to checkout →';
+                                var errMsg = (res.data && typeof res.data === 'string') ? res.data
+                                           : (res.data && res.data.message) ? res.data.message
+                                           : 'Checkout failed. please try again.';
+                                subShowError(errMsg);
                             }
+                        })
+                        .catch(function() {
+                            subShowError('Network error: please check your connection and try again.');
+                        });
+                });
+            }
+
+            // ── Onboarding cancel link (always visible on Subscribe card) ──
+            var obCancelBtn = document.getElementById('ab-ob-cancel-sub-btn');
+            var obCancelMsg = document.getElementById('ab-ob-cancel-sub-msg');
+            if (obCancelBtn) {
+                obCancelBtn.addEventListener('click', function() {
+                    if (!_proxyKey) {
+                        obCancelMsg.style.display = 'block';
+                        obCancelMsg.style.color   = '#6b7280';
+                        obCancelMsg.textContent   = 'No active subscription found on this site.';
+                        return;
+                    }
+                    if (!confirm('Cancel your subscription? You will keep access until the end of the current billing period.')) return;
+                    obCancelBtn.disabled    = true;
+                    obCancelBtn.textContent = 'Cancelling…';
+                    obPost('cs_seo_proxy_cancel')
+                        .then(function(res) {
+                            obCancelMsg.style.display = 'block';
+                            if (res.success) {
+                                obCancelMsg.style.color = '#15803d';
+                                obCancelMsg.textContent = 'Subscription cancelled. Access remains active until the end of your billing period.';
+                                obCancelBtn.style.display = 'none';
+                            } else {
+                                var msg = (res.data && res.data.message) || 'Cancellation failed. please try again.';
+                                obCancelMsg.style.color = '#b91c1c';
+                                obCancelMsg.textContent = msg;
+                                obCancelBtn.disabled    = false;
+                                obCancelBtn.textContent = 'Cancel existing subscription';
+                            }
+                        })
+                        .catch(function() {
+                            obCancelMsg.style.display = 'block';
+                            obCancelMsg.style.color   = '#b91c1c';
+                            obCancelMsg.textContent   = 'Network error: please try again.';
+                            obCancelBtn.disabled      = false;
+                            obCancelBtn.textContent   = 'Cancel existing subscription';
                         });
                 });
             }
 
             // ── DIY path ──
-            var diyBtn    = document.getElementById('ab-onboard-diy-btn');
-            var diyForm   = document.getElementById('ab-onboard-diy-form');
-            var diyMsg    = document.getElementById('ab-onboard-diy-msg');
-            var diyProv   = 'anthropic';
+            var diyBtn  = document.getElementById('ab-onboard-diy-btn');
+            var diyForm = document.getElementById('ab-onboard-diy-form');
+            var diyMsg  = document.getElementById('ab-onboard-diy-msg');
+            var diyProv = 'anthropic';
             if (diyBtn) {
                 diyBtn.addEventListener('click', function() {
                     diyForm.style.display = '';
                     diyBtn.style.display  = 'none';
+                    var kf = document.getElementById('ab-onboard-apikey');
+                    if (kf) {
+                        // Pre-fill with existing saved key for current provider
+                        if (!kf.value && _keys[diyProv]) kf.value = _keys[diyProv];
+                        kf.focus();
+                    }
                 });
             }
-            document.querySelectorAll('.ab-onboard-provider-btn').forEach(function(btn) {
+            document.querySelectorAll('.ab-ob-prov-btn').forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     diyProv = this.getAttribute('data-provider');
-                    document.querySelectorAll('.ab-onboard-provider-btn').forEach(function(b) {
-                        var active = b.getAttribute('data-provider') === diyProv;
-                        b.style.border  = active ? '2px solid #6366f1' : '2px solid #e5e7eb';
-                        b.style.background = active ? '#f0f0ff' : '#fff';
-                        b.style.color   = active ? '#4338ca' : '#374151';
-                        if (active) b.classList.add('active'); else b.classList.remove('active');
+                    document.querySelectorAll('.ab-ob-prov-btn').forEach(function(b) {
+                        var on = b.getAttribute('data-provider') === diyProv;
+                        if (on) b.classList.add('active'); else b.classList.remove('active');
                     });
                     var kf = document.getElementById('ab-onboard-apikey');
-                    if (kf) kf.placeholder = diyProv === 'gemini' ? 'AIza...' : 'sk-ant-api03-...';
+                    if (kf) {
+                        kf.placeholder = diyProv === 'gemini' ? 'AIza...' : 'sk-ant-api03-...';
+                        kf.value = _keys[diyProv] || '';
+                    }
                 });
             });
             var testBtn = document.getElementById('ab-onboard-test-btn');
@@ -8646,9 +8904,10 @@ trait CS_SEO_Settings_Page {
                     testBtn.disabled = true; testBtn.textContent = 'Testing…';
                     obPost('cs_seo_ai_test_key', { provider: diyProv, live_key: key })
                         .then(function(res) {
-                            diyMsg.style.display = '';
+                            diyMsg.style.display = 'block';
                             diyMsg.style.color = res.success ? '#15803d' : '#b91c1c';
-                            diyMsg.textContent = res.success ? '✓ Key works!' : ((res.data && res.data.message) || 'Key test failed');
+                            var errText = typeof res.data === 'string' ? res.data : ((res.data && res.data.message) || 'Key test failed');
+                            diyMsg.textContent = res.success ? '✓ Key works!' : errText;
                             testBtn.disabled = false; testBtn.textContent = 'Test Key';
                         });
                 });
@@ -8657,14 +8916,17 @@ trait CS_SEO_Settings_Page {
             if (saveBtn) {
                 saveBtn.addEventListener('click', function() {
                     var key = (document.getElementById('ab-onboard-apikey') || {}).value || '';
-                    if (!key) { diyMsg.style.display=''; diyMsg.style.color='#b91c1c'; diyMsg.textContent='Please enter an API key.'; return; }
+                    if (!key) {
+                        diyMsg.style.display='block'; diyMsg.style.color='#b91c1c';
+                        diyMsg.textContent='Please enter an API key.'; return;
+                    }
                     saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
                     obPost('cs_seo_onboarding_save_key', { provider: diyProv, key: key })
                         .then(function(res) {
                             if (res.success) {
                                 window.location.href = window.location.pathname + '?page=cloudscale-seo-ai-optimizer&settings-updated=1';
                             } else {
-                                diyMsg.style.display = '';
+                                diyMsg.style.display = 'block';
                                 diyMsg.style.color = '#b91c1c';
                                 diyMsg.textContent = (res.data && res.data.message) || 'Save failed.';
                                 saveBtn.disabled = false; saveBtn.textContent = 'Save & Start';
@@ -8697,7 +8959,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: marks onboarding as complete (sets cs_seo_welcome_shown=1).
      *
-     * @since 4.21.60
+     * @since 4.21.82
      */
     public function ajax_complete_onboarding(): void {
         $this->ajax_check();
@@ -8708,7 +8970,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: saves API key from the onboarding DIY flow and marks onboarding complete.
      *
-     * @since 4.21.60
+     * @since 4.21.82
      */
     public function ajax_onboarding_save_key(): void {
         $this->ajax_check();
@@ -8760,7 +9022,7 @@ trait CS_SEO_Settings_Page {
                         placeholder="you@example.com" style="min-width:260px">
                 </div>
                 <button type="button" class="button button-primary" id="ab-proxy-subscribe-btn">
-                    <?php esc_html_e('Subscribe — $5/month', 'cloudscale-seo-ai-optimizer'); ?>
+                    <?php esc_html_e('Subscribe $5/month', 'cloudscale-seo-ai-optimizer'); ?>
                 </button>
             </div>
             <p id="ab-proxy-subscribe-msg" style="display:none;margin-top:8px;font-size:13px"></p>

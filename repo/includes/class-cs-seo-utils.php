@@ -13,9 +13,7 @@
  * @since   4.15.5
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
  * Stateless utility helpers.
@@ -94,5 +92,21 @@ class Cs_Seo_Utils {
 			$text = mb_substr( $text, 0, $max_chars );
 		}
 		return $text;
+	}
+
+	/**
+	 * Strips shortcodes and HTML tags from raw post content, collapsing whitespace.
+	 *
+	 * Used across multiple traits to extract plain text for AI prompts and meta
+	 * description generation without running full WP content filters.
+	 *
+	 * @since  4.19.4
+	 * @param  string $raw Raw post content (may contain shortcodes and HTML).
+	 * @return string Plain text with normalised whitespace.
+	 */
+	public static function text_from_html( string $raw ): string {
+		$raw = strip_shortcodes( $raw );
+		$raw = wp_strip_all_tags( $raw );
+		return (string) preg_replace( '/\s+/', ' ', $raw );
 	}
 }

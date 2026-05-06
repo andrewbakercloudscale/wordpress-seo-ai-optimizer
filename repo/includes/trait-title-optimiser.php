@@ -674,7 +674,7 @@ trait CS_SEO_Title_Optimiser {
      * that still contain old/redirected URLs. Returns a list of affected posts
      * without modifying anything.
      *
-     * @since 4.20.40
+     * @since 4.20.49
      * @return void
      */
     public function ajax_title_scan_broken_links(): void {

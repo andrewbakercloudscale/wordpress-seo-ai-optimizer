@@ -10,7 +10,7 @@
  * Only images with at least one issue are returned so the results table stays focused.
  *
  * @package CloudScale_SEO_AI_Optimizer
- * @since   4.19.143
+ * @since   4.19.145
  */
 if ( ! defined( 'ABSPATH' ) ) exit;
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
@@ -23,7 +23,7 @@ trait CS_SEO_Image_SEO {
     /**
      * Scans the entire Media Library and returns images that have at least one SEO issue.
      *
-     * @since 4.19.143
+     * @since 4.19.145
      * @return void
      */
     public function ajax_imgseo_scan(): void {
@@ -106,7 +106,7 @@ trait CS_SEO_Image_SEO {
      * Matches patterns such as: IMG_1234, DSC00001, screenshot2, image, photo-3,
      * untitled, file, bg, banner, header, attachment, download.
      *
-     * @since 4.19.143
+     * @since 4.19.145
      * @param string $filename Basename of the attachment file.
      * @return bool
      */

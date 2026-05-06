@@ -26,18 +26,22 @@ function db(): PDO {
             created_at            TEXT NOT NULL DEFAULT (datetime('now')),
             last_used_at          TEXT DEFAULT ''
         );
-        CREATE INDEX IF NOT EXISTS idx_key      ON licenses(license_key);
-        CREATE INDEX IF NOT EXISTS idx_session  ON licenses(session_token);
-        CREATE INDEX IF NOT EXISTS idx_pf_token ON licenses(pf_subscription_token);
+        CREATE INDEX IF NOT EXISTS idx_key     ON licenses(license_key);
+        CREATE INDEX IF NOT EXISTS idx_session ON licenses(session_token);
     ");
-    // Migration: add columns if upgrading from older schema
+    // Migration: add columns that were added after the initial schema
     $cols = array_column($pdo->query('PRAGMA table_info(licenses)')->fetchAll(), 'name');
+    if (!in_array('session_token', $cols)) {
+        $pdo->exec("ALTER TABLE licenses ADD COLUMN session_token TEXT DEFAULT ''");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_session ON licenses(session_token)");
+    }
     if (!in_array('pf_subscription_token', $cols)) {
         $pdo->exec("ALTER TABLE licenses ADD COLUMN pf_subscription_token TEXT DEFAULT ''");
-        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_pf_token ON licenses(pf_subscription_token)");
     }
     if (!in_array('pf_payment_id', $cols)) {
         $pdo->exec("ALTER TABLE licenses ADD COLUMN pf_payment_id TEXT DEFAULT ''");
     }
+    // Create index after column is guaranteed to exist
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_pf_token ON licenses(pf_subscription_token)");
     return $pdo;
 }

@@ -645,7 +645,7 @@ trait CS_SEO_AI_Meta_Writer {
      * AJAX handler: generates an SEO title for posts that have none yet.
      * Skips posts that already have a custom _cs_seo_title set.
      *
-     * @since 4.20.88
+     * @since 4.20.93
      * @return void
      */
     public function ajax_generate_missing_title(): void {
@@ -808,7 +808,7 @@ trait CS_SEO_AI_Meta_Writer {
     /**
      * AJAX handler: generates (or regenerates) the AEO direct-answer paragraph for a single post.
      *
-     * @since 4.20.88
+     * @since 4.20.93
      * @return void
      */
     public function ajax_aeo_gen_one(): void {
@@ -1009,6 +1009,7 @@ trait CS_SEO_AI_Meta_Writer {
                 'title_chars'       => mb_strlen($effective_title),
                 'has_title'         => $custom_title !== '',
                 'has_aeo'           => trim((string) get_post_meta($p->ID, self::META_AEO_ANSWER, true)) !== '',
+            'has_schema'        => trim((string) get_post_meta($p->ID, self::META_PAGE_SCHEMA, true)) !== '',
                 'type'              => $p->post_type,
                 'date'              => get_the_date('Y-m-d', $p->ID),
                 'has_desc'          => $desc !== '',
