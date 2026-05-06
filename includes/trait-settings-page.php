@@ -8440,6 +8440,21 @@ trait CS_SEO_Settings_Page {
             });
         })();
 
+        // ── Deferred aitools post-table load ──────────────────────────────────
+        // The tab restoration IIFE in the earlier script block runs before abLoadPosts
+        // is defined here in Block 3, so its typeof check fails silently. This catch
+        // fires after all functions are defined and loads the table if the tab is
+        // already active but the card hasn't been populated yet.
+        (function() {
+            var updateCard = document.querySelector('.ab-card-update-posts');
+            if (!updateCard || updateCard.dataset.loaded) return;
+            var activeTab = document.querySelector('.ab-tab.active');
+            if (activeTab && activeTab.getAttribute('data-tab') === 'aitools') {
+                updateCard.dataset.loaded = '1';
+                abLoadPosts();
+            }
+        })();
+
         <?php wp_add_inline_script('cs-seo-admin-js', ob_get_clean()); ?>
         </div><!-- /wrap -->
         <?php
@@ -8452,7 +8467,7 @@ trait CS_SEO_Settings_Page {
     /**
      * Renders the "Get Started" pane shown to new installs before any API key is configured.
      *
-     * @since 4.21.87
+     * @since 4.21.88
      */
     private function render_onboarding_pane(): void {
         $ai         = $this->ai_opts;
@@ -8969,7 +8984,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: marks onboarding as complete (sets cs_seo_welcome_shown=1).
      *
-     * @since 4.21.87
+     * @since 4.21.88
      */
     public function ajax_complete_onboarding(): void {
         $this->ajax_check();
@@ -8980,7 +8995,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: saves API key from the onboarding DIY flow and marks onboarding complete.
      *
-     * @since 4.21.87
+     * @since 4.21.88
      */
     public function ajax_onboarding_save_key(): void {
         $this->ajax_check();
