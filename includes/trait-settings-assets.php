@@ -135,6 +135,7 @@ table.ab-posts.ab-compact .ab-col-extra { display:none; }
 .ab-zone-card.ab-card-summary  .ab-zone-header  { background:#6b3fa0; }
 .ab-zone-card.ab-card-catfix   .ab-zone-header  { background:#2d6a4f; }
 .ab-zone-card.ab-card-catmig   .ab-zone-header  { background:#b35900; }
+#ab-card-managed-api .ab-zone-header              { background:#4338ca; }
 .ab-zone-card.ab-card-sitemap-settings .ab-zone-header { background:#1a7a34; }
 .ab-zone-card.ab-card-sitemap-preview  .ab-zone-header { background:#0e5229; }
 .ab-zone-card.ab-card-llms   .ab-zone-header    { background:#1a4a8a; }
