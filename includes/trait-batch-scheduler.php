@@ -18,7 +18,9 @@ trait CS_SEO_Batch_Scheduler {
      * WP Cron callback — fires daily. Checks if today is a scheduled day, then:
      *   Pass 1 — generates meta descriptions for posts that don't have one yet.
      *   Pass 2 — generates ALT text for images that are missing it across all posts.
-     * Both passes are missing-only: existing data is never overwritten.
+     *   Pass 3 — generates AI summaries for posts that don't have one yet.
+     *   Pass 4 — generates SEO title tags for posts that don't have a custom title yet.
+     * All passes are missing-only: existing data is never overwritten.
      * Works with both Anthropic and Gemini via dispatch_ai().
      *
      * @since 4.0.0
@@ -146,6 +148,42 @@ trait CS_SEO_Batch_Scheduler {
             sleep(1); // Pace requests — T4g Micro friendly.
         }
 
+        // ── Pass 4: generate missing SEO title tags ───────────────────────────
+        $title_done   = 0;
+        $title_errors = 0;
+
+        $q4 = new WP_Query([
+            'post_type'           => ['post', 'page'],
+            'post_status'         => 'publish',
+            'posts_per_page'      => 500,
+            'no_found_rows'       => true,
+            'ignore_sticky_posts' => true,
+            'orderby'             => 'date',
+            'order'               => 'DESC',
+            'meta_query'          => [[ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- NOT EXISTS has no alternative
+                'key'     => self::META_TITLE,
+                'compare' => 'NOT EXISTS',
+            ]],
+        ]);
+
+        foreach ($q4->posts as $p) {
+            if (time() >= $deadline) { $log[] = ['status' => 'timeout', 'title' => 'Pass 4 time limit reached']; break; }
+            // NOT EXISTS can miss rows with empty-string values — double-check.
+            if (trim((string) get_post_meta($p->ID, self::META_TITLE, true)) !== '') { continue; }
+            try {
+                $raw_title = html_entity_decode((string) get_the_title($p->ID), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $new_title = $this->call_ai_fix_title($p->ID, $raw_title);
+                update_post_meta($p->ID, self::META_TITLE, sanitize_text_field($new_title));
+                $log[] = ['status' => 'title_ok', 'title' => get_the_title($p->ID), 'chars' => mb_strlen($new_title)];
+                $title_done++;
+            } catch (\Throwable $e) {
+                $log[] = ['status' => 'title_err', 'title' => get_the_title($p->ID), 'message' => $e->getMessage()];
+                $title_errors++;
+                sleep(2);
+            }
+            sleep(1);
+        }
+
         // Append to batch history (keep 28 days of runs).
         $history = get_option('cs_seo_batch_history', []);
         if (!is_array($history)) $history = [];
@@ -160,6 +198,8 @@ trait CS_SEO_Batch_Scheduler {
             'alt_errors'        => $alt_errors,
             'sum_done'          => $sum_done,
             'sum_errors'        => $sum_errors,
+            'title_done'        => $title_done,
+            'title_errors'      => $title_errors,
             'elapsed'           => (time() - $start),
             'log'               => array_slice($log, 0, 100), // Keep last 100 entries per run.
         ];

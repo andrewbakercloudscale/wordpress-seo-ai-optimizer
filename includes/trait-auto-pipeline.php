@@ -210,6 +210,7 @@ trait CS_SEO_Auto_Pipeline {
             'readability'      => [ $this, 'auto_step_readability' ],
             'aeo_answer'       => [ $this, 'auto_step_aeo_answer' ],
             'faq_schema'       => [ $this, 'auto_step_faq_schema' ],
+            'seo_title'        => [ $this, 'auto_step_seo_title' ],
         ];
 
         foreach ( $steps as $step_name => $callable ) {
@@ -550,6 +551,22 @@ trait CS_SEO_Auto_Pipeline {
         } catch ( \Throwable $e ) {
             // Non-fatal — pipeline continues.
         }
+    }
+
+    /**
+     * Step 10 — SEO title tag. Generates and saves a 50–60 char custom title.
+     * Skips if a custom title (_cs_seo_title) is already set.
+     *
+     * @since 4.21.90
+     * @param int $post_id Post ID.
+     * @return void
+     */
+    private function auto_step_seo_title( int $post_id ): void {
+        if ( trim( (string) get_post_meta( $post_id, self::META_TITLE, true ) ) !== '' ) return;
+
+        $raw_title = html_entity_decode( (string) get_the_title( $post_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+        $new_title = $this->call_ai_fix_title( $post_id, $raw_title );
+        update_post_meta( $post_id, self::META_TITLE, sanitize_text_field( $new_title ) );
     }
 
     /**
