@@ -464,10 +464,10 @@ trait CS_SEO_Settings_Page {
             <?php elseif ($proxy_status === 'past_due'): ?>
                 <?php /* ── STATE 4: Past due ── */ ?>
                 <p style="color:#b45309;font-weight:600;margin-bottom:12px">
-                    ⚠ <?php esc_html_e('Payment failed — update your card to restore access.', 'cloudscale-seo-ai-optimizer'); ?>
+                    ⚠ <?php esc_html_e('Payment failed — your subscription needs attention to restore access.', 'cloudscale-seo-ai-optimizer'); ?>
                 </p>
                 <a href="#" id="ab-proxy-billing-link-due" class="button button-primary" target="_blank">
-                    <?php esc_html_e('Update payment method →', 'cloudscale-seo-ai-optimizer'); ?>
+                    <?php esc_html_e('Manage subscription →', 'cloudscale-seo-ai-optimizer'); ?>
                 </a>
 
             <?php elseif ($proxy_status === 'cancelled'): ?>
@@ -2305,7 +2305,7 @@ trait CS_SEO_Settings_Page {
                         ['rec'=>'ℹ️ Info','name'=>'What this does','desc'=>'Uses AI to generate an SEO meta description, page title, and intro paragraph for every category that is missing them. This improves how category archive pages appear in search results.'],
                     ]); ?>
                 </div>
-                <div class="ab-zone-body">
+                <div class="ab-zone-body" style="padding:20px 24px 24px;">
                     <p style="color:#374151;font-size:13px;margin:0 0 16px">Generates AI-written SEO title, meta description, and intro paragraph for every category that is missing them. Categories that already have descriptions are skipped.</p>
                     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
                         <button id="catseo-gen-btn" type="button" class="button button-primary" style="background:#0284c7;border-color:#0369a1;color:#fff">

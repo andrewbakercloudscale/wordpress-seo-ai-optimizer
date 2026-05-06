@@ -254,6 +254,7 @@ trait CS_SEO_AI_Engine {
         if (!empty($data['session_token'])) {
             $this->ai_opts['proxy_session_id'] = $data['session_token'];
             $this->ai_opts['proxy_status']     = 'pending';
+            $this->ai_opts['proxy_email']      = $email;
             update_option(self::AI_OPT, $this->ai_opts);
         }
 
@@ -350,7 +351,7 @@ trait CS_SEO_AI_Engine {
         if (is_wp_error($resp)) { wp_send_json_error(['message' => $resp->get_error_message()]); }
 
         $code = wp_remote_retrieve_response_code($resp);
-        // billing-portal.php returns a 302 redirect to the Stripe portal URL
+        // billing-portal.php returns a 302 redirect to the PayFast billing management URL
         $location = wp_remote_retrieve_header($resp, 'location');
         if ($location) {
             wp_send_json_success(['url' => $location]);

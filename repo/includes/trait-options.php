@@ -118,6 +118,7 @@ trait CS_SEO_Options {
             'proxy_enabled'    => 0,
             'proxy_license_key'=> '',
             'proxy_session_id' => '',
+            'proxy_email'      => '',
             'proxy_status'     => '',
             'proxy_usage'      => 0,
             'proxy_limit'      => 200,
