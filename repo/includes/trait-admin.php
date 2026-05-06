@@ -95,6 +95,49 @@ trait CS_SEO_Admin {
             ]);
         }
 
+        // ── Deactivation modal (plugins page only) ────────────────────────────
+        if ($screen && $screen->id === 'plugins') {
+            $is_subscriber = !empty($this->ai_opts['proxy_enabled'])
+                && !empty($this->ai_opts['proxy_license_key'])
+                && ($this->ai_opts['proxy_status'] ?? '') === 'active';
+            $manage_url = $is_subscriber
+                ? esc_url('https://api.andrewbaker.ninja/manage?key=' . rawurlencode($this->ai_opts['proxy_license_key']))
+                : '';
+            wp_register_script('cs-seo-deact-js', false, [], self::VERSION, true);
+            wp_enqueue_script('cs-seo-deact-js');
+            wp_add_inline_script('cs-seo-deact-js', '(function(){
+                var IS_SUB = ' . ($is_subscriber ? 'true' : 'false') . ';
+                var MANAGE = ' . wp_json_encode($manage_url) . ';
+                function initDeactModal() {
+                    var deactLink = document.querySelector("a[href*=deactivate][href*=cloudscale-seo-ai-optimizer]");
+                    if (!deactLink) return;
+                    var modal = document.createElement("div");
+                    modal.style.cssText = "display:none;position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.55);align-items:center;justify-content:center";
+                    var inner = IS_SUB
+                        ? "<div style=\"background:#fff;border-radius:12px;padding:32px 28px;max-width:440px;width:90%;text-align:center\"><div style=\"font-size:32px;margin-bottom:12px\">⚡</div><h2 style=\"font-size:17px;font-weight:700;color:#1d2327;margin:0 0 10px\">Wait — you have an active AI subscription!</h2><p style=\"font-size:13px;color:#50575e;margin:0 0 16px\">Deactivating pauses the plugin but <strong>does not cancel your subscription</strong>.<br>To cancel your billing, <a href=\""+MANAGE+"\" target=\"_blank\" style=\"color:#6366f1\">visit your manage page</a>.<br><strong>Deleting the plugin auto-cancels your subscription.</strong></p><div style=\"display:flex;gap:10px;justify-content:center\"><button id=\"cs-deact-cancel-btn\" style=\"padding:9px 20px;border:1px solid #d1d5db;background:#f9fafb;border-radius:6px;font-size:13px;cursor:pointer\">Keep Plugin</button><a id=\"cs-deact-go\" href=\"\" style=\"padding:9px 20px;background:#1d2327;color:#fff;border-radius:6px;font-size:13px;text-decoration:none\">Deactivate</a></div></div>"
+                        : "<div style=\"background:#fff;border-radius:12px;padding:32px 28px;max-width:420px;width:90%;text-align:center\"><div style=\"font-size:32px;margin-bottom:12px\">👋</div><h2 style=\"font-size:17px;font-weight:700;color:#1d2327;margin:0 0 10px\">Thanks for using CloudScale SEO AI</h2><p style=\"font-size:13px;color:#50575e;margin:0 0 16px\">Any feedback helps us improve. Totally optional!</p><div style=\"display:flex;gap:10px;justify-content:center\"><button id=\"cs-deact-cancel-btn\" style=\"padding:9px 20px;border:1px solid #d1d5db;background:#f9fafb;border-radius:6px;font-size:13px;cursor:pointer\">Keep Plugin</button><a id=\"cs-deact-go\" href=\"\" style=\"padding:9px 20px;background:#1d2327;color:#fff;border-radius:6px;font-size:13px;text-decoration:none\">Continue Deactivating</a></div></div>";
+                    modal.innerHTML = inner;
+                    document.body.appendChild(modal);
+                    deactLink.addEventListener("click", function(e) {
+                        e.preventDefault();
+                        modal.style.display = "flex";
+                        document.getElementById("cs-deact-go").href = deactLink.href;
+                    });
+                    document.getElementById("cs-deact-cancel-btn") && document.getElementById("cs-deact-cancel-btn").addEventListener("click", function() {
+                        modal.style.display = "none";
+                    });
+                    modal.addEventListener("click", function(e) {
+                        if (e.target === modal) modal.style.display = "none";
+                    });
+                }
+                if (document.readyState === "loading") {
+                    document.addEventListener("DOMContentLoaded", initDeactModal);
+                } else {
+                    initDeactModal();
+                }
+            })();');
+        }
+
         if (!$this->is_our_page()) return;
 
         // Register a no-op handle so we can attach inline style and scripts to it.
@@ -117,7 +160,9 @@ trait CS_SEO_Admin {
             'sitemapIndexUrl' => home_url('/sitemap.xml'),
             'minChars'        => (int) ($this->ai_opts['min_chars'] ?? 140),
             'maxChars'        => (int) ($this->ai_opts['max_chars'] ?? 160),
-            'hasApiKey'       => !empty(trim((string) ($this->ai_opts['anthropic_key'] ?? ''))),
+            'hasApiKey'       => !empty(trim((string) ($this->ai_opts['anthropic_key'] ?? '')))
+                || !empty(trim((string) ($this->ai_opts['gemini_key'] ?? '')))
+                || (!empty($this->ai_opts['proxy_enabled']) && !empty($this->ai_opts['proxy_license_key'])),
             'siteUrl'         => home_url('/'),
         ]);
 

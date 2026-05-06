@@ -15,6 +15,17 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 global $wpdb;
 
+// ── Auto-cancel PayFast proxy subscription on uninstall ───────────────────────
+$cs_seo_ai_opts = get_option('cs_seo_ai_options', []);
+if (!empty($cs_seo_ai_opts['proxy_enabled']) && !empty($cs_seo_ai_opts['proxy_license_key'])) {
+    wp_remote_post('https://api.andrewbaker.ninja/cancel', [
+        'timeout'  => 10,
+        'blocking' => false,
+        'body'     => ['license_key' => $cs_seo_ai_opts['proxy_license_key']],
+    ]);
+}
+unset($cs_seo_ai_opts);
+
 // ── Named options ─────────────────────────────────────────────────────────────
 $cs_seo_options = [
     'cs_seo_options',

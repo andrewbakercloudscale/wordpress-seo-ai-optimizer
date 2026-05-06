@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.21.59
+ * Version:     4.21.63
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -55,6 +55,7 @@ require_once __DIR__ . '/includes/trait-admin.php';
 require_once __DIR__ . '/includes/trait-gutenberg.php';
 require_once __DIR__ . '/includes/trait-font-optimizer.php';
 require_once __DIR__ . '/includes/trait-category-fixer.php';
+require_once __DIR__ . '/includes/trait-category-seo.php';
 require_once __DIR__ . '/includes/trait-settings-page.php';
 require_once __DIR__ . '/includes/trait-settings-assets.php';
 require_once __DIR__ . '/includes/trait-robots-txt.php';
@@ -68,6 +69,7 @@ require_once __DIR__ . '/includes/trait-redirects.php';
 require_once __DIR__ . '/includes/trait-broken-links.php';
 require_once __DIR__ . '/includes/trait-image-seo.php';
 require_once __DIR__ . '/includes/trait-title-optimiser.php';
+require_once __DIR__ . '/includes/trait-seo-site-audit.php';
 
 /**
  * Main plugin class. Composes all feature traits and wires up WordPress hooks.
@@ -95,6 +97,7 @@ final class Cs_Seo_Plugin {
     use CS_SEO_Gutenberg;
     use CS_SEO_Font_Optimizer;
     use CS_SEO_Category_Fixer;
+    use CS_SEO_Category_SEO;
     use CS_SEO_Settings_Page;
     use CS_SEO_Settings_Assets;
     use CS_SEO_Robots_Txt;
@@ -108,16 +111,19 @@ final class Cs_Seo_Plugin {
     use CS_SEO_Broken_Links;
     use CS_SEO_Image_SEO;
     use CS_SEO_Title_Optimiser;
+    use CS_SEO_Site_Audit;
 
     const OPT        = 'cs_seo_options';
     const META_TITLE    = '_cs_seo_title';
     const META_DESC     = '_cs_seo_desc';
     const META_OGIMG    = '_cs_seo_ogimg';
+    const META_PLUGIN_ICON = '_cs_seo_plugin_icon';
     const META_SUM_WHAT    = '_cs_seo_summary_what';
     const META_SUM_WHY     = '_cs_seo_summary_why';
     const META_SUM_KEY     = '_cs_seo_summary_takeaway';
     const META_HIDE_SUMMARY = '_cs_seo_hide_summary';
     const META_NOINDEX      = '_cs_seo_noindex';
+    const META_PAGE_SCHEMA  = '_cs_schema_json';
 
     // Related Articles meta keys
     const META_RC_TOP        = '_cs_rc_top_ids';
@@ -146,6 +152,11 @@ final class Cs_Seo_Plugin {
     // Auto pipeline
     const META_AUTO_COMPLETE = '_cs_seo_auto_run_complete';
     const META_FOCUS_KW      = '_cs_seo_focus_keyword';
+
+    // Category SEO term meta keys
+    const META_TERM_TITLE = 'cs_seo_term_title';
+    const META_TERM_DESC  = 'cs_seo_term_desc';
+    const META_TERM_INTRO = 'cs_seo_term_intro';
 
     // Title Optimiser meta keys
     const META_TITLE_OPT_SUGGESTED    = '_cs_seo_title_opt_suggested';
@@ -176,7 +187,7 @@ final class Cs_Seo_Plugin {
     // Related Articles generator version — bump when scoring logic changes
     const RC_VERSION = '1.0';
 
-    const VERSION    = '4.21.59';
+    const VERSION    = '4.21.63';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -202,6 +213,32 @@ final class Cs_Seo_Plugin {
      */
     private static function debug_log(string $message): void {
         Cs_Seo_Utils::log($message);
+    }
+
+    /**
+     * Registers a WP-Cron action wrapped in a Throwable catcher so an uncaught
+     * exception cannot crash the PHP-FPM worker and trigger a site-down loop.
+     *
+     * @since 4.20.93
+     * @param string   $hook     The WP-Cron hook name.
+     * @param callable $callback The callback to invoke.
+     * @return void
+     */
+    private static function cron_action( string $hook, callable $callback ): void {
+        add_action( $hook, static function () use ( $hook, $callback ): void {
+            try {
+                $callback();
+            } catch ( \Throwable $e ) {
+                error_log( sprintf(
+                    '[cs-seo] cron "%s" exception (%s): %s in %s line %d',
+                    $hook,
+                    get_class( $e ),
+                    $e->getMessage(),
+                    $e->getFile(),
+                    $e->getLine()
+                ) );
+            }
+        } );
     }
 
     /**
@@ -262,13 +299,13 @@ final class Cs_Seo_Plugin {
         add_action('init', [$this, 'register_rest_meta']);
 
         // WP Cron batch job for scheduled generation.
-        add_action('cs_seo_daily_batch', [$this, 'run_scheduled_batch']);
+        self::cron_action( 'cs_seo_daily_batch', [ $this, 'run_scheduled_batch' ] );
 
         // Auto pipeline — publish/update triggers (non-blocking HTTP, no cron dependency).
         add_action('transition_post_status', [$this, 'on_post_publish'], 10, 3);
         add_action('post_updated',           [$this, 'on_post_update'],  10, 3);
         add_action('before_delete_post',     [$this, 'on_post_delete'],  10, 1);
-        add_action('cs_seo_cleanup_pipeline',            [$this, 'run_cleanup_pipeline']);
+        self::cron_action( 'cs_seo_cleanup_pipeline', [ $this, 'run_cleanup_pipeline' ] );
         add_action('wp_ajax_cs_seo_pipeline_run',        [$this, 'ajax_pipeline_run']);
         // nopriv is intentional — the handler authenticates via a single-use HMAC token
         // (stored as a transient, expiring after 120 s) generated at fire time. No session needed.
@@ -295,9 +332,10 @@ final class Cs_Seo_Plugin {
         add_action('wp_ajax_cs_seo_score_one',        [$this, 'ajax_score_one']);
         add_action('wp_ajax_cs_seo_save_desc',          [$this, 'ajax_save_desc']);
         add_action('wp_ajax_cs_seo_ai_fix_desc',        [$this, 'ajax_fix_desc']);
-        add_action('wp_ajax_cs_seo_ai_fix_title',       [$this, 'ajax_fix_title']);
-        add_action('wp_ajax_cs_seo_aeo_gen_one',        [$this, 'ajax_aeo_gen_one']);
-        add_action('wp_ajax_cs_seo_ai_get_posts',       [$this, 'ajax_get_posts']);
+        add_action('wp_ajax_cs_seo_ai_fix_title',          [$this, 'ajax_fix_title']);
+        add_action('wp_ajax_cs_seo_ai_gen_missing_title',  [$this, 'ajax_generate_missing_title']);
+        add_action('wp_ajax_cs_seo_aeo_gen_one',           [$this, 'ajax_aeo_gen_one']);
+        add_action('wp_ajax_cs_seo_ai_get_posts',          [$this, 'ajax_get_posts']);
         add_action('wp_ajax_cs_seo_ai_test_key',        [$this, 'ajax_test_key']);
         add_action('wp_ajax_cs_seo_ai_get_batch_log',   [$this, 'ajax_get_batch_log']);
         add_action('wp_ajax_cs_seo_regen_static',       [$this, 'ajax_regen_static']);
@@ -335,6 +373,20 @@ final class Cs_Seo_Plugin {
         add_action('wp_ajax_cs_seo_catmig_posts',  [$this, 'ajax_catmig_posts']);
         add_action('wp_ajax_cs_seo_catmig_apply',  [$this, 'ajax_catmig_apply']);
         add_action('wp_ajax_cs_seo_catmig_delete', [$this, 'ajax_catmig_delete']);
+        add_action('wp_ajax_cs_seo_catmerge',         [$this, 'ajax_catmerge']);
+        add_action('wp_ajax_cs_seo_catmerge_partial', [$this, 'ajax_catmerge_partial']);
+        add_action('wp_ajax_cs_seo_catmerge_overlap', [$this, 'ajax_catmerge_overlap']);
+
+        // Category SEO — term meta edit fields and frontend injection
+        add_action( 'category_edit_form_fields', [ $this, 'cat_seo_edit_fields' ] );
+        add_action( 'post_tag_edit_form_fields', [ $this, 'cat_seo_edit_fields' ] );
+        add_action( 'edited_category',           [ $this, 'cat_seo_save_fields' ] );
+        add_action( 'edited_post_tag',           [ $this, 'cat_seo_save_fields' ] );
+        add_filter( 'the_archive_description',   [ $this, 'cat_seo_archive_description' ] );
+        add_action( 'loop_start',                [ $this, 'cat_seo_loop_start_intro' ] );
+        add_action( 'wp_ajax_cs_seo_cat_seo_ai_gen', [ $this, 'ajax_cat_seo_ai_gen' ] );
+        add_action( 'wp_ajax_cs_seo_cat_seo_list',   [ $this, 'ajax_cat_seo_list' ] );
+        add_action( 'wp_ajax_cs_seo_audit_quickfix', [ $this, 'ajax_audit_quickfix' ] );
 
         // Related Articles — run pipeline synchronously on publish (no API, no cron dependency).
         add_action('transition_post_status', [$this, 'rc_on_post_publish'], 20, 3);
@@ -353,9 +405,12 @@ final class Cs_Seo_Plugin {
 
         // Redirects
         $this->init_redirects();
-        add_action('wp_ajax_cs_seo_delete_redirect', [$this, 'ajax_delete_redirect']);
-        add_action('wp_ajax_cs_seo_clear_redirects',  [$this, 'ajax_clear_redirects']);
-        add_action('wp_ajax_cs_seo_add_redirect',     [$this, 'ajax_add_redirect']);
+        add_action('wp_ajax_cs_seo_delete_redirect',         [$this, 'ajax_delete_redirect']);
+        add_action('wp_ajax_cs_seo_clear_redirects',         [$this, 'ajax_clear_redirects']);
+        add_action('wp_ajax_cs_seo_add_redirect',            [$this, 'ajax_add_redirect']);
+        add_action('wp_ajax_cs_seo_prune_unused_redirects',   [$this, 'ajax_prune_unused_redirects']);
+        add_action('wp_ajax_cs_seo_analyse_redirect_chains', [$this, 'ajax_analyse_redirect_chains']);
+        add_action('wp_ajax_cs_seo_squash_redirect_chains',  [$this, 'ajax_squash_redirect_chains']);
 
         // Broken Link Checker
         add_action('wp_ajax_cs_seo_blc_get_posts',     [$this, 'ajax_blc_get_posts']);
@@ -371,12 +426,26 @@ final class Cs_Seo_Plugin {
         add_action('wp_ajax_cs_seo_title_analyse_all',     [$this, 'ajax_title_analyse_all']);
         add_action('wp_ajax_cs_seo_title_apply_one',       [$this, 'ajax_title_apply_one']);
         add_action('wp_ajax_cs_seo_title_apply_all',       [$this, 'ajax_title_apply_all']);
-        add_action('wp_ajax_cs_seo_title_fix_links',       [$this, 'ajax_title_fix_internal_links']);
+        add_action('wp_ajax_cs_seo_title_scan_links',       [$this, 'ajax_title_scan_broken_links']);
+        add_action('wp_ajax_cs_seo_title_fix_links',        [$this, 'ajax_title_fix_internal_links']);
         // Title Optimiser — background queue
         add_action('wp_ajax_cs_seo_title_queue_start',     [$this, 'ajax_title_queue_start']);
         add_action('wp_ajax_cs_seo_title_queue_stop',      [$this, 'ajax_title_queue_stop']);
         add_action('wp_ajax_cs_seo_title_queue_status',    [$this, 'ajax_title_queue_status']);
-        add_action(self::CRON_TITLE_OPT,                   [$this, 'cron_title_opt_process']);
+        self::cron_action( self::CRON_TITLE_OPT, [ $this, 'cron_title_opt_process' ] );
+
+        // SEO Site Audit
+        $this->init_site_audit();
+
+        // Managed API proxy
+        add_action('wp_ajax_cs_seo_proxy_checkout',       [$this, 'ajax_proxy_checkout']);
+        add_action('wp_ajax_cs_seo_proxy_boost_checkout', [$this, 'ajax_proxy_boost_checkout']);
+        add_action('wp_ajax_cs_seo_proxy_set_enabled',    [$this, 'ajax_proxy_set_enabled']);
+        add_action('wp_ajax_cs_seo_proxy_refresh_status', [$this, 'ajax_proxy_refresh_status']);
+        add_action('wp_ajax_cs_seo_proxy_poll_session',   [$this, 'ajax_proxy_poll_session']);
+        add_action('wp_ajax_cs_seo_proxy_billing_portal', [$this, 'ajax_proxy_billing_portal']);
+        add_action('wp_ajax_cs_seo_complete_onboarding',  [$this, 'ajax_complete_onboarding']);
+        add_action('wp_ajax_cs_seo_onboarding_save_key',  [$this, 'ajax_onboarding_save_key']);
     }
 
     // =========================================================================
@@ -412,6 +481,13 @@ final class Cs_Seo_Plugin {
                 'auth_callback'     => fn() => current_user_can('edit_posts'),
                 'sanitize_callback' => 'esc_url_raw',
             ]);
+            register_post_meta($post_type, self::META_PLUGIN_ICON, [
+                'show_in_rest'      => true,
+                'single'            => true,
+                'type'              => 'string',
+                'auth_callback'     => fn() => current_user_can('edit_posts'),
+                'sanitize_callback' => 'esc_url_raw',
+            ]);
             foreach ([self::META_SUM_WHAT, self::META_SUM_WHY, self::META_SUM_KEY] as $sum_key) {
                 register_post_meta($post_type, $sum_key, [
                     'show_in_rest'      => true,
@@ -427,6 +503,19 @@ final class Cs_Seo_Plugin {
                 'type'              => 'integer',
                 'auth_callback'     => fn() => current_user_can('edit_posts'),
                 'sanitize_callback' => 'absint',
+            ]);
+            register_post_meta($post_type, self::META_PAGE_SCHEMA, [
+                'show_in_rest'      => true,
+                'single'            => true,
+                'type'              => 'string',
+                'auth_callback'     => fn() => current_user_can('edit_posts'),
+                'sanitize_callback' => static function (string $v): string {
+                    if ($v === '') return '';
+                    $decoded = json_decode($v, true);
+                    return is_array($decoded)
+                        ? (string) wp_json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+                        : '';
+                },
             ]);
         }
     }
@@ -476,6 +565,11 @@ register_activation_hook(__FILE__, function(): void {
         update_option('cs_seo_robots_bak', $old_content);
         $wp_filesystem->move($physical, $backup, true);
     }
+    // Flag to show the first-run welcome + API key setup notice.
+    if (!get_option('cs_seo_welcome_shown')) {
+        update_option('cs_seo_show_welcome', 1);
+        set_transient('cs_seo_activation_redirect', 1, 30);
+    }
     // Register rewrites first so flush has something to work with.
     $opts = get_option('cs_seo_options');
     if ($opts['enable_sitemap'] ?? 0) {
@@ -522,6 +616,13 @@ register_deactivation_hook(__FILE__, function(): void {
 // and resets OPcache so PHP serves the new code immediately.
 add_action('admin_init', function(): void {
     if ( ! current_user_can( 'manage_options' ) ) return;
+    if (get_transient('cs_seo_activation_redirect')) {
+        delete_transient('cs_seo_activation_redirect');
+        if (!isset($_GET['activate-multi'])) {
+            wp_safe_redirect(admin_url('admin.php?page=cloudscale-seo-ai-optimizer'));
+            exit;
+        }
+    }
     $cached = get_option('cs_seo_loaded_version', '');
     if ($cached !== Cs_Seo_Plugin::VERSION) {
         if (function_exists('opcache_reset')) {

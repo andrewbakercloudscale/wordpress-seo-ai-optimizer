@@ -23,6 +23,10 @@ trait CS_SEO_Settings_Page {
         $o     = $this->opts;
         $ai    = $this->ai_opts;
         $nonce = wp_create_nonce('cs_seo_nonce');
+        $show_onboarding = !get_option('cs_seo_welcome_shown')
+            && !($ai['anthropic_key'] ?? '')
+            && !($ai['gemini_key']    ?? '')
+            && !($ai['proxy_license_key'] ?? '');
         ?>
         <div class="wrap">
         <h1>CloudScale SEO AI Optimizer <span style="font-size:13px;font-weight:400;color:#999;margin-left:6px">AndrewBaker.Ninja</span></h1>
@@ -79,7 +83,10 @@ trait CS_SEO_Settings_Page {
         <?php /* ── TAB NAV ── */ ?>
 
         <div class="ab-tabs">
-            <button class="ab-tab active" data-tab="seo">⚙ <?php esc_html_e( 'Settings', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <?php if ($show_onboarding): ?>
+            <button class="ab-tab active" data-tab="start" id="ab-tab-start">🚀 <?php esc_html_e( 'Get Started', 'cloudscale-seo-ai-optimizer' ); ?></button>
+            <?php endif; ?>
+            <button class="ab-tab <?php echo $show_onboarding ? '' : 'active'; ?>" data-tab="seo">⚙ <?php esc_html_e( 'Settings', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="siteaudit">🔍 <?php esc_html_e( 'Site Audit', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="aitools">✨ <?php esc_html_e( 'AI Content', 'cloudscale-seo-ai-optimizer' ); ?></button>
             <button class="ab-tab"        data-tab="sitemap">🗺 <?php esc_html_e( 'Technical SEO', 'cloudscale-seo-ai-optimizer' ); ?></button>
@@ -92,8 +99,10 @@ trait CS_SEO_Settings_Page {
         </div>
         </div>
 
+        <?php if ($show_onboarding): $this->render_onboarding_pane(); endif; ?>
+
         <?php /* ══════════════════ SETTINGS PANE (SEO + AI combined) ══════════════════ */ ?>
-        <div class="ab-pane active" id="ab-pane-seo">
+        <div class="ab-pane <?php echo $show_onboarding ? '' : 'active'; ?>" id="ab-pane-seo">
 
             <?php /* ── SEO Settings form ── */ ?>
             <form method="post" action="options.php">
@@ -608,15 +617,13 @@ trait CS_SEO_Settings_Page {
 
                 <?php /* ── API key warning banner ── */ ?>
                 <div class="ab-api-key-warning" id="ab-api-warn">
-                    <div class="ab-warn-icon">⚠️</div>
+                    <div class="ab-warn-icon">✦</div>
                     <div class="ab-warn-body">
-                        <strong><?php esc_html_e( 'No Anthropic API key saved — AI generation is disabled.', 'cloudscale-seo-ai-optimizer' ); ?></strong>
-                        <?php esc_html_e( 'To use the AI buttons you need to:', 'cloudscale-seo-ai-optimizer' ); ?>
+                        <strong><?php esc_html_e( 'AI features are not yet configured.', 'cloudscale-seo-ai-optimizer' ); ?></strong>
+                        <?php esc_html_e( 'Choose one of the options below to unlock AI writing:', 'cloudscale-seo-ai-optimizer' ); ?>
                         <ol style="margin:6px 0 0 16px;padding:0">
-                            <li><?php echo wp_kses( __( 'Get a free API key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>', 'cloudscale-seo-ai-optimizer' ), array( 'a' => array( 'href' => array(), 'target' => array() ) ) ); ?></li>
-                            <li><?php echo wp_kses( __( 'Paste it into the <strong>API Key</strong> field in the <strong>✦ AI Meta Writer</strong> section above', 'cloudscale-seo-ai-optimizer' ), array( 'strong' => array() ) ); ?></li>
-                            <li><?php echo wp_kses( __( 'Click <strong>Save AI Settings</strong>', 'cloudscale-seo-ai-optimizer' ), array( 'strong' => array() ) ); ?></li>
-                            <li><?php esc_html_e( 'Return here and reload the page', 'cloudscale-seo-ai-optimizer' ); ?></li>
+                            <li><?php echo wp_kses( __( '<strong>Subscribe</strong> for R69/month — no API account needed (<a href="?page=cloudscale-seo-ai-optimizer#start">Get Started →</a>)', 'cloudscale-seo-ai-optimizer' ), array( 'strong' => array(), 'a' => array( 'href' => array() ) ) ); ?></li>
+                            <li><?php echo wp_kses( __( '<strong>Use your own key</strong> — paste an Anthropic or Gemini key in the ✦ AI Provider section above and Save', 'cloudscale-seo-ai-optimizer' ), array( 'strong' => array() ) ); ?></li>
                         </ol>
                     </div>
                 </div>
@@ -3250,7 +3257,7 @@ trait CS_SEO_Settings_Page {
         function abCheckApiKey() {
             if (abHasApiKey) return true;
             document.getElementById('ab-api-warn').classList.add('visible');
-            abLog('⚠ No API key saved. Scroll up to the ✦ AI Meta Writer section, enter your Anthropic API key and click Save AI Settings, then reload the page.', 'err');
+            abLog('✦ AI not configured. Subscribe for R69/month or enter an API key in the AI Provider section above.', 'err');
             return false;
         }
 
@@ -8400,6 +8407,325 @@ trait CS_SEO_Settings_Page {
         <?php wp_add_inline_script('cs-seo-admin-js', ob_get_clean()); ?>
         </div><!-- /wrap -->
         <?php
+    }
+
+    // =========================================================================
+    // Onboarding — Get Started pane
+    // =========================================================================
+
+    /**
+     * Renders the "Get Started" pane shown to new installs before any API key is configured.
+     *
+     * @since 4.21.60
+     */
+    private function render_onboarding_pane(): void {
+        $ai          = $this->ai_opts;
+        $user_email  = esc_attr(wp_get_current_user()->user_email ?? '');
+        $proxy_ses   = esc_attr((string)($ai['proxy_session_id'] ?? ''));
+        ?>
+        <div class="ab-pane active" id="ab-pane-start">
+        <div style="max-width:900px;margin:0 auto;padding:8px 0 32px">
+
+            <?php /* ── Hero ── */ ?>
+            <div style="text-align:center;padding:32px 24px 24px">
+                <div style="font-size:40px;margin-bottom:12px">🚀</div>
+                <h2 style="font-size:22px;font-weight:700;color:#1d2327;margin:0 0 8px"><?php esc_html_e( "Welcome to CloudScale SEO AI", 'cloudscale-seo-ai-optimizer' ); ?></h2>
+                <p style="font-size:15px;color:#50575e;margin:0"><?php esc_html_e( "Most users see results in the first 60 seconds. Pick how you'd like to get started.", 'cloudscale-seo-ai-optimizer' ); ?></p>
+            </div>
+
+            <?php /* ── Three mode cards ── */ ?>
+            <div id="ab-onboard-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:0 8px">
+
+                <?php /* ── FREE card ── */ ?>
+                <div class="ab-onboard-card" id="ab-onboard-free" style="background:#fff;border:2px solid #e5e7eb;border-radius:12px;padding:24px;display:flex;flex-direction:column">
+                    <div style="font-size:28px;margin-bottom:8px">🆓</div>
+                    <h3 style="font-size:16px;font-weight:700;color:#1d2327;margin:0 0 4px"><?php esc_html_e( 'Free', 'cloudscale-seo-ai-optimizer' ); ?></h3>
+                    <p style="font-size:12px;color:#6b7280;margin:0 0 16px"><?php esc_html_e( 'No account. No card. Start now.', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                    <ul style="list-style:none;margin:0 0 20px;padding:0;font-size:12px;line-height:2;color:#374151;flex:1">
+                        <?php foreach ([
+                            'SEO audit with score',
+                            'XML Sitemap',
+                            'Robots.txt manager',
+                            'Meta tags + Open Graph',
+                            'JSON-LD Schema markup',
+                            'Breadcrumb schema',
+                            'Related articles',
+                            'Broken link checker',
+                            'HTTPS / mixed-content fix',
+                            'Redirect manager',
+                            'Category health analysis',
+                            'JS defer + font optimisation',
+                        ] as $feat): ?>
+                        <li>✓ <?php echo esc_html( $feat ); ?></li>
+                        <?php endforeach; ?>
+                        <li style="color:#9ca3af">✦ AI writing — locked</li>
+                    </ul>
+                    <button type="button" class="button button-primary" id="ab-onboard-free-btn"
+                        style="width:100%;padding:10px 0;font-size:14px;font-weight:700;border-radius:8px">
+                        <?php esc_html_e( 'Start Free →', 'cloudscale-seo-ai-optimizer' ); ?>
+                    </button>
+                </div>
+
+                <?php /* ── SUBSCRIBE card ── */ ?>
+                <div class="ab-onboard-card" id="ab-onboard-sub" style="background:#fff;border:2px solid #6366f1;border-radius:12px;padding:24px;display:flex;flex-direction:column;position:relative">
+                    <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#6366f1;color:#fff;font-size:11px;font-weight:700;padding:3px 14px;border-radius:20px;letter-spacing:.06em;white-space:nowrap">MOST POPULAR</div>
+                    <div style="font-size:28px;margin-bottom:8px">⚡</div>
+                    <h3 style="font-size:16px;font-weight:700;color:#1d2327;margin:0 0 4px"><?php esc_html_e( 'AI Subscription', 'cloudscale-seo-ai-optimizer' ); ?></h3>
+                    <p style="font-size:12px;color:#6b7280;margin:0 0 4px"><strong style="color:#6366f1;font-size:15px">R69/month</strong> <?php esc_html_e( '· 200 AI requests included', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                    <p style="font-size:11px;color:#10b981;margin:0 0 16px;font-weight:600"><?php esc_html_e( 'Cancel anytime · Uninstalling auto-cancels', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                    <ul style="list-style:none;margin:0 0 16px;padding:0;font-size:12px;line-height:2;color:#374151;flex:1">
+                        <li style="color:#6366f1;font-weight:600"><?php esc_html_e( 'Everything in Free, plus:', 'cloudscale-seo-ai-optimizer' ); ?></li>
+                        <?php foreach ([
+                            'AI meta descriptions',
+                            'AI ALT text generation',
+                            'FAQ + HowTo schema (AI)',
+                            'AI summary boxes',
+                            'AEO answer generation',
+                            'Category SEO descriptions',
+                            'Auto Pipeline on publish',
+                        ] as $feat): ?>
+                        <li>✦ <?php echo esc_html( $feat ); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <div id="ab-onboard-sub-form" style="display:none;margin-bottom:12px">
+                        <input type="email" id="ab-onboard-email"
+                            value="<?php echo $user_email; ?>"
+                            placeholder="your@email.com"
+                            style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;margin-bottom:8px;box-sizing:border-box">
+                        <p id="ab-onboard-sub-msg" style="display:none;font-size:12px;margin:0 0 6px;color:#b91c1c"></p>
+                    </div>
+                    <button type="button" id="ab-onboard-sub-btn"
+                        style="width:100%;padding:10px 0;font-size:14px;font-weight:700;border-radius:8px;background:#6366f1;color:#fff;border:none;cursor:pointer">
+                        <?php esc_html_e( 'Subscribe — R69/month', 'cloudscale-seo-ai-optimizer' ); ?>
+                    </button>
+                </div>
+
+                <?php /* ── DIY card ── */ ?>
+                <div class="ab-onboard-card" id="ab-onboard-diy" style="background:#fff;border:2px solid #e5e7eb;border-radius:12px;padding:24px;display:flex;flex-direction:column">
+                    <div style="font-size:28px;margin-bottom:8px">🔑</div>
+                    <h3 style="font-size:16px;font-weight:700;color:#1d2327;margin:0 0 4px"><?php esc_html_e( 'Use My Own Key', 'cloudscale-seo-ai-optimizer' ); ?></h3>
+                    <p style="font-size:12px;color:#6b7280;margin:0 0 16px"><?php esc_html_e( 'Already have an Anthropic or Gemini API key? Connect it and all AI features activate instantly.', 'cloudscale-seo-ai-optimizer' ); ?></p>
+                    <ul style="list-style:none;margin:0 0 16px;padding:0;font-size:12px;line-height:2;color:#374151;flex:1">
+                        <li>✓ <?php esc_html_e( 'Full control over costs', 'cloudscale-seo-ai-optimizer' ); ?></li>
+                        <li>✓ <?php esc_html_e( 'No subscription needed', 'cloudscale-seo-ai-optimizer' ); ?></li>
+                        <li>✓ <?php esc_html_e( 'Choose your model', 'cloudscale-seo-ai-optimizer' ); ?></li>
+                        <li style="color:#6b7280;font-size:11px"><?php esc_html_e( 'Requires an Anthropic or Google AI account', 'cloudscale-seo-ai-optimizer' ); ?></li>
+                    </ul>
+                    <div id="ab-onboard-diy-form" style="display:none;margin-bottom:12px">
+                        <div style="display:flex;gap:6px;margin-bottom:8px">
+                            <button type="button" class="ab-onboard-provider-btn active" data-provider="anthropic"
+                                style="flex:1;padding:6px 0;font-size:12px;font-weight:600;border:2px solid #6366f1;background:#f0f0ff;border-radius:6px;cursor:pointer;color:#4338ca">Anthropic</button>
+                            <button type="button" class="ab-onboard-provider-btn" data-provider="gemini"
+                                style="flex:1;padding:6px 0;font-size:12px;font-weight:600;border:2px solid #e5e7eb;background:#fff;border-radius:6px;cursor:pointer;color:#374151">Gemini</button>
+                        </div>
+                        <input type="password" id="ab-onboard-apikey"
+                            placeholder="sk-ant-api03-..." autocomplete="off"
+                            style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;margin-bottom:8px;box-sizing:border-box;font-family:monospace">
+                        <div style="display:flex;gap:6px">
+                            <button type="button" id="ab-onboard-test-btn"
+                                style="flex:1;padding:7px 0;font-size:12px;font-weight:600;border:1px solid #d1d5db;background:#f9fafb;border-radius:6px;cursor:pointer">Test Key</button>
+                            <button type="button" id="ab-onboard-save-btn"
+                                style="flex:1;padding:7px 0;font-size:12px;font-weight:700;border:none;background:#1d2327;color:#fff;border-radius:6px;cursor:pointer">Save &amp; Start</button>
+                        </div>
+                        <p id="ab-onboard-diy-msg" style="display:none;font-size:12px;margin:8px 0 0"></p>
+                    </div>
+                    <button type="button" id="ab-onboard-diy-btn"
+                        style="width:100%;padding:10px 0;font-size:14px;font-weight:700;border-radius:8px;background:#1d2327;color:#fff;border:none;cursor:pointer">
+                        <?php esc_html_e( 'Enter API Key →', 'cloudscale-seo-ai-optimizer' ); ?>
+                    </button>
+                </div>
+
+            </div><!-- /ab-onboard-cards -->
+
+            <?php /* ── Pending session polling (same as AI settings card) ── */ ?>
+            <div id="ab-onboard-pending-session" data-session="<?php echo $proxy_ses; ?>" style="display:none"></div>
+
+        </div>
+        </div><!-- /ab-pane-start -->
+
+        <script>
+        (function(){
+            var _ajax  = <?php echo json_encode(admin_url('admin-ajax.php')); ?>;
+            var _nonce = <?php echo json_encode(wp_create_nonce('cs_seo_nonce')); ?>;
+            var _site  = <?php echo json_encode(home_url('/')); ?>;
+
+            function obPost(action, extra) {
+                var p = Object.assign({ action: action, nonce: _nonce }, extra || {});
+                return fetch(_ajax, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(p).toString()
+                }).then(function(r) { return r.json(); });
+            }
+
+            function completeOnboarding(cb) {
+                obPost('cs_seo_complete_onboarding').then(function() {
+                    document.getElementById('ab-tab-start') && document.getElementById('ab-tab-start').remove();
+                    if (cb) cb();
+                });
+            }
+
+            // ── FREE path ──
+            var freeBtn = document.getElementById('ab-onboard-free-btn');
+            if (freeBtn) {
+                freeBtn.addEventListener('click', function() {
+                    freeBtn.disabled = true;
+                    freeBtn.textContent = 'Setting up…';
+                    completeOnboarding(function() {
+                        var auditTab = document.querySelector('.ab-tab[data-tab="siteaudit"]');
+                        if (auditTab) auditTab.click();
+                        setTimeout(function() {
+                            var runBtn = document.getElementById('cs-run-audit-btn');
+                            if (runBtn) runBtn.click();
+                        }, 300);
+                    });
+                });
+            }
+
+            // ── SUBSCRIBE path ──
+            var subBtn  = document.getElementById('ab-onboard-sub-btn');
+            var subForm = document.getElementById('ab-onboard-sub-form');
+            var subMsg  = document.getElementById('ab-onboard-sub-msg');
+            var subStep = 0;
+            if (subBtn) {
+                subBtn.addEventListener('click', function() {
+                    if (subStep === 0) {
+                        subForm.style.display = '';
+                        subBtn.textContent = 'Continue to checkout →';
+                        subStep = 1;
+                        return;
+                    }
+                    var email = (document.getElementById('ab-onboard-email') || {}).value || '';
+                    if (!email) { subMsg.style.display=''; subMsg.textContent='Please enter your email.'; return; }
+                    subBtn.disabled = true;
+                    subBtn.textContent = 'Redirecting to checkout…';
+                    obPost('cs_seo_proxy_checkout', { email: email, site_url: _site })
+                        .then(function(res) {
+                            if (res.success && res.data && res.data.checkout_url) {
+                                window.location.href = res.data.checkout_url;
+                            } else {
+                                subMsg.style.display = '';
+                                subMsg.textContent = (res.data && res.data.message) || 'Checkout failed. Please try again.';
+                                subBtn.disabled = false;
+                                subBtn.textContent = 'Continue to checkout →';
+                            }
+                        });
+                });
+            }
+
+            // ── DIY path ──
+            var diyBtn    = document.getElementById('ab-onboard-diy-btn');
+            var diyForm   = document.getElementById('ab-onboard-diy-form');
+            var diyMsg    = document.getElementById('ab-onboard-diy-msg');
+            var diyProv   = 'anthropic';
+            if (diyBtn) {
+                diyBtn.addEventListener('click', function() {
+                    diyForm.style.display = '';
+                    diyBtn.style.display  = 'none';
+                });
+            }
+            document.querySelectorAll('.ab-onboard-provider-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    diyProv = this.getAttribute('data-provider');
+                    document.querySelectorAll('.ab-onboard-provider-btn').forEach(function(b) {
+                        var active = b.getAttribute('data-provider') === diyProv;
+                        b.style.border  = active ? '2px solid #6366f1' : '2px solid #e5e7eb';
+                        b.style.background = active ? '#f0f0ff' : '#fff';
+                        b.style.color   = active ? '#4338ca' : '#374151';
+                        if (active) b.classList.add('active'); else b.classList.remove('active');
+                    });
+                    var kf = document.getElementById('ab-onboard-apikey');
+                    if (kf) kf.placeholder = diyProv === 'gemini' ? 'AIza...' : 'sk-ant-api03-...';
+                });
+            });
+            var testBtn = document.getElementById('ab-onboard-test-btn');
+            if (testBtn) {
+                testBtn.addEventListener('click', function() {
+                    var key = (document.getElementById('ab-onboard-apikey') || {}).value || '';
+                    if (!key) return;
+                    testBtn.disabled = true; testBtn.textContent = 'Testing…';
+                    obPost('cs_seo_ai_test_key', { provider: diyProv, live_key: key })
+                        .then(function(res) {
+                            diyMsg.style.display = '';
+                            diyMsg.style.color = res.success ? '#15803d' : '#b91c1c';
+                            diyMsg.textContent = res.success ? '✓ Key works!' : ((res.data && res.data.message) || 'Key test failed');
+                            testBtn.disabled = false; testBtn.textContent = 'Test Key';
+                        });
+                });
+            }
+            var saveBtn = document.getElementById('ab-onboard-save-btn');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', function() {
+                    var key = (document.getElementById('ab-onboard-apikey') || {}).value || '';
+                    if (!key) { diyMsg.style.display=''; diyMsg.style.color='#b91c1c'; diyMsg.textContent='Please enter an API key.'; return; }
+                    saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+                    obPost('cs_seo_onboarding_save_key', { provider: diyProv, key: key })
+                        .then(function(res) {
+                            if (res.success) {
+                                window.location.href = window.location.pathname + '?page=cloudscale-seo-ai-optimizer&settings-updated=1';
+                            } else {
+                                diyMsg.style.display = '';
+                                diyMsg.style.color = '#b91c1c';
+                                diyMsg.textContent = (res.data && res.data.message) || 'Save failed.';
+                                saveBtn.disabled = false; saveBtn.textContent = 'Save & Start';
+                            }
+                        });
+                });
+            }
+
+            // ── Poll for subscription activation if session pending ──
+            var pendEl = document.getElementById('ab-onboard-pending-session');
+            if (pendEl && pendEl.getAttribute('data-session')) {
+                var ses = pendEl.getAttribute('data-session');
+                var polls = 0;
+                var timer = setInterval(function() {
+                    if (++polls > 40) { clearInterval(timer); return; }
+                    obPost('cs_seo_proxy_poll_session', { session_token: ses })
+                        .then(function(res) {
+                            if (res.success && res.data && res.data.status === 'active') {
+                                clearInterval(timer);
+                                window.location.reload();
+                            }
+                        });
+                }, 3000);
+            }
+        })();
+        </script>
+        <?php
+    }
+
+    /**
+     * AJAX: marks onboarding as complete (sets cs_seo_welcome_shown=1).
+     *
+     * @since 4.21.60
+     */
+    public function ajax_complete_onboarding(): void {
+        $this->ajax_check();
+        update_option('cs_seo_welcome_shown', 1);
+        wp_send_json_success();
+    }
+
+    /**
+     * AJAX: saves API key from the onboarding DIY flow and marks onboarding complete.
+     *
+     * @since 4.21.60
+     */
+    public function ajax_onboarding_save_key(): void {
+        $this->ajax_check();
+        $provider = in_array($_POST['provider'] ?? '', ['anthropic', 'gemini'], true)
+            ? $_POST['provider'] : 'anthropic';
+        $key = sanitize_text_field((string)($_POST['key'] ?? ''));
+        if (!$key) { wp_send_json_error(['message' => 'Key is required']); }
+
+        $this->ai_opts['ai_provider'] = $provider;
+        if ($provider === 'gemini') {
+            $this->ai_opts['gemini_key'] = $key;
+        } else {
+            $this->ai_opts['anthropic_key'] = $key;
+        }
+        update_option(self::AI_OPT, $this->ai_opts);
+        update_option('cs_seo_welcome_shown', 1);
+        wp_send_json_success();
     }
 
     private function tr_text(string $k, string $label, array $o, string $placeholder = '', string $hint = ''): void { ?>

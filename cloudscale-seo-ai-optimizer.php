@@ -3,7 +3,7 @@
  * Plugin Name: CloudScale SEO AI Optimizer
  * Plugin URI:  https://andrewbaker.ninja/2026/02/24/cloudscale-seo-ai-optimiser-enterprise-grade-wordpress-seo-completely-free/
  * Description: Lightweight SEO with AI meta descriptions via Claude API. Titles, canonicals, OpenGraph, Twitter Cards, JSON-LD schema, sitemaps, robots.txt, and font display optimization.
- * Version:     4.21.59
+ * Version:     4.21.63
  * Author:      Andrew Baker
  * Author URI:  https://andrewbaker.ninja/
  * License:     GPLv2 or later
@@ -187,7 +187,7 @@ final class Cs_Seo_Plugin {
     // Related Articles generator version — bump when scoring logic changes
     const RC_VERSION = '1.0';
 
-    const VERSION    = '4.21.59';
+    const VERSION    = '4.21.63';
 
     // Separate option key for AI config — keeps sensitive data isolated.
     const AI_OPT     = 'cs_seo_ai_options';
@@ -444,6 +444,8 @@ final class Cs_Seo_Plugin {
         add_action('wp_ajax_cs_seo_proxy_refresh_status', [$this, 'ajax_proxy_refresh_status']);
         add_action('wp_ajax_cs_seo_proxy_poll_session',   [$this, 'ajax_proxy_poll_session']);
         add_action('wp_ajax_cs_seo_proxy_billing_portal', [$this, 'ajax_proxy_billing_portal']);
+        add_action('wp_ajax_cs_seo_complete_onboarding',  [$this, 'ajax_complete_onboarding']);
+        add_action('wp_ajax_cs_seo_onboarding_save_key',  [$this, 'ajax_onboarding_save_key']);
     }
 
     // =========================================================================
@@ -566,6 +568,7 @@ register_activation_hook(__FILE__, function(): void {
     // Flag to show the first-run welcome + API key setup notice.
     if (!get_option('cs_seo_welcome_shown')) {
         update_option('cs_seo_show_welcome', 1);
+        set_transient('cs_seo_activation_redirect', 1, 30);
     }
     // Register rewrites first so flush has something to work with.
     $opts = get_option('cs_seo_options');
@@ -613,6 +616,13 @@ register_deactivation_hook(__FILE__, function(): void {
 // and resets OPcache so PHP serves the new code immediately.
 add_action('admin_init', function(): void {
     if ( ! current_user_can( 'manage_options' ) ) return;
+    if (get_transient('cs_seo_activation_redirect')) {
+        delete_transient('cs_seo_activation_redirect');
+        if (!isset($_GET['activate-multi'])) {
+            wp_safe_redirect(admin_url('admin.php?page=cloudscale-seo-ai-optimizer'));
+            exit;
+        }
+    }
     $cached = get_option('cs_seo_loaded_version', '');
     if ($cached !== Cs_Seo_Plugin::VERSION) {
         if (function_exists('opcache_reset')) {
