@@ -23,6 +23,7 @@ trait CS_SEO_Settings_Assets {
 .ab-tab { padding:8px 14px; cursor:pointer; border:none; border-radius:6px 6px 0 0; font-size:12px; font-weight:600; letter-spacing:0.01em; background:#e0e0e0; color:#50575e; transition:background 0.15s, color 0.15s; margin-bottom:0; position:relative; bottom:-1px; white-space:nowrap; }
 @media (min-width:783px) { .ab-tab { padding:10px 22px; font-size:13px; } }
 .ab-tab:hover:not(.active) { background:#c3c4c7; color:#1d2327; }
+.ab-tab[data-tab="start"].active   { background:#6366f1; color:#fff; }
 .ab-tab[data-tab="seo"].active     { background:#2271b1; color:#fff; }
 .ab-tab[data-tab="aitools"].active  { background:#6366f1; color:#fff; }
 .ab-tab[data-tab="sitemap"].active  { background:#1a7a34; color:#fff; }
