@@ -37,12 +37,13 @@ trait CS_SEO_Batch_Scheduler {
         $today = strtolower(gmdate('D')); // 'mon','tue' etc.
         if (!in_array($today, $days, true)) return;
 
-        $log      = [];
-        $done     = 0;
-        $errors   = 0;
-        $skipped  = 0;
-        $start    = time();
-        $deadline = $start + 1740; // 29 min — leave 60 s for the history write
+        $log       = [];
+        $done      = 0;
+        $errors    = 0;
+        $skipped   = 0;
+        $quota_hit = false;
+        $start     = time();
+        $deadline  = $start + 1740; // 29 min — leave 60 s for the history write
 
         $q = new WP_Query([
             'post_type'           => ['post', 'page'],
@@ -68,6 +69,11 @@ trait CS_SEO_Batch_Scheduler {
                 $log[] = ['status' => 'ok', 'title' => get_the_title($p->ID), 'chars' => mb_strlen($desc)];
                 $done++;
             } catch (\Throwable $e) {
+                if (str_contains($e->getMessage(), 'request limit')) {
+                    $quota_hit = true;
+                    $log[] = ['status' => 'quota', 'title' => 'Monthly request limit reached — stopping batch'];
+                    break;
+                }
                 $log[] = ['status' => 'err', 'title' => get_the_title($p->ID), 'message' => $e->getMessage()];
                 $errors++;
                 sleep(2); // Back off on error.
@@ -92,6 +98,7 @@ trait CS_SEO_Batch_Scheduler {
             'order'               => 'DESC',
         ]);
 
+        if ( ! $quota_hit ) :
         foreach ($q2->posts as $p) {
             if (time() >= $deadline) { $log[] = ['status' => 'timeout', 'title' => 'Pass 2 time limit reached']; break; }
             $images = $this->collect_images_needing_alt($p->ID);
@@ -106,17 +113,24 @@ trait CS_SEO_Batch_Scheduler {
                 }
                 $alt_done += $saved;
             } catch (\Throwable $e) {
+                if (str_contains($e->getMessage(), 'request limit')) {
+                    $quota_hit = true;
+                    $log[] = ['status' => 'quota', 'title' => 'Monthly request limit reached — stopping batch'];
+                    break;
+                }
                 $log[] = ['status' => 'alt_err', 'title' => get_the_title($p->ID), 'message' => $e->getMessage()];
                 $alt_errors++;
                 sleep(2);
             }
             sleep(1); // Pace requests — T4g Micro friendly.
         }
+        endif;
 
         // ── Pass 3: generate missing AI summaries across all posts ──────────
         $sum_done   = 0;
         $sum_errors = 0;
 
+        if ( ! $quota_hit ) :
         $q3 = new WP_Query([
             'post_type'           => 'post',
             'post_status'         => 'publish',
@@ -141,17 +155,24 @@ trait CS_SEO_Batch_Scheduler {
                 $log[] = ['status' => 'sum_ok', 'title' => get_the_title($p->ID)];
                 $sum_done++;
             } catch (\Throwable $e) {
+                if (str_contains($e->getMessage(), 'request limit')) {
+                    $quota_hit = true;
+                    $log[] = ['status' => 'quota', 'title' => 'Monthly request limit reached — stopping batch'];
+                    break;
+                }
                 $log[] = ['status' => 'sum_err', 'title' => get_the_title($p->ID), 'message' => $e->getMessage()];
                 $sum_errors++;
                 sleep(2);
             }
             sleep(1); // Pace requests — T4g Micro friendly.
         }
+        endif;
 
         // ── Pass 4: generate missing SEO title tags ───────────────────────────
         $title_done   = 0;
         $title_errors = 0;
 
+        if ( ! $quota_hit ) :
         $q4 = new WP_Query([
             'post_type'           => ['post', 'page'],
             'post_status'         => 'publish',
@@ -177,12 +198,18 @@ trait CS_SEO_Batch_Scheduler {
                 $log[] = ['status' => 'title_ok', 'title' => get_the_title($p->ID), 'chars' => mb_strlen($new_title)];
                 $title_done++;
             } catch (\Throwable $e) {
+                if (str_contains($e->getMessage(), 'request limit')) {
+                    $quota_hit = true;
+                    $log[] = ['status' => 'quota', 'title' => 'Monthly request limit reached — stopping batch'];
+                    break;
+                }
                 $log[] = ['status' => 'title_err', 'title' => get_the_title($p->ID), 'message' => $e->getMessage()];
                 $title_errors++;
                 sleep(2);
             }
             sleep(1);
         }
+        endif;
 
         // Append to batch history (keep 28 days of runs).
         $history = get_option('cs_seo_batch_history', []);
@@ -200,6 +227,7 @@ trait CS_SEO_Batch_Scheduler {
             'sum_errors'        => $sum_errors,
             'title_done'        => $title_done,
             'title_errors'      => $title_errors,
+            'quota_hit'         => $quota_hit,
             'elapsed'           => (time() - $start),
             'log'               => array_slice($log, 0, 100), // Keep last 100 entries per run.
         ];

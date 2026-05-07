@@ -519,6 +519,25 @@ trait CS_SEO_Settings_Page {
         <?php /* ══════════════════ AI TOOLS PANE ══════════════════ */ ?>
         <div class="ab-pane" id="ab-pane-aitools">
 
+            <?php /* ── Proxy quota warning banner ── */
+            if ( $proxy_enabled && $proxy_status === 'active' && $proxy_usage_pct >= 90 ) :
+                $quota_full = ( $proxy_usage >= $proxy_limit );
+            ?>
+            <div style="background:<?php echo $quota_full ? '#fef2f2' : '#fff7ed'; ?>;border:1px solid <?php echo $quota_full ? '#fca5a5' : '#fdba74'; ?>;border-left:4px solid <?php echo $quota_full ? '#dc2626' : '#f59e0b'; ?>;border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <span style="font-size:22px"><?php echo $quota_full ? '🚫' : '⚠️'; ?></span>
+                <div style="flex:1;min-width:200px;">
+                    <?php if ( $quota_full ) : ?>
+                    <strong style="color:#b91c1c;font-size:14px;"><?php esc_html_e( 'Monthly request limit reached', 'cloudscale-seo-ai-optimizer' ); ?></strong>
+                    <p style="margin:2px 0 0;color:#7f1d1d;font-size:12px;"><?php echo esc_html( sprintf( __( 'All %d requests used. AI features are paused until your allocation resets on %s.', 'cloudscale-seo-ai-optimizer' ), $proxy_limit, $proxy_reset ) ); ?></p>
+                    <?php else : ?>
+                    <strong style="color:#92400e;font-size:14px;"><?php esc_html_e( 'Running low on requests', 'cloudscale-seo-ai-optimizer' ); ?></strong>
+                    <p style="margin:2px 0 0;color:#78350f;font-size:12px;"><?php echo esc_html( sprintf( __( '%d of %d requests used (%d%%). Resets %s.', 'cloudscale-seo-ai-optimizer' ), $proxy_usage, $proxy_limit, $proxy_usage_pct, $proxy_reset ) ); ?></p>
+                    <?php endif; ?>
+                </div>
+                <a href="?page=cloudscale-seo-ai-optimizer&tab=seo" style="background:<?php echo $quota_full ? '#dc2626' : '#f59e0b'; ?>;color:#fff;border-radius:6px;padding:7px 16px;font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap;"><?php esc_html_e( '⚡ Boost +200 requests', 'cloudscale-seo-ai-optimizer' ); ?></a>
+            </div>
+            <?php endif; ?>
+
             <?php /* ── Auto Pipeline status hero ── */
             $pipeline_on = (int)($ai['auto_run_enabled'] ?? 0);
             if ( $pipeline_on ) : ?>
@@ -1969,10 +1988,13 @@ trait CS_SEO_Settings_Page {
                 <div style="padding:16px 20px;max-height:500px;overflow-y:auto">
                 <?php foreach ($history as $idx => $batch): ?>
                     <div style="<?php echo esc_attr( $idx > 0 ? 'margin-top:12px;padding-top:12px;border-top:1px solid #e5e5e5;' : '' ); ?>">
-                        <p style="margin:0 0 4px">
-                            <strong><?php echo esc_html($batch['day'] ?? ''); ?> <?php echo esc_html($batch['date'] ?? ''); ?></strong> —
-                            <?php $batch_done = (int)($batch['done'] ?? 0) + (int)($batch['alt_done'] ?? 0) + (int)($batch['sum_done'] ?? 0); ?>
-                            <span style="color:<?php echo esc_attr( $batch_done > 0 ? '#2271b1' : '#1a7a34' ); ?>"><?php echo (int)($batch['done'] ?? 0); ?> generated</span>,
+                        <p style="margin:0 0 4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                            <strong><?php echo esc_html($batch['day'] ?? ''); ?> <?php echo esc_html($batch['date'] ?? ''); ?></strong>
+                            <?php if ( ! empty( $batch['quota_hit'] ) ) : ?>
+                            <span style="background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;border-radius:3px;padding:1px 7px;font-size:11px;font-weight:700;">⚠ Quota hit — batch stopped early</span>
+                            <?php endif; ?>
+                            <?php $batch_done = (int)($batch['done'] ?? 0) + (int)($batch['alt_done'] ?? 0) + (int)($batch['sum_done'] ?? 0) + (int)($batch['title_done'] ?? 0); ?>
+                            — <span style="color:<?php echo esc_attr( $batch_done > 0 ? '#2271b1' : '#1a7a34' ); ?>"><?php echo (int)($batch['done'] ?? 0); ?> generated</span>,
                             <?php echo (int)($batch['skipped'] ?? 0); ?> skipped<?php if (($batch['errors'] ?? 0) > 0): ?>,
                                 <span style="color:#c3372b"><?php echo (int)$batch['errors']; ?> errors</span><?php endif; ?>,
                             <?php echo (int)($batch['elapsed'] ?? 0); ?>s total
@@ -1988,6 +2010,10 @@ trait CS_SEO_Settings_Page {
                                     <div style="color:#00d084">✓ <?php echo esc_html($entry['title']); ?> → summary</div>
                                 <?php elseif ($entry['status'] === 'alt_ok'): ?>
                                     <div style="color:#00d084">✓ <?php echo esc_html($entry['title']); ?> → <?php echo (int)$entry['count']; ?> ALT text(s)</div>
+                                <?php elseif ($entry['status'] === 'title_ok'): ?>
+                                    <div style="color:#00d084">✓ <?php echo esc_html($entry['title']); ?> → title (<?php echo (int)$entry['chars']; ?> chars)</div>
+                                <?php elseif ($entry['status'] === 'quota'): ?>
+                                    <div style="color:#ff9500">⚠ <?php echo esc_html($entry['title']); ?></div>
                                 <?php elseif ($entry['status'] === 'timeout'): ?>
                                     <div style="color:#ffa500">⏱ <?php echo esc_html($entry['title']); ?></div>
                                 <?php else: ?>
@@ -8453,7 +8479,7 @@ trait CS_SEO_Settings_Page {
     /**
      * Renders the "Get Started" pane shown to new installs before any API key is configured.
      *
-     * @since 4.21.95
+     * @since 4.21.97
      */
     private function render_onboarding_pane(): void {
         $ai         = $this->ai_opts;
@@ -9002,7 +9028,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: marks onboarding as complete (sets cs_seo_welcome_shown=1).
      *
-     * @since 4.21.95
+     * @since 4.21.97
      */
     public function ajax_complete_onboarding(): void {
         $this->ajax_check();
@@ -9013,7 +9039,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: saves API key from the onboarding DIY flow and marks onboarding complete.
      *
-     * @since 4.21.95
+     * @since 4.21.97
      */
     public function ajax_onboarding_save_key(): void {
         $this->ajax_check();
