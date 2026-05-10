@@ -3,6 +3,16 @@
 All notable changes to CloudScale SEO AI Optimizer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.21.110] - 2026-05-10
+### Fixed
+- **PCP: echoed `<script>` tags** — migrated all remaining inline `<script>` blocks to `wp_add_inline_script()` in `trait-settings-page.php` (toast, category SEO bulk-gen, onboarding), `trait-category-seo.php`, and `trait-seo-site-audit.php` (both blocks)
+- **PCP: echoed `<style>` tags** — extracted onboarding pane CSS to `onboarding_page_css()` in `trait-settings-page.php` and audit CSS to `audit_page_css()` in `trait-seo-site-audit.php`; both enqueued via `admin_enqueue_assets()`
+- **PCP: `EscapeOutput.OutputNotEscaped`** — wrapped all unescaped ternary echoes in `style=` attributes with `esc_attr()` across `trait-settings-page.php` (quota banner, onboarding default, user email, proxy session) and `trait-admin.php` (dashboard widget audit score badges)
+- **PCP: `MissingTranslatorsComment`** — added `/* translators: */` comments above both `sprintf( __( … ) )` calls in the proxy quota warning banner; updated to named placeholders (`%1$d`, `%2$s`, etc.)
+- **Distribution zip: `proxy-api/` directory** — added `--exclude='proxy-api/'` to `build.sh` rsync so Pi server infrastructure is never included in plugin zips submitted to WordPress.org
+- **DocBlock: `auto_step_faq_schema()`** — added missing `@since 4.21.40`, `@param`, and `@return` tags
+- **`$js_tab` / `$js_sel` / `$js_href`** — applied `esc_js()` directly at point of output in audit quick-fix buttons rather than via pre-assigned variables; removed dead intermediate variable assignments
+
 ## [4.21.40] - 2026-05-03
 ### Added
 - **Schema column in batch table** — `has_schema` indicator (✓/✗) added to the AI Meta Description Writer post table so you can see at a glance which posts have per-post JSON-LD schema (FAQPage/HowTo); column is sortable; pages and homepage show a dash

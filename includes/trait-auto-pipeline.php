@@ -521,6 +521,13 @@ trait CS_SEO_Auto_Pipeline {
         }
     }
 
+    /**
+     * Step 8 — FAQPage JSON-LD schema generation (skips if schema already exists).
+     *
+     * @since 4.21.40
+     * @param int $post_id Post ID.
+     * @return void
+     */
     private function auto_step_faq_schema( int $post_id ): void {
         if ( trim( (string) get_post_meta( $post_id, self::META_PAGE_SCHEMA, true ) ) ) return;
 
@@ -557,7 +564,7 @@ trait CS_SEO_Auto_Pipeline {
      * Step 10 — SEO title tag. Generates and saves a 50–60 char custom title.
      * Skips if a custom title (_cs_seo_title) is already set.
      *
-     * @since 4.21.90
+     * @since 4.21.109
      * @param int $post_id Post ID.
      * @return void
      */

@@ -36,13 +36,13 @@ trait CS_SEO_Settings_Page {
         <div id="ab-settings-saved-toast" style="position:fixed;top:46px;right:20px;z-index:99999;background:#fff;border:1px solid #c3e6cb;border-left:4px solid #00a32a;color:#155724;padding:12px 20px;border-radius:6px;box-shadow:0 2px 12px rgba(0,0,0,.18);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;transition:opacity 0.4s;">
             &#x2705; <?php esc_html_e( 'Settings saved.', 'cloudscale-seo-ai-optimizer' ); ?>
         </div>
-        <script>
+        <?php ob_start(); ?>
         (function(){
             var t = document.getElementById('ab-settings-saved-toast');
             if (!t) return;
             setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); },400); },3000);
         })();
-        </script>
+        <?php wp_add_inline_script('cs-seo-admin-js', ob_get_clean()); ?>
         <?php endif; ?>
         <a href="https://andrewbaker.ninja" target="_blank" rel="noopener" style="
             display:inline-flex;
@@ -102,7 +102,7 @@ trait CS_SEO_Settings_Page {
         <?php $this->render_onboarding_pane(); ?>
 
         <?php /* ══════════════════ SETTINGS PANE (SEO + AI combined) ══════════════════ */ ?>
-        <div class="ab-pane <?php echo $onboarding_default ? '' : 'active'; ?>" id="ab-pane-seo">
+        <div class="ab-pane <?php echo esc_attr( $onboarding_default ? '' : 'active' ); ?>" id="ab-pane-seo">
 
             <?php /* ── SEO Settings form ── */ ?>
             <form method="post" action="options.php">
@@ -523,18 +523,22 @@ trait CS_SEO_Settings_Page {
             if ( $proxy_enabled && $proxy_status === 'active' && $proxy_usage_pct >= 90 ) :
                 $quota_full = ( $proxy_usage >= $proxy_limit );
             ?>
-            <div style="background:<?php echo $quota_full ? '#fef2f2' : '#fff7ed'; ?>;border:1px solid <?php echo $quota_full ? '#fca5a5' : '#fdba74'; ?>;border-left:4px solid <?php echo $quota_full ? '#dc2626' : '#f59e0b'; ?>;border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-                <span style="font-size:22px"><?php echo $quota_full ? '🚫' : '⚠️'; ?></span>
+            <div style="background:<?php echo esc_attr( $quota_full ? '#fef2f2' : '#fff7ed' ); ?>;border:1px solid <?php echo esc_attr( $quota_full ? '#fca5a5' : '#fdba74' ); ?>;border-left:4px solid <?php echo esc_attr( $quota_full ? '#dc2626' : '#f59e0b' ); ?>;border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <span style="font-size:22px"><?php echo esc_html( $quota_full ? '🚫' : '⚠️' ); ?></span>
                 <div style="flex:1;min-width:200px;">
                     <?php if ( $quota_full ) : ?>
                     <strong style="color:#b91c1c;font-size:14px;"><?php esc_html_e( 'Monthly request limit reached', 'cloudscale-seo-ai-optimizer' ); ?></strong>
-                    <p style="margin:2px 0 0;color:#7f1d1d;font-size:12px;"><?php echo esc_html( sprintf( __( 'All %d requests used. AI features are paused until your allocation resets on %s.', 'cloudscale-seo-ai-optimizer' ), $proxy_limit, $proxy_reset ) ); ?></p>
+                    <p style="margin:2px 0 0;color:#7f1d1d;font-size:12px;"><?php
+                    /* translators: %1$d: total request limit, %2$s: reset date */
+                    echo esc_html( sprintf( __( 'All %1$d requests used. AI features are paused until your allocation resets on %2$s.', 'cloudscale-seo-ai-optimizer' ), $proxy_limit, $proxy_reset ) ); ?></p>
                     <?php else : ?>
                     <strong style="color:#92400e;font-size:14px;"><?php esc_html_e( 'Running low on requests', 'cloudscale-seo-ai-optimizer' ); ?></strong>
-                    <p style="margin:2px 0 0;color:#78350f;font-size:12px;"><?php echo esc_html( sprintf( __( '%d of %d requests used (%d%%). Resets %s.', 'cloudscale-seo-ai-optimizer' ), $proxy_usage, $proxy_limit, $proxy_usage_pct, $proxy_reset ) ); ?></p>
+                    <p style="margin:2px 0 0;color:#78350f;font-size:12px;"><?php
+                    /* translators: %1$d: requests used, %2$d: total limit, %3$d: percentage used, %4$s: reset date */
+                    echo esc_html( sprintf( __( '%1$d of %2$d requests used (%3$d%%). Resets %4$s.', 'cloudscale-seo-ai-optimizer' ), $proxy_usage, $proxy_limit, $proxy_usage_pct, $proxy_reset ) ); ?></p>
                     <?php endif; ?>
                 </div>
-                <a href="?page=cloudscale-seo-ai-optimizer&tab=seo" style="background:<?php echo $quota_full ? '#dc2626' : '#f59e0b'; ?>;color:#fff;border-radius:6px;padding:7px 16px;font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap;"><?php esc_html_e( '⚡ Boost +200 requests', 'cloudscale-seo-ai-optimizer' ); ?></a>
+                <a href="?page=cloudscale-seo-ai-optimizer&tab=seo" style="background:<?php echo esc_attr( $quota_full ? '#dc2626' : '#f59e0b' ); ?>;color:#fff;border-radius:6px;padding:7px 16px;font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap;"><?php esc_html_e( '⚡ Boost +200 requests', 'cloudscale-seo-ai-optimizer' ); ?></a>
             </div>
             <?php endif; ?>
 
@@ -2354,7 +2358,7 @@ trait CS_SEO_Settings_Page {
 
         </div><!-- /ab-pane-catfix -->
 
-        <script>
+        <?php ob_start(); ?>
         (function(){
             var btn = document.getElementById('catseo-gen-btn');
             if (!btn) return;
@@ -2423,7 +2427,7 @@ trait CS_SEO_Settings_Page {
                 btn.style.background = r.success ? '#10b981' : '#ef4444';
             }).catch(function(){ btn.textContent='❌'; btn.style.background='#ef4444'; });
         }
-        </script>
+        <?php wp_add_inline_script('cs-seo-admin-js', ob_get_clean()); ?>
 
         <?php /* ══════════════════ BROKEN LINK CHECKER PANE ══════════════════ */ ?>
 
@@ -8479,7 +8483,7 @@ trait CS_SEO_Settings_Page {
     /**
      * Renders the "Get Started" pane shown to new installs before any API key is configured.
      *
-     * @since 4.21.97
+     * @since 4.21.109
      */
     private function render_onboarding_pane(): void {
         $ai         = $this->ai_opts;
@@ -8487,115 +8491,7 @@ trait CS_SEO_Settings_Page {
         $proxy_ses  = esc_attr((string)($ai['proxy_session_id'] ?? ''));
         ?>
         <div class="ab-pane" id="ab-pane-start">
-        <style>
-        #ab-pane-start { background:#f6f7f7; }
-        .ab-ob-hero {
-            background: linear-gradient(135deg,#1d2327 0%,#2d3a45 60%,#1a3a4a 100%);
-            border-radius:16px; padding:40px 40px 36px; margin-bottom:28px;
-            display:flex; align-items:center; gap:32px; flex-wrap:wrap;
-        }
-        .ab-ob-hero-text { flex:1; min-width:260px; }
-        .ab-ob-hero-text h2 { font-size:26px;font-weight:800;color:#fff;margin:0 0 8px;line-height:1.2; }
-        .ab-ob-hero-text p  { font-size:14px;color:#9fb8c8;margin:0 0 20px;line-height:1.6; }
-        .ab-ob-hero-by { font-size:12px;color:#6b8fa3;display:flex;align-items:center;gap:6px; }
-        .ab-ob-feat-grid {
-            display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:28px;
-        }
-        @media(max-width:700px){ .ab-ob-feat-grid { grid-template-columns:repeat(2,1fr); } }
-        .ab-ob-feat-tile {
-            background:#fff;border:1px solid #e5e7eb;border-left:3px solid #6366f1;
-            border-radius:6px;padding:9px 12px;font-size:12px;font-weight:500;color:#374151;
-            line-height:1.3;transition:transform .12s,box-shadow .12s,border-color .12s;cursor:pointer;
-            display:flex;flex-direction:column;gap:4px;
-        }
-        .ab-ob-feat-tile:hover {
-            transform:translateY(-2px);box-shadow:0 4px 12px rgba(99,102,241,.12);
-            border-color:#6366f1;
-        }
-        .ab-ob-feat-tile:hover .ab-ob-feat-tile-name { color:#6366f1; }
-        .ab-ob-feat-tile-top { display:flex;align-items:flex-start;justify-content:space-between;gap:6px; }
-        .ab-ob-feat-tile-name { font-size:12px;font-weight:600;color:#374151;line-height:1.3; }
-        .ab-ob-feat-rec {
-            font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-            background:#f0fdf4;color:#15803d;border:1px solid #86efac;
-            border-radius:3px;padding:2px 5px;white-space:nowrap;flex-shrink:0;margin-top:1px;
-        }
-        .ab-ob-feat-step1 {
-            font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-            background:#fff7ed;color:#c2410c;border:1px solid #fdba74;
-            border-radius:3px;padding:2px 5px;white-space:nowrap;flex-shrink:0;margin-top:1px;
-        }
-        .ab-ob-feat-tile-desc { font-size:11px;color:#6b7280;line-height:1.4;font-weight:400; }
-        .ab-ob-feat-chip span { font-size:16px; }
-        .ab-ob-step-label {
-            font-size:11px;font-weight:700;letter-spacing:.08em;
-            color:#6b7280;text-transform:uppercase;margin:0 0 14px;
-        }
-        .ab-ob-cards { display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px; }
-        @media (max-width:900px) { .ab-ob-cards { grid-template-columns:1fr; } }
-        .ab-ob-card {
-            background:#fff;border:2px solid #e5e7eb;border-radius:14px;overflow:hidden;
-            display:flex;flex-direction:column;
-            transition:transform .15s,box-shadow .15s,border-color .15s;
-        }
-        .ab-ob-card:hover { transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.10);border-color:#c7d2fe; }
-        .ab-ob-card.ab-ob-featured { border-color:#6366f1;box-shadow:0 4px 20px rgba(99,102,241,.18); }
-        .ab-ob-card.ab-ob-featured:hover { box-shadow:0 10px 30px rgba(99,102,241,.25); }
-        .ab-ob-card-header {
-            padding:20px 22px 18px;display:flex;flex-direction:column;gap:6px;
-        }
-        .ab-ob-header-free { background:#f0fdf4;border-bottom:1px solid #bbf7d0; }
-        .ab-ob-header-sub  { background:linear-gradient(135deg,#4338ca 0%,#6366f1 100%);border-bottom:none; }
-        .ab-ob-header-diy  { background:#0f172a;border-bottom:none; }
-        .ab-ob-card-body   { padding:20px 22px;display:flex;flex-direction:column;flex:1; }
-        .ab-ob-card-label {
-            display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;
-            text-transform:uppercase;padding:3px 9px;border-radius:4px;align-self:flex-start;
-        }
-        .ab-ob-label-free { background:#dcfce7;color:#15803d;border:1px solid #86efac; }
-        .ab-ob-label-sub  { background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3); }
-        .ab-ob-label-diy  { background:rgba(255,255,255,.1);color:#94a3b8;border:1px solid rgba(255,255,255,.15); }
-        .ab-ob-card-header h3 { font-size:17px;font-weight:700;margin:0; }
-        .ab-ob-header-free h3 { color:#14532d; }
-        .ab-ob-header-sub  h3 { color:#fff; }
-        .ab-ob-header-diy  h3 { color:#f1f5f9; }
-        .ab-ob-card .ab-ob-price { font-size:24px;font-weight:800;color:#6366f1;margin:0 0 2px; }
-        .ab-ob-card .ab-ob-price-sub { font-size:11px;color:#6b7280;margin:0 0 14px; }
-        .ab-ob-card .ab-ob-tagline { font-size:12px;color:#6b7280;margin:0 0 16px;line-height:1.5; }
-        .ab-ob-divider { border:none;border-top:1px solid #f3f4f6;margin:14px 0; }
-        .ab-ob-feat-list { list-style:none;margin:0 0 20px;padding:0;font-size:12px;line-height:1.9;color:#374151;flex:1; }
-        .ab-ob-feat-list li.locked { color:#9ca3af; }
-        .ab-ob-cta {
-            width:100%;padding:11px 0;font-size:14px;font-weight:700;
-            border-radius:8px;border:none;cursor:pointer;transition:opacity .15s,transform .1s;
-        }
-        .ab-ob-cta:hover { opacity:.9;transform:translateY(-1px); }
-        .ab-ob-cta:active { transform:translateY(0); }
-        .ab-ob-cta-free { background:#1d2327;color:#fff; }
-        .ab-ob-cta-sub  { background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff; }
-        .ab-ob-cta-diy  { background:#f3f4f6;color:#1d2327;border:1px solid #d1d5db!important; }
-        .ab-ob-next-hint { font-size:11px;color:#9ca3af;text-align:center;margin-top:8px; }
-        .ab-ob-form-row { margin-top:12px; }
-        .ab-ob-form-row input[type=email],
-        .ab-ob-form-row input[type=password] {
-            width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;
-            font-size:13px;box-sizing:border-box;margin-bottom:8px;
-        }
-        .ab-ob-provider-row { display:flex;gap:6px;margin-bottom:8px; }
-        .ab-ob-prov-btn {
-            flex:1;padding:6px 0;font-size:12px;font-weight:600;
-            border:2px solid #e5e7eb;background:#fff;border-radius:6px;cursor:pointer;color:#374151;
-        }
-        .ab-ob-prov-btn.active { border-color:#6366f1;background:#f0f0ff;color:#4338ca; }
-        .ab-ob-inline-btns { display:flex;gap:6px; }
-        .ab-ob-inline-btns button {
-            flex:1;padding:7px 0;font-size:12px;font-weight:600;border-radius:6px;cursor:pointer;
-        }
-        .ab-ob-msg { font-size:12px;margin:8px 0 0;display:none; }
-        .ab-ob-footer { text-align:center;padding:12px 0 4px; }
-        .ab-ob-footer a { font-size:12px;color:#6b7280;text-decoration:none; }
-        .ab-ob-footer a:hover { color:#374151; }
-        </style>
+        <?php /* Onboarding pane CSS is enqueued via admin_enqueue_assets() → onboarding_page_css(). */ ?>
 
         <div style="max-width:960px;margin:0 auto;padding:20px 4px 40px">
 
@@ -8708,7 +8604,7 @@ trait CS_SEO_Settings_Page {
                     <div class="ab-ob-form-row" id="ab-onboard-sub-form" style="display:none">
                         <label for="ab-onboard-email" style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px">Your email address</label>
                         <input type="email" id="ab-onboard-email"
-                            value="<?php echo $user_email; ?>"
+                            value="<?php echo esc_attr( $user_email ); ?>"
                             placeholder="your@email.com">
                         <p class="ab-ob-msg" id="ab-onboard-sub-msg" style="color:#b91c1c"></p>
                     </div>
@@ -8778,12 +8674,12 @@ trait CS_SEO_Settings_Page {
             </div>
 
             <?php /* ── Pending session polling ── */ ?>
-            <div id="ab-onboard-pending-session" data-session="<?php echo $proxy_ses; ?>" style="display:none"></div>
+            <div id="ab-onboard-pending-session" data-session="<?php echo esc_attr( $proxy_ses ); ?>" style="display:none"></div>
 
         </div>
         </div><!-- /ab-pane-start -->
 
-        <script>
+        <?php ob_start(); ?>
         (function(){
             var _ajax  = <?php echo json_encode(admin_url('admin-ajax.php')); ?>;
             var _nonce = <?php echo json_encode(wp_create_nonce('cs_seo_nonce')); ?>;
@@ -9021,14 +8917,14 @@ trait CS_SEO_Settings_Page {
                 }, 3000);
             }
         })();
-        </script>
+        <?php wp_add_inline_script('cs-seo-admin-js', ob_get_clean()); ?>
         <?php
     }
 
     /**
      * AJAX: marks onboarding as complete (sets cs_seo_welcome_shown=1).
      *
-     * @since 4.21.97
+     * @since 4.21.109
      */
     public function ajax_complete_onboarding(): void {
         $this->ajax_check();
@@ -9039,7 +8935,7 @@ trait CS_SEO_Settings_Page {
     /**
      * AJAX: saves API key from the onboarding DIY flow and marks onboarding complete.
      *
-     * @since 4.21.97
+     * @since 4.21.109
      */
     public function ajax_onboarding_save_key(): void {
         $this->ajax_check();
@@ -9097,5 +8993,124 @@ trait CS_SEO_Settings_Page {
             <p id="ab-proxy-subscribe-msg" style="display:none;margin-top:8px;font-size:13px"></p>
         </div>
     <?php }
+
+    /**
+     * Returns CSS for the onboarding pane enqueued via admin_enqueue_assets().
+     * Moved from an echoed <style> block to comply with PCP EscapeOutput rules.
+     *
+     * @since 4.21.112
+     * @return string
+     */
+    private function onboarding_page_css(): string {
+        return '
+        #ab-pane-start { background:#f6f7f7; }
+        .ab-ob-hero {
+            background: linear-gradient(135deg,#1d2327 0%,#2d3a45 60%,#1a3a4a 100%);
+            border-radius:16px; padding:40px 40px 36px; margin-bottom:28px;
+            display:flex; align-items:center; gap:32px; flex-wrap:wrap;
+        }
+        .ab-ob-hero-text { flex:1; min-width:260px; }
+        .ab-ob-hero-text h2 { font-size:26px;font-weight:800;color:#fff;margin:0 0 8px;line-height:1.2; }
+        .ab-ob-hero-text p  { font-size:14px;color:#9fb8c8;margin:0 0 20px;line-height:1.6; }
+        .ab-ob-hero-by { font-size:12px;color:#6b8fa3;display:flex;align-items:center;gap:6px; }
+        .ab-ob-feat-grid {
+            display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:28px;
+        }
+        @media(max-width:700px){ .ab-ob-feat-grid { grid-template-columns:repeat(2,1fr); } }
+        .ab-ob-feat-tile {
+            background:#fff;border:1px solid #e5e7eb;border-left:3px solid #6366f1;
+            border-radius:6px;padding:9px 12px;font-size:12px;font-weight:500;color:#374151;
+            line-height:1.3;transition:transform .12s,box-shadow .12s,border-color .12s;cursor:pointer;
+            display:flex;flex-direction:column;gap:4px;
+        }
+        .ab-ob-feat-tile:hover {
+            transform:translateY(-2px);box-shadow:0 4px 12px rgba(99,102,241,.12);
+            border-color:#6366f1;
+        }
+        .ab-ob-feat-tile:hover .ab-ob-feat-tile-name { color:#6366f1; }
+        .ab-ob-feat-tile-top { display:flex;align-items:flex-start;justify-content:space-between;gap:6px; }
+        .ab-ob-feat-tile-name { font-size:12px;font-weight:600;color:#374151;line-height:1.3; }
+        .ab-ob-feat-rec {
+            font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+            background:#f0fdf4;color:#15803d;border:1px solid #86efac;
+            border-radius:3px;padding:2px 5px;white-space:nowrap;flex-shrink:0;margin-top:1px;
+        }
+        .ab-ob-feat-step1 {
+            font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+            background:#fff7ed;color:#c2410c;border:1px solid #fdba74;
+            border-radius:3px;padding:2px 5px;white-space:nowrap;flex-shrink:0;margin-top:1px;
+        }
+        .ab-ob-feat-tile-desc { font-size:11px;color:#6b7280;line-height:1.4;font-weight:400; }
+        .ab-ob-feat-chip span { font-size:16px; }
+        .ab-ob-step-label {
+            font-size:11px;font-weight:700;letter-spacing:.08em;
+            color:#6b7280;text-transform:uppercase;margin:0 0 14px;
+        }
+        .ab-ob-cards { display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px; }
+        @media (max-width:900px) { .ab-ob-cards { grid-template-columns:1fr; } }
+        .ab-ob-card {
+            background:#fff;border:2px solid #e5e7eb;border-radius:14px;overflow:hidden;
+            display:flex;flex-direction:column;
+            transition:transform .15s,box-shadow .15s,border-color .15s;
+        }
+        .ab-ob-card:hover { transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.10);border-color:#c7d2fe; }
+        .ab-ob-card.ab-ob-featured { border-color:#6366f1;box-shadow:0 4px 20px rgba(99,102,241,.18); }
+        .ab-ob-card.ab-ob-featured:hover { box-shadow:0 10px 30px rgba(99,102,241,.25); }
+        .ab-ob-card-header {
+            padding:20px 22px 18px;display:flex;flex-direction:column;gap:6px;
+        }
+        .ab-ob-header-free { background:#f0fdf4;border-bottom:1px solid #bbf7d0; }
+        .ab-ob-header-sub  { background:linear-gradient(135deg,#4338ca 0%,#6366f1 100%);border-bottom:none; }
+        .ab-ob-header-diy  { background:#0f172a;border-bottom:none; }
+        .ab-ob-card-body   { padding:20px 22px;display:flex;flex-direction:column;flex:1; }
+        .ab-ob-card-label {
+            display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;
+            text-transform:uppercase;padding:3px 9px;border-radius:4px;align-self:flex-start;
+        }
+        .ab-ob-label-free { background:#dcfce7;color:#15803d;border:1px solid #86efac; }
+        .ab-ob-label-sub  { background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3); }
+        .ab-ob-label-diy  { background:rgba(255,255,255,.1);color:#94a3b8;border:1px solid rgba(255,255,255,.15); }
+        .ab-ob-card-header h3 { font-size:17px;font-weight:700;margin:0; }
+        .ab-ob-header-free h3 { color:#14532d; }
+        .ab-ob-header-sub  h3 { color:#fff; }
+        .ab-ob-header-diy  h3 { color:#f1f5f9; }
+        .ab-ob-card .ab-ob-price { font-size:24px;font-weight:800;color:#6366f1;margin:0 0 2px; }
+        .ab-ob-card .ab-ob-price-sub { font-size:11px;color:#6b7280;margin:0 0 14px; }
+        .ab-ob-card .ab-ob-tagline { font-size:12px;color:#6b7280;margin:0 0 16px;line-height:1.5; }
+        .ab-ob-divider { border:none;border-top:1px solid #f3f4f6;margin:14px 0; }
+        .ab-ob-feat-list { list-style:none;margin:0 0 20px;padding:0;font-size:12px;line-height:1.9;color:#374151;flex:1; }
+        .ab-ob-feat-list li.locked { color:#9ca3af; }
+        .ab-ob-cta {
+            width:100%;padding:11px 0;font-size:14px;font-weight:700;
+            border-radius:8px;border:none;cursor:pointer;transition:opacity .15s,transform .1s;
+        }
+        .ab-ob-cta:hover { opacity:.9;transform:translateY(-1px); }
+        .ab-ob-cta:active { transform:translateY(0); }
+        .ab-ob-cta-free { background:#1d2327;color:#fff; }
+        .ab-ob-cta-sub  { background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff; }
+        .ab-ob-cta-diy  { background:#f3f4f6;color:#1d2327;border:1px solid #d1d5db!important; }
+        .ab-ob-next-hint { font-size:11px;color:#9ca3af;text-align:center;margin-top:8px; }
+        .ab-ob-form-row { margin-top:12px; }
+        .ab-ob-form-row input[type=email],
+        .ab-ob-form-row input[type=password] {
+            width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;
+            font-size:13px;box-sizing:border-box;margin-bottom:8px;
+        }
+        .ab-ob-provider-row { display:flex;gap:6px;margin-bottom:8px; }
+        .ab-ob-prov-btn {
+            flex:1;padding:6px 0;font-size:12px;font-weight:600;
+            border:2px solid #e5e7eb;background:#fff;border-radius:6px;cursor:pointer;color:#374151;
+        }
+        .ab-ob-prov-btn.active { border-color:#6366f1;background:#f0f0ff;color:#4338ca; }
+        .ab-ob-inline-btns { display:flex;gap:6px; }
+        .ab-ob-inline-btns button {
+            flex:1;padding:7px 0;font-size:12px;font-weight:600;border-radius:6px;cursor:pointer;
+        }
+        .ab-ob-msg { font-size:12px;margin:8px 0 0;display:none; }
+        .ab-ob-footer { text-align:center;padding:12px 0 4px; }
+        .ab-ob-footer a { font-size:12px;color:#6b7280;text-decoration:none; }
+        .ab-ob-footer a:hover { color:#374151; }
+        ';
+    }
 
 }

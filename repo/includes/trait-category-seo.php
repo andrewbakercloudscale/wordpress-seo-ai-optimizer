@@ -83,7 +83,10 @@ trait CS_SEO_Category_SEO {
                 <input type="hidden" name="cs_seo_term_nonce" value="<?php echo esc_attr( $nonce ); ?>" />
             </td>
         </tr>
-        <script>
+        <?php
+        wp_register_script( 'cs-seo-catseo-js', false, [], self::VERSION, true );
+        wp_enqueue_script( 'cs-seo-catseo-js' );
+        ob_start(); ?>
         (function() {
             /* Meta description character counter */
             var descTA = document.getElementById('cs_seo_term_desc');
@@ -136,7 +139,7 @@ trait CS_SEO_Category_SEO {
                     });
             });
         })();
-        </script>
+        <?php wp_add_inline_script( 'cs-seo-catseo-js', ob_get_clean() ); ?>
         <?php
     }
 

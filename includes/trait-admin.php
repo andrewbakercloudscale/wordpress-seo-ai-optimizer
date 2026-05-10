@@ -146,6 +146,8 @@ trait CS_SEO_Admin {
         wp_add_inline_style('cs-seo-admin', '#wpfooter { display:none !important; } #wpcontent, #wpbody-content { padding-bottom:0 !important; }');
         // Settings page CSS — moved from an echoed <style> block to comply with PCP.
         wp_add_inline_style('cs-seo-admin', $this->admin_page_css());
+        wp_add_inline_style('cs-seo-admin', $this->onboarding_page_css());
+        wp_add_inline_style('cs-seo-admin', $this->audit_page_css());
 
         // Register a no-op script handle for inline scripts that have no external file.
         wp_register_script('cs-seo-admin-js', false, [], self::VERSION, true);
@@ -540,24 +542,23 @@ trait CS_SEO_Admin {
             $h_total     = (int) $health['total'];
             $h_built     = (int) $health['built_at'];
             $h_date      = gmdate('d M y', $h_built);
-            // Compute colour for each metric pill.
-            // Posts pill is always slate — it is the baseline, not a health signal.
-            // All other pills: green >= 90%, amber >= 60%, red < 60%.
-            $pill_color  = static function(int $count, int $total): string {
-                if ($total === 0) return '#6b7280'; // slate — nothing to measure
-                $pct = $count / $total * 100;
-                if ($pct >= 90) return '#16a34a'; // green
-                if ($pct >= 60) return '#d97706'; // amber
-                return '#dc2626'; // red
-            };
+        }
 
-            $pills = [
-                ['label' => 'Posts',     'value' => $h_total,                    'color' => '#2271b1'], // blue baseline
-                ['label' => 'SEO',       'value' => (int) $health['seo'],        'color' => $pill_color((int) $health['seo'],        $h_total)],
-                ['label' => 'Images',    'value' => (int) $health['images'],     'color' => $pill_color((int) $health['images'],     (int) $health['posts_with_images'])],
-                ['label' => 'Links',     'value' => (int) $health['links'],      'color' => $pill_color((int) $health['links'],      $h_total)],
-                ['label' => 'Summaries', 'value' => (int) $health['summaries'],  'color' => $pill_color((int) $health['summaries'],  $h_total)],
-            ];
+        // ── Site audit (latest scheduled run for this site only — never adhoc) ──
+        $audit_sched  = get_option('cs_seo_audit_history', []);
+        $last_sched   = (is_array($audit_sched) && !empty($audit_sched)) ? $audit_sched[0] : null;
+        $latest_audit = $last_sched;
+        $audit_score    = null;
+        $audit_fails    = 0;
+        $audit_warns    = 0;
+        $audit_date     = '';
+        if (is_array($latest_audit) && isset($latest_audit['overall'])) {
+            $audit_score = (int) $latest_audit['overall'];
+            $audit_date  = gmdate('d M y', (int)($latest_audit['timestamp'] ?? 0));
+            foreach ((array)($latest_audit['findings'] ?? []) as $f) {
+                if (($f['status'] ?? '') === 'fail') $audit_fails++;
+                if (($f['status'] ?? '') === 'warn') $audit_warns++;
+            }
         }
 
         // ── Batch status line ─────────────────────────────────────────────────
@@ -569,11 +570,9 @@ trait CS_SEO_Admin {
             : null;
 
         if (!$schedule_enabled) {
-            $batch_line  = '⏸ Batch disabled';
-            $batch_style = 'background:linear-gradient(135deg,#6b7280 0%,#4b5563 100%);box-shadow:0 3px 10px rgba(107,114,128,0.35);';
+            $batch_line = '⏸ Batch disabled';
         } elseif (!$last_run) {
-            $batch_line  = '⏳ Batch pending';
-            $batch_style = 'background:linear-gradient(135deg,#f59e0b 0%,#b45309 100%);box-shadow:0 3px 10px rgba(245,158,11,0.4);';
+            $batch_line = '⏳ Batch pending';
         } else {
             $date_fmt  = gmdate('d M y', strtotime($last_run['date'] ?? ''));
             $desc_done = (int) ($last_run['done']      ?? 0);
@@ -583,129 +582,379 @@ trait CS_SEO_Admin {
             $batch_line = 'Batch: ' . $date_fmt . ' · ' . $desc_done . ' Posts and ' . $alt_done . ' Images';
             if ($sum_done > 0) $batch_line .= ' and ' . $sum_done . ' Summaries';
             if ($errors) $batch_line .= ' · ' . $errors . ' err';
-            $batch_style = 'background:linear-gradient(135deg,#22c55e 0%,#15803d 100%);box-shadow:0 3px 10px rgba(34,197,94,0.4);';
+        }
+
+        // ── Donut chart maths ─────────────────────────────────────────────────
+        // Four rings (SEO, Images, Links, Summaries). Each ring sits on its own
+        // concentric circle. cx=cy=60, rings from r=46 (outer) down to r=22.
+        // stroke-dasharray trick: circumference * pct, circumference * (1-pct).
+        // Rings are only drawn when health data is available.
+        $donut_rings = [];
+        if ($health_valid && $h_total > 0) {
+            $ring_defs = [
+                ['key' => 'seo',       'label' => 'SEO',       'r' => 46, 'color' => '#818cf8', 'total' => $h_total],
+                ['key' => 'summaries', 'label' => 'Summaries', 'r' => 37, 'color' => '#34d399', 'total' => $h_total],
+                ['key' => 'links',     'label' => 'Links',     'r' => 29, 'color' => '#fb923c', 'total' => $h_total],
+                ['key' => 'images',    'label' => 'Images',    'r' => 21, 'color' => '#f472b6', 'total' => (int)($health['posts_with_images'] ?? $h_total)],
+            ];
+            foreach ($ring_defs as $rd) {
+                $val   = (int)($health[$rd['key']] ?? 0);
+                $denom = $rd['total'] > 0 ? $rd['total'] : 1;
+                $pct   = min(1.0, $val / $denom);
+                $circ  = round(2 * M_PI * $rd['r'], 2);
+                $filled  = round($circ * $pct, 2);
+                $gap     = round($circ * (1 - $pct), 2);
+                $donut_rings[] = [
+                    'label'  => $rd['label'],
+                    'val'    => $val,
+                    'denom'  => $rd['total'],
+                    'pct'    => $pct,
+                    'r'      => $rd['r'],
+                    'color'  => $rd['color'],
+                    'circ'   => $circ,
+                    'filled' => $filled,
+                    'gap'    => $gap,
+                ];
+            }
         }
         ?>
-        <div style="padding:4px 0 8px">
-            <p style="margin:0 0 10px;font-size:13px;color:#50575e;line-height:1.5">
-                CloudScale SEO AI Optimizer is keeping your site sharp —
-                meta descriptions, ALT text, sitemaps, and render-blocking scripts all handled.
-            </p>
-            <?php if ($health_valid): ?>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px">
-                <?php foreach ($pills as $pill): ?>
-                <span style="display:inline-flex;align-items:center;gap:5px;
-                             background:<?php echo esc_attr($pill['color']); ?>;
-                             color:#fff;font-size:11px;font-weight:700;
-                             padding:4px 10px;border-radius:20px;white-space:nowrap">
-                    <?php echo esc_html($pill['value'] . ' ' . $pill['label']); ?>
-                </span>
-                <?php endforeach; ?>
+        <div style="margin:-12px -12px 0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+
+            <?php /* ── Dark header band ──────────────────────────────────── */ ?>
+            <div style="background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 60%,#0f172a 100%);
+                        padding:14px 16px 12px;border-radius:0;
+                        border-bottom:1px solid rgba(99,102,241,0.25)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <span style="font-size:18px;line-height:1">🥷</span>
+                        <span style="color:#e2e8f0;font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase">
+                            SEO AI Optimizer
+                        </span>
+                    </div>
+                    <span style="background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);
+                                 color:#a5b4fc;font-size:10px;font-weight:700;letter-spacing:0.06em;
+                                 padding:2px 7px;border-radius:20px">
+                        v<?php echo esc_html(self::VERSION); ?>
+                    </span>
+                </div>
+                <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.4">
+                    Meta · ALT text · Sitemaps · Script optimisation
+                </p>
             </div>
-            <?php endif; ?>
-            <?php if ($health_valid): ?>
-            <p style="margin:0 0 10px;font-size:11px;color:#9ca3af">
-                Health data from <?php echo esc_html($h_date); ?> &middot;
-                <a href="#" id="cs-health-refresh"
-                   class="cs-hover-underline"
-                   style="color:#6366f1;text-decoration:none;font-weight:600">Refresh</a>
-                <span id="cs-health-refresh-status" style="margin-left:6px;color:#9ca3af"></span>
-            </p>
-            <?php ob_start(); ?>
-            document.getElementById('cs-health-refresh').addEventListener('click', function(e) {
-                e.preventDefault();
-                var status = document.getElementById('cs-health-refresh-status');
-                status.textContent = '⟳ Rebuilding…';
-                var params = new URLSearchParams({
-                    action: 'cs_seo_rebuild_health',
-                    nonce:  csSeoWidget.nonce
+
+            <?php /* ── Main body ──────────────────────────────────────────── */ ?>
+            <div style="padding:14px 16px 4px;background:#fff">
+
+                <?php if ($health_valid): ?>
+                <?php /* ── Donut + legend row ──────────────────────────────── */ ?>
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px">
+
+                    <?php /* Donut SVG */ ?>
+                    <div style="flex-shrink:0;position:relative;width:120px;height:120px">
+                        <svg width="120" height="120" viewBox="0 0 120 120"
+                             style="transform:rotate(-90deg);overflow:visible">
+                            <?php foreach ($donut_rings as $ring): ?>
+                            <?php /* track */ ?>
+                            <circle cx="60" cy="60"
+                                    r="<?php echo esc_attr((string)$ring['r']); ?>"
+                                    fill="none"
+                                    stroke="rgba(0,0,0,0.06)"
+                                    stroke-width="6"/>
+                            <?php /* filled arc */ ?>
+                            <circle cx="60" cy="60"
+                                    r="<?php echo esc_attr((string)$ring['r']); ?>"
+                                    fill="none"
+                                    stroke="<?php echo esc_attr($ring['color']); ?>"
+                                    stroke-width="6"
+                                    stroke-linecap="round"
+                                    stroke-dasharray="<?php echo esc_attr($ring['filled'] . ' ' . $ring['gap']); ?>"
+                                    style="transition:stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1)"/>
+                            <?php endforeach; ?>
+                        </svg>
+                        <?php /* Centre label */ ?>
+                        <div style="position:absolute;inset:0;display:flex;flex-direction:column;
+                                    align-items:center;justify-content:center;pointer-events:none;gap:1px">
+                            <span style="font-size:26px;font-weight:900;color:#0f172a;line-height:1;text-shadow:0 0 6px #fff,0 0 12px #fff,0 0 18px #fff">
+                                <?php echo esc_html((string)$h_total); ?>
+                            </span>
+                            <span style="font-size:11px;font-weight:900;color:#0f172a;letter-spacing:0.1em;text-transform:uppercase;line-height:1;text-shadow:0 0 4px #fff,0 0 8px #fff,0 0 12px #fff">
+                                posts
+                            </span>
+                        </div>
+                    </div>
+
+                    <?php /* Legend */ ?>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px">
+                        <?php /* Posts — baseline row */ ?>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+                                <span style="font-size:10px;font-weight:600;color:#475569;letter-spacing:0.03em">Posts</span>
+                                <span style="font-size:10px;font-weight:700;color:#2271b1"><?php echo esc_html((string)$h_total); ?></span>
+                            </div>
+                            <div style="height:4px;background:#f1f5f9;border-radius:2px;overflow:hidden">
+                                <div style="height:100%;width:100%;background:#2271b1;border-radius:2px"></div>
+                            </div>
+                        </div>
+                        <?php foreach ($donut_rings as $ring):
+                            $pct_int = (int)round($ring['pct'] * 100);
+                        ?>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+                                <span style="font-size:10px;font-weight:600;color:#475569;letter-spacing:0.03em">
+                                    <?php echo esc_html($ring['label']); ?>
+                                </span>
+                                <span style="font-size:10px;font-weight:700;color:<?php echo esc_attr($ring['color']); ?>">
+                                    <?php echo esc_html($ring['val'] . '/' . $ring['denom']); ?>
+                                    <span style="color:#94a3b8;font-weight:400">&nbsp;<?php echo esc_html((string)$pct_int); ?>%</span>
+                                </span>
+                            </div>
+                            <div style="height:4px;background:#f1f5f9;border-radius:2px;overflow:hidden">
+                                <div style="height:100%;width:<?php echo esc_attr((string)$pct_int); ?>%;
+                                            background:<?php echo esc_attr($ring['color']); ?>;
+                                            border-radius:2px;transition:width 0.8s ease"></div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <?php /* ── Health timestamp + refresh ───────────────────────── */ ?>
+                <div style="display:flex;align-items:center;justify-content:space-between;
+                            background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;
+                            padding:6px 10px;margin-bottom:12px">
+                    <span style="font-size:10px;color:#94a3b8">
+                        Data from <strong style="color:#64748b"><?php echo esc_html($h_date); ?></strong>
+                    </span>
+                    <a href="#" id="cs-health-refresh"
+                       style="font-size:10px;font-weight:700;color:#6366f1;text-decoration:none;
+                              display:inline-flex;align-items:center;gap:3px">
+                        <span style="font-size:11px">↺</span> Refresh
+                    </a>
+                    <span id="cs-health-refresh-status" style="font-size:10px;color:#94a3b8;display:none"></span>
+                </div>
+                <?php ob_start(); ?>
+                document.getElementById('cs-health-refresh').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var lnk    = this;
+                    var status = document.getElementById('cs-health-refresh-status');
+                    lnk.style.opacity = '0.4';
+                    status.style.display = 'inline';
+                    status.textContent = '⟳ Rebuilding…';
+                    var params = new URLSearchParams({
+                        action: 'cs_seo_rebuild_health',
+                        nonce:  csSeoWidget.nonce
+                    });
+                    fetch(csSeoWidget.ajaxUrl, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: params
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (d.success) { location.reload(); }
+                        else { status.textContent = '✗ Failed'; lnk.style.opacity = '1'; }
+                    })
+                    .catch(function() { status.textContent = '✗ Error'; lnk.style.opacity = '1'; });
                 });
-                fetch(csSeoWidget.ajaxUrl, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: params
-                })
-                .then(function(r) { return r.json(); })
-                .then(function(d) {
-                    if (d.success) { location.reload(); } else { status.textContent = '✗ Failed'; }
-                })
-                .catch(function() { status.textContent = '✗ Error'; });
-            });
-            <?php wp_add_inline_script('cs-seo-dashboard-js', ob_get_clean()); ?>
-            <?php else: ?>
-            <p style="margin:0 0 10px">
-                <button type="button" id="cs-health-run"
-                        style="background:#6366f1;color:#fff;border:none;border-radius:6px;
-                               font-size:12px;font-weight:700;padding:6px 14px;cursor:pointer">
-                    ▦ Run Health Check
-                </button>
-                <span id="cs-health-run-status" style="margin-left:8px;font-size:11px;color:#9ca3af"></span>
-            </p>
-            <?php ob_start(); ?>
-            document.getElementById('cs-health-run').addEventListener('click', function() {
-                var btn    = this;
-                var status = document.getElementById('cs-health-run-status');
-                btn.disabled = true;
-                status.textContent = '⟳ Building…';
-                var params = new URLSearchParams({
-                    action: 'cs_seo_rebuild_health',
-                    nonce:  csSeoWidget.nonce
+                <?php wp_add_inline_script('cs-seo-dashboard-js', ob_get_clean()); ?>
+
+                <?php else: ?>
+                <?php /* ── No health data yet ────────────────────────────────── */ ?>
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;
+                            padding:14px 16px;margin-bottom:12px;text-align:center">
+                    <p style="margin:0 0 8px;font-size:12px;color:#64748b">No health data yet.</p>
+                    <button type="button" id="cs-health-run"
+                            style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;
+                                   border:none;border-radius:6px;font-size:11px;font-weight:700;
+                                   padding:6px 14px;cursor:pointer;letter-spacing:0.04em">
+                        ▦ Run Health Check
+                    </button>
+                    <span id="cs-health-run-status" style="display:block;margin-top:6px;font-size:10px;color:#94a3b8"></span>
+                </div>
+                <?php ob_start(); ?>
+                document.getElementById('cs-health-run').addEventListener('click', function() {
+                    var btn    = this;
+                    var status = document.getElementById('cs-health-run-status');
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    status.textContent = '⟳ Building…';
+                    var params = new URLSearchParams({
+                        action: 'cs_seo_rebuild_health',
+                        nonce:  csSeoWidget.nonce
+                    });
+                    fetch(csSeoWidget.ajaxUrl, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: params
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (d.success) { location.reload(); }
+                        else { status.textContent = '✗ Failed'; btn.disabled = false; btn.style.opacity = '1'; }
+                    })
+                    .catch(function() { status.textContent = '✗ Error'; btn.disabled = false; btn.style.opacity = '1'; });
                 });
-                fetch(csSeoWidget.ajaxUrl, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: params
-                })
-                .then(function(r) { return r.json(); })
-                .then(function(d) {
-                    if (d.success) { location.reload(); } else { status.textContent = '✗ Failed'; btn.disabled = false; }
-                })
-                .catch(function() { status.textContent = '✗ Error'; btn.disabled = false; });
-            });
-            <?php wp_add_inline_script('cs-seo-dashboard-js', ob_get_clean()); ?>
-            <?php endif; ?>
-            <p style="margin:0 0 10px;font-size:12px;color:#6b7280;">
-                <?php if ( $missing_auto_run > 0 ) : ?>
-                <span style="color:#dc2626;font-weight:700;"><?php echo esc_html( (string) $missing_auto_run ); ?></span>
-                <?php esc_html_e( 'posts missing or outdated meta', 'cloudscale-seo-ai-optimizer' ); ?>
-                <?php else : ?>
-                <span style="color:#16a34a;font-weight:700;"><?php esc_html_e( 'All posts have up-to-date meta', 'cloudscale-seo-ai-optimizer' ); ?></span>
+                <?php wp_add_inline_script('cs-seo-dashboard-js', ob_get_clean()); ?>
                 <?php endif; ?>
-                <?php if ( $pending_pipeline > 0 ) : ?>
-                &middot;
-                <span style="color:#d97706;font-weight:700;"><?php echo esc_html( (string) $pending_pipeline ); ?></span>
-                <?php esc_html_e( 'pipeline job(s) queued', 'cloudscale-seo-ai-optimizer' ); ?>
+
+                <?php /* ── Site audit score strip ────────────────────────────── */ ?>
+                <?php if ($audit_score !== null):
+                    $a_color  = $audit_score >= 80 ? '#16a34a' : ($audit_score >= 60 ? '#d97706' : '#dc2626');
+                    $a_bg     = $audit_score >= 80 ? '#f0fdf4' : ($audit_score >= 60 ? '#fffbeb' : '#fef2f2');
+                    $a_label  = $audit_score >= 80 ? 'Good' : ($audit_score >= 60 ? 'Needs work' : 'Critical');
+                    $a_days   = $audit_date ? (int)round((time() - (int)($latest_audit['timestamp'] ?? 0)) / 86400) : null;
+                    $a_ago    = $a_days !== null ? ($a_days === 0 ? 'today' : ($a_days === 1 ? '1 day ago' : $a_days . ' days ago')) : $audit_date;
+                ?>
+                <a href="<?php echo esc_url(admin_url('tools.php?page=cs-seo-optimizer&tab=siteaudit')); ?>"
+                   style="display:flex;align-items:center;gap:14px;
+                          background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;
+                          padding:12px 14px;margin-bottom:12px;text-decoration:none;
+                          transition:border-color 0.15s"
+                   onmouseover="this.style.borderColor='#a5b4fc'" onmouseout="this.style.borderColor='#e2e8f0'">
+                    <?php /* Score circle */ ?>
+                    <div style="flex-shrink:0;width:52px;height:52px;border-radius:50%;
+                                border:3px solid <?php echo esc_attr($a_color); ?>;
+                                background:<?php echo esc_attr($a_bg); ?>;
+                                display:flex;align-items:center;justify-content:center">
+                        <span style="font-size:18px;font-weight:800;color:<?php echo esc_attr($a_color); ?>;line-height:1">
+                            <?php echo esc_html((string)$audit_score); ?>
+                        </span>
+                    </div>
+                    <?php /* Centre: label + date + badges */ ?>
+                    <div style="flex:1;min-width:0">
+                        <div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:2px">
+                            <?php echo esc_html($a_label); ?>
+                        </div>
+                        <div style="font-size:11px;color:#94a3b8;margin-bottom:8px">
+                            Audited <?php echo esc_html($a_ago); ?>
+                        </div>
+                        <div style="display:flex;gap:8px">
+                            <div style="background:<?php echo esc_attr( $audit_fails === 0 ? '#f0fdf4' : '#fef2f2' ); ?>;
+                                        border-radius:6px;padding:4px 10px;text-align:center;min-width:48px">
+                                <div style="font-size:15px;font-weight:800;color:<?php echo esc_attr( $audit_fails === 0 ? '#16a34a' : '#dc2626' ); ?>;line-height:1.2">
+                                    <?php echo esc_html((string)$audit_fails); ?>
+                                </div>
+                                <div style="font-size:8px;font-weight:700;color:<?php echo esc_attr( $audit_fails === 0 ? '#16a34a' : '#dc2626' ); ?>;letter-spacing:0.06em;text-transform:uppercase">
+                                    Critical
+                                </div>
+                            </div>
+                            <div style="background:<?php echo esc_attr( $audit_warns === 0 ? '#f8fafc' : '#fffbeb' ); ?>;
+                                        border-radius:6px;padding:4px 10px;text-align:center;min-width:48px">
+                                <div style="font-size:15px;font-weight:800;color:<?php echo esc_attr( $audit_warns === 0 ? '#64748b' : '#d97706' ); ?>;line-height:1.2">
+                                    <?php echo esc_html((string)$audit_warns); ?>
+                                </div>
+                                <div style="font-size:8px;font-weight:700;color:<?php echo esc_attr( $audit_warns === 0 ? '#64748b' : '#d97706' ); ?>;letter-spacing:0.06em;text-transform:uppercase">
+                                    Warnings
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php /* Right: quick actions */ ?>
+                    <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:stretch;min-width:90px">
+                        <span style="display:block;background:linear-gradient(135deg,#6366f1,#4f46e5);
+                                     color:#fff;font-size:10px;font-weight:700;letter-spacing:0.03em;
+                                     padding:5px 10px;border-radius:5px;text-align:center">
+                            View Report
+                        </span>
+                        <span onclick="event.preventDefault();event.stopPropagation();
+                                       window.location='<?php echo esc_js(admin_url('tools.php?page=cs-seo-optimizer&tab=siteaudit')); ?>';"
+                              style="display:block;background:#f1f5f9;border:1px solid #e2e8f0;
+                                     color:#475569;font-size:10px;font-weight:700;letter-spacing:0.03em;
+                                     padding:5px 10px;border-radius:5px;text-align:center;cursor:pointer">
+                            Run Audit
+                        </span>
+                        <span onclick="event.preventDefault();event.stopPropagation();
+                                       window.location='<?php echo esc_js(admin_url('tools.php?page=cs-seo-optimizer&tab=siteaudit')); ?>';"
+                              style="display:block;background:#f1f5f9;border:1px solid #e2e8f0;
+                                     color:#475569;font-size:10px;font-weight:700;letter-spacing:0.03em;
+                                     padding:5px 10px;border-radius:5px;text-align:center;cursor:pointer">
+                            Fix Issues
+                        </span>
+                    </div>
+                </a>
                 <?php endif; ?>
-            </p>
-            <?php
-                preg_match( '/box-shadow:([^;]+)/', $batch_style, $bs_m );
-                $batch_shadow_orig = trim( $bs_m[1] ?? '' );
-            ?>
-            <div style="display:flex;flex-direction:column;gap:10px">
-                <a href="<?php echo esc_url(admin_url('tools.php?page=cs-seo-optimizer&tab=batch')); ?>"
-                   class="cs-widget-link"
-                   style="display:flex;align-items:center;justify-content:center;gap:8px;
-                          <?php echo esc_attr($batch_style); ?>
-                          color:#fff;font-weight:700;font-size:13px;padding:10px 16px;
-                          border-radius:8px;text-decoration:none;letter-spacing:0.02em;
-                          transition:background 0.15s ease,box-shadow 0.15s ease,letter-spacing 0.15s ease;"
-                   onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.28)';this.style.letterSpacing='0.06em';"
-                   onmouseout="this.style.boxShadow='<?php echo esc_attr( $batch_shadow_orig ); ?>';this.style.letterSpacing='0.02em';">
-                    <?php echo esc_html($batch_line); ?>
-                </a>
-                <a href="<?php echo esc_url(admin_url('tools.php?page=cs-seo-optimizer')); ?>"
-                   class="cs-widget-link"
-                   style="display:flex;align-items:center;justify-content:center;gap:8px;
-                          background:linear-gradient(135deg,#0ea5e9 0%,#0369a1 100%);
-                          color:#fff;font-weight:700;font-size:13px;padding:10px 16px;
-                          border-radius:8px;text-decoration:none;
-                          box-shadow:0 3px 10px rgba(14,165,233,0.35);letter-spacing:0.02em;
-                          transition:background 0.15s ease,box-shadow 0.15s ease,letter-spacing 0.15s ease;"
-                   onmouseover="this.style.background='linear-gradient(135deg,#38bdf8 0%,#0284c7 100%)';this.style.boxShadow='0 8px 24px rgba(3,105,161,0.55)';this.style.letterSpacing='0.06em';"
-                   onmouseout="this.style.background='linear-gradient(135deg,#0ea5e9 0%,#0369a1 100%)';this.style.boxShadow='0 3px 10px rgba(14,165,233,0.35)';this.style.letterSpacing='0.02em';">
-                    <span style="font-size:15px">🔭</span> View SEO AI Optimizer
-                </a>
-            </div>
+
+                <?php /* ── Status strip: missing meta + pipeline queue ─────── */ ?>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                    <?php if ($missing_auto_run > 0): ?>
+                    <div style="display:inline-flex;align-items:center;gap:5px;
+                                background:#fef2f2;border:1px solid #fecaca;
+                                border-radius:5px;padding:4px 9px">
+                        <span style="width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0"></span>
+                        <span style="font-size:10px;font-weight:600;color:#dc2626">
+                            <?php echo esc_html((string)$missing_auto_run); ?> posts missing meta
+                        </span>
+                    </div>
+                    <?php else: ?>
+                    <div style="display:inline-flex;align-items:center;gap:5px;
+                                background:#f0fdf4;border:1px solid #bbf7d0;
+                                border-radius:5px;padding:4px 9px">
+                        <span style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span>
+                        <span style="font-size:10px;font-weight:600;color:#16a34a">All meta up-to-date</span>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($pending_pipeline > 0): ?>
+                    <div style="display:inline-flex;align-items:center;gap:5px;
+                                background:#fffbeb;border:1px solid #fde68a;
+                                border-radius:5px;padding:4px 9px">
+                        <span style="font-size:10px;font-weight:600;color:#d97706">
+                            ⟳ <?php echo esc_html((string)$pending_pipeline); ?> job<?php echo $pending_pipeline !== 1 ? 's' : ''; ?> queued
+                        </span>
+                    </div>
+                    <?php endif; ?>
+                </div>
+
+                <?php /* ── CTA buttons ───────────────────────────────────────── */ ?>
+                <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:12px">
+                    <?php
+                        if (!$schedule_enabled) {
+                            $btn_bg     = 'linear-gradient(135deg,#6b7280 0%,#4b5563 100%)';
+                            $btn_shadow = 'rgba(107,114,128,0.35)';
+                            $btn_icon   = '⏸';
+                        } elseif (!$last_run) {
+                            $btn_bg     = 'linear-gradient(135deg,#f59e0b 0%,#b45309 100%)';
+                            $btn_shadow = 'rgba(245,158,11,0.4)';
+                            $btn_icon   = '⏳';
+                        } else {
+                            $btn_bg     = 'linear-gradient(135deg,#22c55e 0%,#15803d 100%)';
+                            $btn_shadow = 'rgba(34,197,94,0.4)';
+                            $btn_icon   = '✓';
+                        }
+                    ?>
+                    <a href="<?php echo esc_url(admin_url('tools.php?page=cs-seo-optimizer&tab=batch')); ?>"
+                       style="display:flex;align-items:center;justify-content:space-between;
+                              background:<?php echo esc_attr($btn_bg); ?>;
+                              color:#fff;font-weight:700;font-size:12px;
+                              padding:9px 14px;border-radius:7px;text-decoration:none;
+                              box-shadow:0 3px 12px <?php echo esc_attr($btn_shadow); ?>;
+                              transition:opacity 0.15s ease,transform 0.15s ease"
+                       onmouseover="this.style.opacity='0.9';this.style.transform='translateY(-1px)'"
+                       onmouseout="this.style.opacity='1';this.style.transform='translateY(0)'">
+                        <span style="display:flex;align-items:center;gap:6px">
+                            <span style="font-size:13px"><?php echo esc_html($btn_icon); ?></span>
+                            <span><?php echo esc_html($batch_line); ?></span>
+                        </span>
+                        <span style="opacity:0.6;font-size:11px">→</span>
+                    </a>
+                    <a href="<?php echo esc_url(admin_url('tools.php?page=cs-seo-optimizer')); ?>"
+                       style="display:flex;align-items:center;justify-content:space-between;
+                              background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%);
+                              color:#c7d2fe;font-weight:700;font-size:12px;
+                              padding:9px 14px;border-radius:7px;text-decoration:none;
+                              box-shadow:0 3px 12px rgba(99,102,241,0.3);
+                              border:1px solid rgba(99,102,241,0.3);
+                              transition:opacity 0.15s ease,transform 0.15s ease"
+                       onmouseover="this.style.opacity='0.9';this.style.transform='translateY(-1px)'"
+                       onmouseout="this.style.opacity='1';this.style.transform='translateY(0)'">
+                        <span style="display:flex;align-items:center;gap:6px">
+                            <span style="font-size:14px">🔭</span>
+                            <span>Open SEO AI Optimizer</span>
+                        </span>
+                        <span style="opacity:0.4;font-size:11px">→</span>
+                    </a>
+                </div>
+
+            </div><?php /* end main body */ ?>
         </div>
     <?php }
 

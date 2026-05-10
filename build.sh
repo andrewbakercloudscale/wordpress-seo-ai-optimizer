@@ -185,7 +185,7 @@ rsync -a \
   --exclude='*.zip' --exclude='*.sh' --exclude='*.xml' \
   --exclude='*.json' \
   --exclude='*.jpg' --exclude='*.png' --exclude='*.svg' \
-  --exclude='repo/' --exclude='docs/' --exclude='tests/' \
+  --exclude='repo/' --exclude='docs/' --exclude='tests/' --exclude='proxy-api/' \
   --exclude='node_modules/' --exclude='svn-assets/' \
   --exclude='playwright-report/' --exclude='playwright.config.js' \
   --exclude='reddit-post.js' --exclude='reddit-submit.js' \

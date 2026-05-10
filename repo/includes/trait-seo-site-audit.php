@@ -777,7 +777,7 @@ trait CS_SEO_Site_Audit {
                     Running checks — this may take 20–40 seconds&hellip;
                 </div>
 
-                <div id="cs-audit-results" <?php echo $latest ? '' : 'style="display:none"'; ?>>
+                <div id="cs-audit-results" <?php if ( ! $latest ) echo 'style="display:none"'; ?>>
                     <?php $this->render_seo_audit_dashboard( $latest ); ?>
                 </div>
 
@@ -836,22 +836,9 @@ trait CS_SEO_Site_Audit {
         </div>
         <?php endif; ?>
 
-        <style>
-        @keyframes cs-spin { to { transform:rotate(360deg); } }
-        .cs-audit-hero { display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;background:#0f172a;border-radius:8px;padding:28px;margin-bottom:20px }
-        .cs-audit-hero-info { display:flex;align-items:center;gap:20px;flex-shrink:0 }
-        .cs-audit-hero-grid { flex:1;display:flex;flex-wrap:wrap;gap:8px;min-width:0 }
-        .cs-audit-bar-lbl { width:190px;flex-shrink:0;color:#3d3d3d }
-        @media (max-width:782px) {
-            .cs-audit-hero { flex-direction:column;padding:18px }
-            .cs-audit-hero-info { width:100% }
-            .cs-audit-hero-grid { width:100%;flex:none;display:grid;grid-template-columns:repeat(2,1fr);gap:8px }
-            .cs-audit-hero-grid .cs-audit-score-card { min-width:0 !important }
-            .cs-audit-bar-lbl { width:120px;font-size:11px }
-        }
-        </style>
+        <?php /* Audit CSS is enqueued via admin_enqueue_assets() → audit_page_css(). */ ?>
 
-        <script>
+        <?php ob_start(); ?>
         (function(){
             var history  = <?php echo wp_json_encode( array_slice( $history, 0, 50 ) ); ?>;
             var ajaxUrl  = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
@@ -1107,7 +1094,7 @@ trait CS_SEO_Site_Audit {
             }
 
         })();
-        </script>
+        <?php wp_add_inline_script('cs-seo-admin-js', ob_get_clean()); ?>
         <?php
     }
 
@@ -1275,7 +1262,7 @@ trait CS_SEO_Site_Audit {
             'security_headers'                   => [ 'tab' => '',        'label' => 'Open DevTools',         'sel' => '',                         'href' => $devtools_url ],
         ];
         ?>
-        <script>
+        <?php ob_start(); ?>
         function csAuditFix(tab, sel, href) {
             if (href) { window.location.href = href; return; }
             var tabEl = tab ? document.querySelector('.ab-tab[data-tab="' + tab + '"]') : null;
@@ -1403,7 +1390,7 @@ trait CS_SEO_Site_Audit {
             btn.style.background = '#10b981';
             setStatus(done + '/' + total + ' categories updated. Re-run audit to confirm.');
         }
-        </script>
+        <?php wp_add_inline_script('cs-seo-admin-js', ob_get_clean()); ?>
         <!-- Findings table -->
         <div style="background:#fff;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden">
             <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#50575e;padding:12px 16px;border-bottom:1px solid #e0e0e0">All Findings (<?php echo count( $findings ); ?>)</div>
@@ -1485,13 +1472,9 @@ trait CS_SEO_Site_Audit {
                                     ⚡ Add 301 Redirects
                                 </button>
                                 <span style="display:block;font-size:10px;color:#6b7280;margin-top:3px"></span>
-                            <?php elseif ( $ca['label'] ) :
-                                $js_tab  = esc_js( $ca['tab'] ?? '' );
-                                $js_sel  = esc_js( $ca['sel'] ?? '' );
-                                $js_href = esc_js( $ca['href'] ?? '' );
-                                ?>
+                            <?php elseif ( $ca['label'] ) : ?>
                                 <button type="button"
-                                    onclick="csAuditFix('<?php echo $js_tab; ?>','<?php echo $js_sel; ?>','<?php echo $js_href; ?>')"
+                                    onclick="csAuditFix('<?php echo esc_js( $ca['tab'] ?? '' ); ?>','<?php echo esc_js( $ca['sel'] ?? '' ); ?>','<?php echo esc_js( $ca['href'] ?? '' ); ?>')"
                                     style="padding:4px 11px;font-size:11px;font-weight:600;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap">
                                     &#9656; <?php echo esc_html( $ca['label'] ); ?>
                                 </button>
@@ -1507,5 +1490,29 @@ trait CS_SEO_Site_Audit {
 
         </div><!-- /cs-audit-detail-section -->
         <?php
+    }
+
+    /**
+     * Returns CSS for the site audit panel enqueued via admin_enqueue_assets().
+     * Moved from an echoed <style> block to comply with PCP EscapeOutput rules.
+     *
+     * @since 4.21.112
+     * @return string
+     */
+    private function audit_page_css(): string {
+        return '
+        @keyframes cs-spin { to { transform:rotate(360deg); } }
+        .cs-audit-hero { display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;background:#0f172a;border-radius:8px;padding:28px;margin-bottom:20px }
+        .cs-audit-hero-info { display:flex;align-items:center;gap:20px;flex-shrink:0 }
+        .cs-audit-hero-grid { flex:1;display:flex;flex-wrap:wrap;gap:8px;min-width:0 }
+        .cs-audit-bar-lbl { width:190px;flex-shrink:0;color:#3d3d3d }
+        @media (max-width:782px) {
+            .cs-audit-hero { flex-direction:column;padding:18px }
+            .cs-audit-hero-info { width:100% }
+            .cs-audit-hero-grid { width:100%;flex:none;display:grid;grid-template-columns:repeat(2,1fr);gap:8px }
+            .cs-audit-hero-grid .cs-audit-score-card { min-width:0 !important }
+            .cs-audit-bar-lbl { width:120px;font-size:11px }
+        }
+        ';
     }
 }
