@@ -8998,7 +8998,7 @@ trait CS_SEO_Settings_Page {
      * Returns CSS for the onboarding pane enqueued via admin_enqueue_assets().
      * Moved from an echoed <style> block to comply with PCP EscapeOutput rules.
      *
-     * @since 4.21.112
+     * @since 4.21.113
      * @return string
      */
     private function onboarding_page_css(): string {
