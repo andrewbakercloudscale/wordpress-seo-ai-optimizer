@@ -919,13 +919,30 @@ ${img(panel.file, panel.label)}
         const outPath = path.join(SCREENSHOTS, panel.file);
 
         if (panel.trimRows) {
-            // Hide table rows beyond the first 2 before screenshotting, then restore
+            // Hide table rows beyond the first 2 and scrub any post/user data in visible rows
             await page.evaluate((cls) => {
                 const c = document.querySelector('.' + cls);
                 if (!c) return;
                 c.querySelectorAll('tbody tr').forEach((row, i) => {
                     row.dataset.docHidden = i >= 2 ? '1' : '0';
-                    if (i >= 2) row.style.display = 'none';
+                    if (i >= 2) { row.style.display = 'none'; return; }
+                    // Scrub description/title/post-name cells so no real content is visible
+                    row.querySelectorAll('td').forEach(td => {
+                        td.dataset.docOrig = td.innerHTML;
+                        // Replace any text node content that looks like a sentence (>20 chars)
+                        td.querySelectorAll('p, span, div, a').forEach(el => {
+                            if (el.children.length === 0 && el.textContent.trim().length > 20) {
+                                el.dataset.docOrig = el.textContent;
+                                el.textContent = '— example content —';
+                            }
+                        });
+                        // Also blank direct text nodes in the td itself
+                        Array.from(td.childNodes).forEach(n => {
+                            if (n.nodeType === 3 && n.textContent.trim().length > 20) {
+                                n.data = '— example content —';
+                            }
+                        });
+                    });
                 });
             }, panel.cardClass);
 
@@ -934,7 +951,16 @@ ${img(panel.file, panel.label)}
             await page.evaluate((cls) => {
                 const c = document.querySelector('.' + cls);
                 if (!c) return;
-                c.querySelectorAll('tbody tr').forEach(row => { row.style.display = ''; delete row.dataset.docHidden; });
+                c.querySelectorAll('tbody tr').forEach(row => {
+                    row.style.display = '';
+                    delete row.dataset.docHidden;
+                    row.querySelectorAll('td').forEach(td => {
+                        if (td.dataset.docOrig !== undefined) { td.innerHTML = td.dataset.docOrig; delete td.dataset.docOrig; }
+                        td.querySelectorAll('p, span, div, a').forEach(el => {
+                            if (el.dataset.docOrig !== undefined) { el.textContent = el.dataset.docOrig; delete el.dataset.docOrig; }
+                        });
+                    });
+                });
             }, panel.cardClass);
         } else {
             await bodyEl.screenshot({ path: outPath, animations: 'disabled' });
