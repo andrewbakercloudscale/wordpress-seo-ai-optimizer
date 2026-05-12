@@ -266,19 +266,27 @@ trait CS_SEO_Related_Articles {
         wp_register_style( 'cs-rc-styles', false ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- inline-only handle; no external file or version needed
         wp_enqueue_style( 'cs-rc-styles' );
         wp_add_inline_style( 'cs-rc-styles', implode('', [
-            '.cs-rc-link:hover{text-decoration:underline}',
-            '.cs-rc-style-2 .cs-rc-link:hover,.cs-rc-style-8 .cs-rc-link:hover{color:#fff!important}',
-            '.cs-rc-style-3 .cs-rc-link:hover{color:#2563eb!important}',
+            // Animated underline slide-in + subtle lift — uses currentColor so it matches per-style link colour.
+            '.cs-rc-link{text-decoration:none!important;display:inline-block;background-image:linear-gradient(currentColor,currentColor);background-size:0 2px;background-position:0 100%;background-repeat:no-repeat;transition:background-size .28s ease,color .18s ease,transform .18s ease;}',
+            '.cs-rc-link:hover{background-size:100% 2px;transform:translateY(-2px);}',
+            // Base colours — override theme !important rules that turn links black.
+            '.cs-rc-style-1.cs-rc-top .cs-rc-link{color:#4f46e5!important}',
+            '.cs-rc-style-1.cs-rc-bottom .cs-rc-link{color:#0e7490!important}',
+            '.cs-rc-style-2 .cs-rc-link,.cs-rc-style-8 .cs-rc-link,.cs-rc-style-14 .cs-rc-link,.cs-rc-style-15 .cs-rc-link{color:#fff!important}',
+            '.cs-rc-style-3 .cs-rc-link,.cs-rc-style-5 .cs-rc-link,.cs-rc-style-10 .cs-rc-link,.cs-rc-style-16 .cs-rc-link,.cs-rc-style-17 .cs-rc-link,.cs-rc-style-18 .cs-rc-link{color:#374151!important}',
+            '.cs-rc-style-4 .cs-rc-link,.cs-rc-style-19 .cs-rc-link,.cs-rc-style-20 .cs-rc-link{color:#1f2937!important}',
+            '.cs-rc-style-6 .cs-rc-link{color:#111827!important}',
+            '.cs-rc-style-7 .cs-rc-link{color:#0891b2!important}',
+            '.cs-rc-style-9 .cs-rc-link{color:#1e40af!important}',
+            '.cs-rc-style-11 .cs-rc-link{color:#16a34a!important}',
+            '.cs-rc-style-12 .cs-rc-link{color:#e11d48!important}',
+            '.cs-rc-style-13 .cs-rc-link{color:#ea580c!important}',
+            // Hover — shift to accent colour on styles where base is neutral gray/dark.
+            '.cs-rc-style-3 .cs-rc-link:hover,.cs-rc-style-16 .cs-rc-link:hover{color:#2563eb!important}',
             '.cs-rc-style-4 .cs-rc-link:hover{color:#059669!important}',
             '.cs-rc-style-5 .cs-rc-link:hover{color:#64748b!important}',
             '.cs-rc-style-6 .cs-rc-link:hover{color:#dc2626!important}',
-            '.cs-rc-style-9 .cs-rc-link:hover{color:#1e40af!important}',
             '.cs-rc-style-10 .cs-rc-link:hover{color:#374151!important}',
-            '.cs-rc-style-11 .cs-rc-link:hover{color:#16a34a!important}',
-            '.cs-rc-style-12 .cs-rc-link:hover{color:#e11d48!important}',
-            '.cs-rc-style-13 .cs-rc-link:hover{color:#ea580c!important}',
-            '.cs-rc-style-14 .cs-rc-link:hover,.cs-rc-style-15 .cs-rc-link:hover{color:#fff!important}',
-            '.cs-rc-style-16 .cs-rc-link:hover{color:#0d9488!important}',
             '.cs-rc-style-17 .cs-rc-link:hover{color:#e11d48!important}',
             '.cs-rc-style-18 .cs-rc-link:hover{color:#d97706!important}',
             '.cs-rc-style-19 .cs-rc-link:hover{color:#475569!important}',

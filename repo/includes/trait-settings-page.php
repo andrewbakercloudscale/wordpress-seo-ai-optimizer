@@ -2505,6 +2505,7 @@ trait CS_SEO_Settings_Page {
                     </p>
                     <div class="ab-ai-toolbar">
                         <button id="imgseo-scan-btn" class="button button-primary ab-action-btn"><?php esc_html_e( '🔍 Scan Media Library', 'cloudscale-seo-ai-optimizer' ); ?></button>
+                        <button id="imgseo-rename-all-btn" class="button ab-action-btn" style="display:none;background:#7c3aed;color:#fff;border-color:#6d28d9"><?php esc_html_e( '✎ Rename All', 'cloudscale-seo-ai-optimizer' ); ?></button>
                         <span id="imgseo-status" style="font-size:13px;color:#50575e"></span>
                     </div>
                     <div id="imgseo-summary" class="ab-summary-row" style="display:none">
@@ -2512,6 +2513,12 @@ trait CS_SEO_Settings_Page {
                         <div class="ab-summary-card"><div class="ab-summary-num" id="imgseo-missing-alt" style="color:#9b1c1c">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Missing ALT', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
                         <div class="ab-summary-card"><div class="ab-summary-num" id="imgseo-bad-fname" style="color:#92400e">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Bad Filenames', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
                         <div class="ab-summary-card"><div class="ab-summary-num" id="imgseo-large" style="color:#7c3aed">0</div><div class="ab-summary-lbl"><?php esc_html_e( 'Large Files (>500KB)', 'cloudscale-seo-ai-optimizer' ); ?></div></div>
+                    </div>
+                    <div id="imgseo-filter-bar" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+                        <button class="imgseo-filter-btn button" data-filter="all" style="font-weight:700"><?php esc_html_e( 'All', 'cloudscale-seo-ai-optimizer' ); ?></button>
+                        <button class="imgseo-filter-btn button" data-filter="bad_filename"><?php esc_html_e( '⚠ Bad Filename', 'cloudscale-seo-ai-optimizer' ); ?></button>
+                        <button class="imgseo-filter-btn button" data-filter="missing_alt"><?php esc_html_e( '❌ Missing ALT', 'cloudscale-seo-ai-optimizer' ); ?></button>
+                        <button class="imgseo-filter-btn button" data-filter="large_file"><?php esc_html_e( '📦 Large File', 'cloudscale-seo-ai-optimizer' ); ?></button>
                     </div>
                     <div id="imgseo-results-wrap" style="overflow-x:auto;display:none">
                         <table class="ab-posts" id="imgseo-table">
@@ -7765,6 +7772,14 @@ trait CS_SEO_Settings_Page {
                 }
                 if(wrap) wrap.style.display='block';
                 if(allOk) allOk.style.display='none';
+                var filterBar=document.getElementById('imgseo-filter-bar');
+                if(filterBar){ filterBar.style.display='flex'; }
+                // reset active filter pill to All
+                document.querySelectorAll('.imgseo-filter-btn').forEach(function(b){ b.style.fontWeight= b.dataset.filter==='all'?'700':'400'; });
+                // show Rename All button when any bad-filename images have a suggested name
+                var renameAllBtn=document.getElementById('imgseo-rename-all-btn');
+                var hasRenameable=data.images.some(function(i){ return i.issues.indexOf('bad_filename')!==-1&&i.suggested_name; });
+                if(renameAllBtn){ renameAllBtn.style.display=hasRenameable?'':'none'; renameAllBtn.disabled=false; renameAllBtn.textContent='✎ Rename All'; }
                 tbody.innerHTML='';
                 data.images.forEach(function(img){
                     var badges=img.issues.map(function(issue){
@@ -7781,20 +7796,120 @@ trait CS_SEO_Settings_Page {
                     var altCell=img.alt
                         ? '<span style="font-size:12px;color:#1a7a34">'+imgEsc(img.alt.substring(0,60))+(img.alt.length>60?'\u2026':'')+'</span>'
                         : '<span style="color:#9b1c1c;font-style:italic;font-size:12px">None</span>';
+                    var canRename=img.issues.indexOf('bad_filename')!==-1&&img.suggested_name;
+                    var actionCell='';
+                    if(canRename){
+                        actionCell='<button class="button button-small imgseo-rename-btn" style="background:#7c3aed;color:#fff;border-color:#6d28d9;display:block;width:100%;white-space:nowrap" '+
+                            'data-attach-id="'+imgEsc(String(img.id))+'" '+
+                            'data-suggested="'+imgEsc(img.suggested_name)+'">'+
+                            '\u270e Rename \u2192 '+imgEsc(img.suggested_name)+'</button>';
+                    } else {
+                        actionCell='<a href="'+imgEsc(img.edit_url)+'" class="button button-small" target="_blank">Edit</a>';
+                    }
                     var tr=document.createElement('tr');
+                    tr.dataset.issues=img.issues.join(',');
                     tr.innerHTML=
                         '<td style="text-align:center">'+thumb+'</td>'+
-                        '<td style="font-size:12px;word-break:break-all"><a href="'+imgEsc(img.edit_url)+'" target="_blank">'+imgEsc(img.filename)+'</a></td>'+
+                        '<td class="imgseo-fname-cell" style="font-size:12px;word-break:break-all"><a href="'+imgEsc(img.edit_url)+'" target="_blank">'+imgEsc(img.filename)+'</a></td>'+
                         '<td>'+parentCell+'</td>'+
                         '<td style="white-space:nowrap;font-size:12px">'+imgFmt(img.filesize)+'</td>'+
                         '<td>'+altCell+'</td>'+
-                        '<td>'+badges+'</td>'+
-                        '<td><a href="'+imgEsc(img.edit_url)+'" class="button button-small" target="_blank">Edit</a></td>';
+                        '<td class="imgseo-badges-cell">'+badges+'</td>'+
+                        '<td>'+actionCell+'</td>';
                     tbody.appendChild(tr);
                 });
             }
 
             document.addEventListener('DOMContentLoaded', function() {
+                // Rename All Featured — sequential with live progress in status bar.
+                var renameAllBtn2=document.getElementById('imgseo-rename-all-btn');
+                if(renameAllBtn2){
+                    renameAllBtn2.addEventListener('click',function(){
+                        var pending=Array.from(document.querySelectorAll('.imgseo-rename-btn')).filter(function(b){ return !b.disabled&&b.style.background!=='rgb(26, 122, 52)'; });
+                        if(!pending.length) return;
+                        renameAllBtn2.disabled=true;
+                        var status=document.getElementById('imgseo-status');
+                        var done=0, total=pending.length;
+                        function next(){
+                            if(!pending.length){
+                                renameAllBtn2.textContent='✓ All renamed ('+done+')';
+                                if(status) status.textContent='Renamed '+done+' of '+total+' featured images.';
+                                return;
+                            }
+                            var btn=pending.shift();
+                            var attachId=btn.dataset.attachId;
+                            if(status) status.textContent='Renaming '+(done+1)+' / '+total+'…';
+                            btn.disabled=true; btn.textContent='⟳ Renaming…';
+                            imgPost({action:'cs_seo_imgseo_rename_featured',attach_id:attachId})
+                                .then(function(r){
+                                    if(r.success){
+                                        var row=btn.closest('tr');
+                                        if(row){ var fnCell=row.querySelector('.imgseo-fname-cell'); if(fnCell) fnCell.textContent=r.data.filename; }
+                                        btn.style.background='#1a7a34'; btn.style.borderColor='#1a7a34';
+                                        btn.textContent='✓ '+r.data.filename;
+                                        done++;
+                                    } else {
+                                        btn.disabled=false;
+                                        btn.style.background='#9b1c1c'; btn.style.borderColor='#9b1c1c';
+                                        btn.textContent='✗ '+((r.data&&(r.data.message||r.data))||'Failed');
+                                    }
+                                }).catch(function(err){
+                                    btn.disabled=false; btn.style.background='#9b1c1c'; btn.style.borderColor='#9b1c1c';
+                                    btn.textContent='✗ '+err.message;
+                                }).finally(function(){ next(); });
+                        }
+                        next();
+                    });
+                }
+
+                // Issue filter pills.
+                document.querySelectorAll('.imgseo-filter-btn').forEach(function(filterBtn){
+                    filterBtn.addEventListener('click',function(){
+                        var f=filterBtn.dataset.filter;
+                        document.querySelectorAll('.imgseo-filter-btn').forEach(function(b){ b.style.fontWeight='400'; });
+                        filterBtn.style.fontWeight='700';
+                        document.querySelectorAll('#imgseo-tbody tr').forEach(function(row){
+                            row.style.display=(f==='all'||row.dataset.issues.indexOf(f)!==-1)?'':'none';
+                        });
+                    });
+                });
+
+                // Rename featured image handler \u2014 event-delegated on tbody.
+                var tbody2=document.getElementById('imgseo-tbody');
+                if(tbody2){
+                    tbody2.addEventListener('click',function(e){
+                        var btn=e.target.closest('.imgseo-rename-btn');
+                        if(!btn) return;
+                        var attachId=btn.dataset.attachId;
+                        var suggested=btn.dataset.suggested;
+                        if(!attachId||!suggested) return;
+                        btn.disabled=true; btn.textContent='\u27f3 Renaming\u2026';
+                        imgPost({action:'cs_seo_imgseo_rename_featured',attach_id:attachId})
+                            .then(function(r){
+                                if(r.success){
+                                    var row=btn.closest('tr');
+                                    if(row){
+                                        var fnCell=row.querySelector('.imgseo-fname-cell');
+                                        if(fnCell) fnCell.textContent=r.data.filename;
+                                        var bdgCell=row.querySelector('.imgseo-badges-cell');
+                                        if(bdgCell){
+                                            bdgCell.innerHTML=bdgCell.innerHTML.replace(/<span[^>]*>\u26a0[\s\S]*?bad[^<]*<\/span>/gi,'');
+                                        }
+                                    }
+                                    btn.style.background='#1a7a34'; btn.style.borderColor='#1a7a34';
+                                    btn.textContent='\u2713 Renamed to '+r.data.filename;
+                                } else {
+                                    btn.disabled=false;
+                                    btn.textContent='\u2717 '+((r.data&&(r.data.message||r.data))||'Rename failed');
+                                    btn.style.background='#9b1c1c'; btn.style.borderColor='#9b1c1c';
+                                }
+                            }).catch(function(err){
+                                btn.disabled=false; btn.textContent='\u2717 '+err.message;
+                                btn.style.background='#9b1c1c'; btn.style.borderColor='#9b1c1c';
+                            });
+                    });
+                }
+
                 var btn=document.getElementById('imgseo-scan-btn');
                 if(!btn) return;
                 btn.addEventListener('click', async function(){
@@ -8998,7 +9113,7 @@ trait CS_SEO_Settings_Page {
      * Returns CSS for the onboarding pane enqueued via admin_enqueue_assets().
      * Moved from an echoed <style> block to comply with PCP EscapeOutput rules.
      *
-     * @since 4.21.115
+     * @since 4.21.123
      * @return string
      */
     private function onboarding_page_css(): string {
