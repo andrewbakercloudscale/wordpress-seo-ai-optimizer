@@ -514,10 +514,15 @@ trait CS_SEO_Metabox {
      */
     public function on_thumbnail_updated(int $meta_id, int $post_id, string $meta_key, mixed $meta_value): void {
         if ($meta_key !== '_thumbnail_id') return;
-        // Only clear if our custom OG image field is set — if it's empty, nothing to do.
+        // Clear custom per-post OG image override when featured image changes.
         $custom = get_post_meta($post_id, self::META_OGIMG, true);
         if ($custom) {
             delete_post_meta($post_id, self::META_OGIMG);
+        }
+        // Eagerly generate the letterbox so the file exists before first page view.
+        $att_id = (int) $meta_value;
+        if ($att_id > 0) {
+            $this->generate_og_letterbox($att_id);
         }
     }
 

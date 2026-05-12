@@ -1496,7 +1496,7 @@ trait CS_SEO_Site_Audit {
      * Returns CSS for the site audit panel enqueued via admin_enqueue_assets().
      * Moved from an echoed <style> block to comply with PCP EscapeOutput rules.
      *
-     * @since 4.21.113
+     * @since 4.21.115
      * @return string
      */
     private function audit_page_css(): string {

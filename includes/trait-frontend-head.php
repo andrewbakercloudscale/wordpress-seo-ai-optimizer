@@ -392,10 +392,22 @@ trait CS_SEO_Frontend_Head {
      * @param int $attachment_id WordPress attachment ID.
      * @return string|false URL of the letterboxed image, or false on failure.
      */
-    private function generate_og_letterbox(int $attachment_id): string|false {
-        // Return cached result if already generated.
+    protected function generate_og_letterbox(int $attachment_id): string|false {
+        // Return cached result if already generated AND the file still exists.
         $cached = get_post_meta($attachment_id, '_cs_seo_og_letterbox_url', true);
-        if ($cached) return $cached;
+        if ($cached) {
+            $upload_dir = wp_upload_dir();
+            $base_url   = trailingslashit($upload_dir['baseurl']);
+            $base_dir   = trailingslashit($upload_dir['basedir']);
+            if (str_starts_with($cached, $base_url)) {
+                $file_path = $base_dir . substr($cached, strlen($base_url));
+                if (file_exists($file_path)) return $cached;
+            } else {
+                return $cached; // external URL — trust it
+            }
+            // Stale cache — file gone. Delete and regenerate below.
+            delete_post_meta($attachment_id, '_cs_seo_og_letterbox_url');
+        }
 
         // GD is required.
         if (!function_exists('imagecreatefromjpeg') || !function_exists('imagecreatetruecolor')) {

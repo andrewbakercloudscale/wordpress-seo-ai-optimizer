@@ -29,7 +29,7 @@ if (!BASE_URL || !COOKIES || !REST_USER || !REST_PASS || !DOCS_DIR) {
     process.exit(1);
 }
 
-const LOGO_URL    = 'https://andrewbaker.ninja/wp-content/uploads/2026/04/cloudscale-seo-ai-icon.jpg';
+const LOGO_URL    = 'https://andrewbaker.ninja/wp-content/uploads/2026/05/cloudscale-seo-icon-2.jpg';
 const PLUGIN_PAGE = `${BASE_URL}/wp-admin/tools.php?page=cs-seo-optimizer`;
 const SCREENSHOTS = path.join(DOCS_DIR, 'screenshots');
 const REST_BASE   = `${BASE_URL}/wp-json/wp/v2`;
